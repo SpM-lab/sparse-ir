@@ -1,0 +1,14 @@
+# https://editorconfig.org
+root = true
+
+# Respect git trailing whitespace rules
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+# Enforce python indentation
+[*.py]
+indent_style = space
+indent_size = 4

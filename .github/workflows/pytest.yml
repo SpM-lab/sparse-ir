@@ -1,0 +1,37 @@
+name: irbasis3 python package
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            numpy-version: 1.16
+            python-version: 3.6
+          - os: ubuntu-latest
+            numpy-version: auto
+            python-version: 3.9
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install numpy ${{ matrix.numpy-version }}
+        if: ${{ matrix.numpy-version != 'auto' }}
+        run: |
+          pip install numpy==1.16
+
+      - name: Install package with testing dependencies
+        run: |
+          pip install .[test]
+
+      - name: Test with pytest
+        run: |
+          pytest
