@@ -94,21 +94,9 @@ class PiecewiseLegendrePoly:
         ddata *= scale.reshape(_scale_shape)
         return self.__class__(ddata, self.knots, self.dx)
 
-    def hat(self, wn):
-        """Evaluate the Fourier transform at given frequency index
-
-        For a given frequency index `n`, compute the Fourier transform:
-
-                    ∫ dx exp(0.5j * pi * n * x) p(x)
-        """
-        wn = np.asarray(wn)
-        if not np.issubdtype(wn.dtype, np.integer):
-            raise RuntimeError("n must be integer")
-        if self.xmin != -1 or self.xmax != 1:
-            raise NotImplementedError("only interval [-1, 1] supported")
-
-        result_flatw = _compute_unl(self, wn.ravel())
-        return result_flatw.reshape(wn.shape + result_flatw.shape[1:])
+    def hat(self, freq):
+        """Get Fourier transformed object"""
+        return PiecewiseLegendreFT(self, freq)
 
     def roots(self, alpha=2):
         """Find all roots of the piecewise polynomial
@@ -146,37 +134,84 @@ class PiecewiseLegendrePoly:
         return i, xtilde
 
 
+class PiecewiseLegendreFT:
+    """Fourier transform of a piecewise Legendre polynomial.
+
+    For a given frequency index `n`, the Fourier transform of the Legendre
+    function is defined as:
+
+            phat(n) == ∫ dx exp(1j * pi * n * x / (xmax - xmin)) p(x)
+
+    The polynomial is continued either periodically (`freq='even'`), in which
+    case `n` must be even, or antiperiodically (`freq='odd'`), in which case
+    `n` must be odd.
+    """
+    _DEFAULT_GRID = np.hstack([np.arange(2**6),
+                        (2**np.linspace(6, 25, 16*(25-6)+1)).astype(int)])
+
+    def __init__(self, poly, freq='even'):
+        if poly.xmin != -1 or poly.xmax != 1:
+            raise NotImplementedError("Only interval [-1, 1] supported")
+        self.poly = poly
+        self.freq = freq
+        self.zeta = {'even': 0, 'odd': 1}[freq]
+
+    def __getitem__(self, l):
+        return self.__class__(self.poly[l], self.freq)
+
+    def __call__(self, n):
+        """Obtain Fourier transform of polynomial for given frequencies"""
+        n = self._check_domain(n)
+        result_flat = _compute_unl(self.poly, n.ravel())
+        return result_flat.reshape(n.shape + result_flat.shape[1:])
+
+    def extrema(self, part=None, grid=None):
+        """Obtain extrema of fourier-transformed polynomial."""
+        if self.poly.shape:
+            raise ValueError("select single polynomial")
+        if grid is None:
+            grid = self._DEFAULT_GRID
+        if part is None:
+            parity = self.poly(self.poly.xmax) / self.poly(self.poly.xmin)
+            if np.allclose(parity, 1):
+                part = 'real' if self.zeta == 0 else 'imag'
+            elif np.allclose(parity, -1):
+                part = 'imag' if self.zeta == 0 else 'real'
+            else:
+                raise ValueError("cannot detect parity.")
+        if part == 'real':
+            f = lambda n: self(2*n + self.zeta).real
+        elif part == 'imag':
+            f = lambda n: self(2*n + self.zeta).imag
+        else:
+            raise ValueError("part must be either 'real' or 'imag'")
+
+        x0 = _roots.discrete_extrema(f, PiecewiseLegendreFT._DEFAULT_GRID)
+        x0 = 2 * x0 + self.zeta
+        if x0[0] == 0:
+            x0 = np.hstack([-x0[::-1], x0[1:]])
+        else:
+            x0 = np.hstack([-x0[::-1], x0])
+        return x0
+
+    def _check_domain(self, n):
+        n = np.asarray(n)
+        if np.issubdtype(n.dtype, np.integer):
+            nint = n
+        else:
+            nint = n.astype(int)
+            if not (n == nint).all():
+                raise ValueError("n must be integers")
+        if not (nint % 2 == self.zeta).all():
+            raise ValueError("n have wrong parity")
+        return nint
+
+
 def sampling_points_x(poly):
     maxima = poly.deriv().roots()
     left = .5 * (maxima[:1] + poly.xmin)
     right = .5 * (maxima[-1:] + poly.xmax)
     return np.concatenate([left, maxima, right])
-
-
-_XGRID = np.hstack([np.arange(2**6),
-                    (2**np.linspace(6, 25, 16*(25-6)+1)).astype(int)])
-
-
-def find_hat_extrema(poly, part, zeta):
-    """Obtain extrema of fourier-transformed polynomial."""
-    if poly.ndim != 0:
-        raise ValueError("select single polynomial")
-    if zeta not in (0, 1):
-        raise ValueError("zeta must be either 0 or 1")
-    if part == 'real':
-        f = lambda n: poly.hat(2*n + zeta).real
-    elif part == 'imag':
-        f = lambda n: poly.hat(2*n + zeta).imag
-    else:
-        raise ValueError("part must be either 'real' or 'imag'")
-
-    x0 = _roots.discrete_extrema(f, _XGRID)
-    x0 = 2 * x0 + zeta
-    if x0[0] == 0:
-        x0 = np.hstack([-x0[::-1], x0[1:]])
-    else:
-        x0 = np.hstack([-x0[::-1], x0])
-    return x0
 
 
 def _imag_power(n):

@@ -57,8 +57,8 @@ def test_num_roots_u(bases, stat, lambda_):
 @pytest.mark.parametrize("stat,lambda_", BASES)
 def test_num_roots_uhat(bases, stat, lambda_):
     u, s, v = bases[stat, lambda_]
-    zeta = {'B': 0, 'F': 1}[stat]
+    freq = {'B': 'even', 'F': 'odd'}[stat]
+    uhat = poly.PiecewiseLegendreFT(u, freq)
     for i in [0, 1, 7, 10]:
-        part = ['real', 'imag'][(i + zeta) % 2]
-        x0 = poly.find_hat_extrema(u[i], part, zeta)
+        x0 = uhat[i].extrema()
         assert i + 1 <= x0.size <= i + 2

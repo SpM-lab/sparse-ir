@@ -93,6 +93,7 @@ class KernelFFlat(KernelBase):
     def __init__(self, lambda_):
         super().__init__()
         self.lambda_ = lambda_
+        self.statistics = 'F'
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)"""
@@ -173,6 +174,7 @@ class KernelBFlat(KernelBase):
     def __init__(self, lambda_):
         super().__init__()
         self.lambda_ = lambda_
+        self.statistics = 'B'
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)"""
