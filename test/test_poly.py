@@ -1,3 +1,5 @@
+# Copyright (C) 2020-2021 Markus Wallerberger and others
+# SPDX-License-Identifier: MIT
 import numpy as np
 from irbasis3 import sve
 from irbasis3 import kernel

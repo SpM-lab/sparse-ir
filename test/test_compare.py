@@ -1,4 +1,5 @@
-from types import LambdaType
+# Copyright (C) 2020-2021 Markus Wallerberger and others
+# SPDX-License-Identifier: MIT
 import numpy as np
 import pytest
 

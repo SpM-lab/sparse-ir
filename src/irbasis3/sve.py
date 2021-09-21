@@ -1,6 +1,5 @@
 # Copyright (C) 2020-2021 Markus Wallerberger and others
 # SPDX-License-Identifier: MIT
-
 from warnings import warn
 import numpy as np
 

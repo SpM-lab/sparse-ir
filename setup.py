@@ -1,6 +1,5 @@
 # Copyright (C) 2020-2021 Markus Wallerberger and others
 # SPDX-License-Identifier: MIT
-
 import io, os.path, re
 from setuptools import setup, find_packages
 

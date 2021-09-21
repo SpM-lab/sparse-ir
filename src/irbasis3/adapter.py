@@ -1,3 +1,5 @@
+# Copyright (C) 2020-2021 Markus Wallerberger and others
+# SPDX-License-Identifier: MIT
 """
 Drop-in replacement for the irbasis module.
 
@@ -7,10 +9,7 @@ you should be able to replace `irbasis` with `irbasis3.adapter` and
 everything should hopefully still work.
 
 Note however that on-the-fly computation typically has lower accuracy.  Thus,
-by default we only populate the basis down to singular values of 1e-10.
-
-Copyright (C) 2020-2021 Markus Wallerberger and others
-SPDX-License-Identifier: MIT
+by default we only populate the basis down to singular values of 1.5e-8.
 """
 import numpy as _np
 
