@@ -8,4 +8,4 @@ __version__ = "3.0-alpha1"
 
 from .kernel import KernelFFlat, KernelBFlat
 from .sve import compute as compute_sve
-from .basis import IRBasis
+from .basis import IRBasis, FiniteTempBasis
