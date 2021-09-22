@@ -120,7 +120,7 @@ class KernelFFlat(KernelBase):
         segments_x = self._segments_x()
         segments_y = self._segments_y()
         nsvals = self._nsvals()
-        ngauss = 10
+        ngauss = 10 if eps >= 1e-8 else 16
         return SVEHints(segments_x, segments_y, ngauss, nsvals)
 
     def _segments_x(self):
@@ -209,7 +209,7 @@ class KernelBFlat(KernelBase):
         segments_x = self._segments_x()
         segments_y = self._segments_y()
         nsvals = self._nsvals()
-        ngauss = 10
+        ngauss = 10 if eps >= 1e-8 else 16
         return SVEHints(segments_x, segments_y, ngauss, nsvals)
 
     def _segments_x(self):

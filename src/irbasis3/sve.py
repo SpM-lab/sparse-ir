@@ -91,6 +91,7 @@ class SamplingSVE:
         if n_gauss is None:
             n_gauss = sve_hints.ngauss
 
+        self.eps = eps
         self.n_gauss = n_gauss
         self.nsvals_hint = sve_hints.nsvals
         self._rule = _gauss.legendre(n_gauss, dtype)
@@ -167,6 +168,7 @@ class CentrosymmSVE:
         if InnerSVE is None:
             InnerSVE = SamplingSVE
         self.K = K
+        self.eps = eps
 
         # Inner kernels for even and odd functions
         self.even = InnerSVE(K.get_symmetrized(+1), eps, n_gauss, dtype)
@@ -211,7 +213,7 @@ class CentrosymmSVE:
         v_data = np.concatenate([v_neg, v_data], axis=1)
 
         # TODO: this relies on specific symmetrization behaviour ...
-        full_hints = self.K.hints(None)
+        full_hints = self.K.hints(self.eps)
         u = poly.PiecewiseLegendrePoly(u_data, full_hints.segments_x)
         v = poly.PiecewiseLegendrePoly(v_data, full_hints.segments_y)
         return u, s, v
