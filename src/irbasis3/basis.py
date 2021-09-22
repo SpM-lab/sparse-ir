@@ -6,6 +6,29 @@ from . import sve
 
 
 class IRBasis:
+    """Truncated intermediate representation (IR) basis.
+
+    For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
+    imaginary time, τ ∈ [0, β], this class stores the truncated singular
+    value expansion or IR basis:
+
+        K(x, y) ≈ sum(u[l](x) * s[l] * v[l](y) for l in range(L))
+
+    The functions are given in reduced variables, `x = 2*τ/β - 1` and
+    `y = ω/ωmax`, which scales both sides to the interval `[-1, 1]`.  The
+    kernel then only depends on a cutoff parameter `Λ = β * ωmax`.
+
+    Members:
+    --------
+     - `u`: IR basis functions on the reduced imaginary time (`x`) axis.
+     - `s`: singular values of the continuation kernel
+     - `v`: IR basis functions on the scaled real frequency (`y`) axis.
+     - `uhat`: IR basis functions on the Matsubara frequency axis (`wn`).
+
+    See also:
+    ---------
+     - `FiniteTempBasis`: for a basis directly in time/frequency.
+    """
     def __init__(self, kernel, eps=None, sve_result=None):
         self.kernel = kernel
         if sve_result is None:
@@ -15,20 +38,36 @@ class IRBasis:
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
 
-        even_odd = {'F': 'odd', 'B': 'even'}[kernel.statistics]
+        _even_odd = {'F': 'odd', 'B': 'even'}[kernel.statistics]
         self.u = u
-        self.uhat = u.hat(even_odd)
+        self.uhat = u.hat(_even_odd)
         self.s = s
         self.v = v
 
+    def __getitem__(self, index):
+        """Return basis functions/singular values for given index/indices.
+
+        This can be used to truncate the basis to the n most significant
+        singular values: `basis[:3]`.
+        """
+        sve_result = self.u[index], self.s[index], self.v[index]
+        return self.__class__(self.kernel, sve_result=sve_result)
+
     @property
     def lambda_(self):
+        """Basis cutoff parameter Λ = β * ωmax"""
         return self.kernel.lambda_
 
     @property
     def statistics(self):
+        """Statistics: 'F' for fermions, 'B' for bosons."""
         return self.kernel.statistics
 
     @property
     def size(self):
+        """Number of basis functions / singular values."""
         return self.u.size
+
+    @property
+    def shape(self):
+        return self.u.shape
