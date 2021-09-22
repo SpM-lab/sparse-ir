@@ -10,12 +10,15 @@ everything should hopefully still work.
 
 Note however that on-the-fly computation typically has lower accuracy.  Thus,
 by default we only populate the basis down to singular values of 1.5e-8.
+You can change this by setting the `ACCURACY` parameter.
 """
 import numpy as _np
 
 from . import kernel as _kernel
 from . import poly as _poly
 from . import sve as _sve
+
+ACCURACY = 1.5e-8
 
 
 def load(statistics, Lambda, h5file=None):
@@ -26,7 +29,7 @@ def load(statistics, Lambda, h5file=None):
     else:
         raise ValueError("Unknown statistics")
 
-    u, s, v = _sve.compute(K, eps=1.5e-8)
+    u, s, v = _sve.compute(K, eps=ACCURACY)
     return Basis(statistics, Lambda, u, s, v)
 
 
