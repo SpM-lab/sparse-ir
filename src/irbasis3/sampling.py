@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 
+from . import svd
+
 
 class DecomposedMatrix:
     """Matrix in SVD decomposed form for fast and accurate fitting.
@@ -16,12 +18,14 @@ class DecomposedMatrix:
     @classmethod
     def from_matrix(cls, a, eps=None):
         """Construct decomposition from matrix"""
-        u, s, vt = np.linalg.svd(a, full_matrices=False)
+        u, s, v = svd.compute(a, strategy='accurate')
         where = s.astype(bool) if eps is None else s/s[0] <= eps
         if not where.all():
             u = u[:, where]
             s = s[where]
-            vt = vt[where]
+            vt = v.T[where]
+        else:
+            vt = v.T
         return cls(u, s, vt)
 
     def __init__(self, u, s, vt):
