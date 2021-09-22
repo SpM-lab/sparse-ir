@@ -163,7 +163,7 @@ class PiecewiseLegendreFT:
         """Obtain Fourier transform of polynomial for given frequencies"""
         n = self._check_domain(n)
         result_flat = _compute_unl(self.poly, n.ravel())
-        return result_flat.reshape(n.shape + result_flat.shape[1:])
+        return result_flat.reshape(result_flat.shape[:-1] + n.shape)
 
     def extrema(self, part=None, grid=None):
         """Obtain extrema of fourier-transformed polynomial."""
@@ -289,8 +289,8 @@ def _compute_unl(poly, wn):
     # Perform the following, but faster:
     #   resulth = einsum('pin,pil->nl', t_pin, data_sc)
     npi = poly.polyorder * poly.nsegments
-    result_flat = t_pin.reshape(npi,-1).T.dot(data_sc.reshape(npi,-1))
-    return result_flat.reshape(wn.size, *poly.data.shape[2:])
+    result_flat = t_pin.reshape(npi,-1).T.dot(data_sc.reshape(npi,-1)).T
+    return result_flat.reshape(*poly.data.shape[2:], wn.size)
 
 
 def _refine_grid(knots, alpha):

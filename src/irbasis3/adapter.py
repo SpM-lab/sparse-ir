@@ -74,10 +74,10 @@ class Basis:
 
     def compute_unl(self, n, whichl=None):
         """Compute transformation matrix from IR to Matsubara frequencies"""
-        n = _np.asarray(n)
+        n = _np.ravel(n)
         freq = {'F': 'odd', 'B': 'even'}[self._statistics]
         uhat = _select(self._u, whichl).hat(freq)
-        return uhat(2 * n + uhat.zeta)
+        return uhat(2 * n + uhat.zeta).T
 
     def num_sections_x(self):
         "Number of sections of piecewise polynomial representation of u_l(x)"

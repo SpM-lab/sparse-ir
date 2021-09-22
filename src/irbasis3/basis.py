@@ -25,6 +25,19 @@ class IRBasis:
      - `v`: IR basis functions on the scaled real frequency (`y`) axis.
      - `uhat`: IR basis functions on the Matsubara frequency axis (`wn`).
 
+    Code example:
+    -------------
+
+        # Compute IR basis suitable for β*W <= 42
+        import irbasis3
+        K = irbasis3.KernelFFlat(lambda_=42)
+        basis = irbasis3.IRBasis(K)
+
+        # Assume spectrum is a single pole at x = 0.2, compute G(iw)
+        # on the first few Matsubara frequencies
+        gl = basis.s * basis.v(0.2)
+        giw = gl @ basis.uhat([1, 3, 5, 7])
+
     See also:
     ---------
      - `FiniteTempBasis`: for a basis directly in time/frequency.
