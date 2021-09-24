@@ -6,8 +6,8 @@ import pytest
 from irbasis3.basis import FiniteTempBasis
 from irbasis3.kernel import KernelFFlat, KernelBFlat
 
-#all_basis_sets = [(kernel, lambda_) for kernel in [KernelFFlat, KernelBFlat] for lambda_ in [1E+1, 1E+2, 1E+4, 1E+6]]
-all_basis_sets = [(kernel, lambda_) for kernel in [KernelBFlat] for lambda_ in [1E+2]]
+all_basis_sets = [(kernel, lambda_) for kernel in [KernelFFlat] for lambda_ in [1E+1, 1E+2, 1E+4, 1E+7]]
+#all_basis_sets = [(kernel, lambda_) for kernel in [KernelBFlat] for lambda_ in [1E+4]]
 
 """
 A pole at omega=pole. Compare analytic results of G(iwn) and numerical results computed by using unl.
@@ -42,8 +42,9 @@ def test_single_pole(K, lambda_):
     magnitude = np.abs(Giwn_ref).max()
     diff = np.abs(Giwn_t - Giwn_ref)
 
+    tol = max(100 * basis.s[-1]/basis.s[0], 1e-10)
+
     # Absolute error
-    tol = 100 * basis.s[-1]/basis.s[0]
     assert (diff/magnitude).max() < tol
 
     # Relative error
