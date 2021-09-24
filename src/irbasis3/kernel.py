@@ -15,13 +15,15 @@ class KernelBase:
     where `x ∈ [xmin, xmax]` and `y ∈ [ymin, ymax]`.  For its SVE to exist,
     the kernel must be square-integrable, for its singular values to decay
     exponentially, it must be smooth.
+    `ypower` is the power of `y` in the front of the kernel.
     """
-    def __init__(self, xmin=-1, xmax=1, ymin=-1, ymax=1):
-        """Initialize a kernel over [xmin, xmax] x [ymin, ymax]"""
+    def __init__(self, xmin=-1, xmax=1, ymin=-1, ymax=1, ypower=0):
+        """Initialize a kernel over [xmin, xmax] x [ymin, ymax] with ypower"""
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
         self.ymax = ymax
+        self.ypower = ypower
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)
@@ -172,7 +174,7 @@ class KernelBFlat(KernelBase):
     Care has to be taken in evaluating this expression around `y == 0`.
     """
     def __init__(self, lambda_):
-        super().__init__()
+        super().__init__(ypower=1)
         self.lambda_ = lambda_
         self.statistics = 'B'
 
@@ -248,6 +250,14 @@ class KernelBFlat(KernelBase):
         if sign == -1:
             return _KernelBFlatOdd(self, sign)
         return super().get_symmetrized(sign)
+
+class KernelNewBFlat(KernelFFlat):
+    """New bosonic analytical continuation kernel.
+    This kernel has the same function form as KernelFFlat. 
+    """
+    def __init__(self, lambda_):
+        super().__init__(lambda_)
+        self.statistics = 'B'
 
 
 class ReducedKernel(KernelBase):

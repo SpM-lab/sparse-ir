@@ -148,15 +148,7 @@ class FiniteTempBasis:
         # the correspondence between U.hat and Uhat though.
         _even_odd = {'F': 'odd', 'B': 'even'}[kernel.statistics]
         self.uhat = u.__class__(np.sqrt(beta) * u.data, u.knots).hat(_even_odd)
-
-        # TODO: this is a bit hackish, but at least it should break in a
-        # well-defined way if someone tries to add a kernel.
-        if isinstance(kernel, _kernel.KernelBFlat):
-            self.s = np.sqrt(beta/2 * wmax**3) * s
-        else:
-            if not isinstance(kernel, _kernel.KernelFFlat):
-                warn("Unknown kernel: guessing scaling of singular values...")
-            self.s = np.sqrt(beta/2 * wmax) * s
+        self.s = np.sqrt(beta/2 * wmax) * (wmax**(-kernel.ypower)) * s
 
     @property
     def wmax(self):

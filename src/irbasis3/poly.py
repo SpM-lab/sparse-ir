@@ -16,6 +16,8 @@ class PiecewiseLegendrePoly:
     """
     def __init__(self, data, knots, dx=None):
         """Piecewise Legendre polynomial"""
+        if np.isnan(data).any():
+            raise ValueError("PiecewiseLegendrePoly: data contains NaN!")
         if isinstance(knots, self.__class__):
             self.__dict__.update(knots.__dict__)
             self.data = data
@@ -273,8 +275,91 @@ def _phase_stable(poly, wn):
     corr = _imag_power((extra_shift[:,None] + 1) * wn[None,:])
     return corr * phase_shifted
 
+def _power_moments(stat, deriv_x1):
+    """Return moments"""
+    statsign = {'F': -1, 'B': 1}[stat]
+    mmax, lmax = deriv_x1.shape
+    m = np.arange(mmax)[:,None]
+    l = np.arange(lmax)[None,:]
+    coeff_lm = ((-1.0)**(m+1) + statsign * (-1.0)**l) * deriv_x1
+    return -statsign/np.sqrt(2.0) * coeff_lm
+
+class _PowerModel:
+    """Model from a high-frequency series expansion:
+
+        A(iw) = sum(A[n] / (iw)**(n+1) for n in range(1, N))
+
+    where `iw == 1j * pi/2 * wn` is a reduced imaginary frequency, i.e.,
+    `wn` is an odd/even number for fermionic/bosonic frequencies.
+    """
+    def __init__(self, statistics, moments):
+        """Initialize model"""
+        self.zeta = {'F': 1, 'B': 0}[statistics]
+        self.moments = np.asarray(moments)
+        self.nmom, self.nl = self.moments.shape
+
+    @staticmethod
+    def _inv_iw_safe(wn, result_dtype):
+        """Return inverse of frequency or zero if freqency is zero"""
+        result = np.zeros(wn.shape, result_dtype)
+        wn_nonzero = wn != 0
+        result[wn_nonzero] = 1/(1j * np.pi/2 * wn[wn_nonzero])
+        return result
+
+    def _giw_ravel(self, wn):
+        """Return model Green's function for vector of frequencies"""
+        result_dtype = np.result_type(1j, wn, self.moments)
+        result = np.zeros((wn.size, self.nl), result_dtype)
+        inv_iw = self._inv_iw_safe(wn, result_dtype)[:,None]
+        for mom in self.moments[::-1]:
+            result += mom
+            result *= inv_iw
+        return result
+
+    def giw(self, wn):
+        """Return model Green's function for reduced frequencies"""
+        wn = np.array(wn)
+        if (wn % 2 != self.zeta).any():
+            raise ValueError("expecting 'reduced' frequencies")
+
+        return self._giw_ravel(wn.ravel()).reshape(wn.shape + (self.nl,))
+
+
+def _derivs(ppoly, x):
+    """Evaluate polynomial and its derivatives at specific x"""
+    yield ppoly(x)
+    for _ in range(ppoly.polyorder-1):
+        ppoly = ppoly.deriv()
+        yield ppoly(x)
+
 
 def _compute_unl(poly, wn):
+    """
+    Compute piecewise Legendre to Matsubara transform.
+    """
+    if all(wn%2 == 1):
+        stat = 'F'
+    elif all(wn%2 == 0):
+        stat = 'B'
+    else:
+        raise ValueError("Invalid reduced frequencies!")
+
+    # We use use the asymptotics at frequencies larger than conv_radius
+    # since it has lower relative error.
+    conv_radius = 1/poly.dx.min()
+    cond_inner = np.abs(wn[None,:]) < conv_radius
+
+    result_inner = _compute_unl_inner(poly, wn)
+
+    deriv_x1 = np.asarray(list(_derivs(poly, x=1)))
+    moments = _power_moments(stat, deriv_x1)
+    asym_model = _PowerModel(stat, moments)
+    result_asymp = asym_model.giw(wn).T
+
+    return np.where(cond_inner, result_inner, result_asymp)
+
+
+def _compute_unl_inner(poly, wn):
     """Compute piecewise Legendre to Matsubara transform."""
     dx_half = poly.dx / 2
 
