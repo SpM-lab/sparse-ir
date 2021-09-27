@@ -37,4 +37,4 @@ def test_axis():
     x = rng.randn(2, 21, 4, 7)
     np.testing.assert_allclose(
             Ad.matmul(x, axis=1), np.einsum('xj,ijkl->ixkl', A, x),
-            atol=1e-14 * norm_A, rtol=0)
+            atol=1e-13 * norm_A, rtol=0)
