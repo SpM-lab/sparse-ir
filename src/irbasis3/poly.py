@@ -292,6 +292,25 @@ def _phase_stable(poly, wn):
     return corr * phase_shifted
 
 
+def _compute_unl_inner(poly, wn):
+    """Compute piecewise Legendre to Matsubara transform."""
+    dx_half = poly.dx / 2
+
+    data_flat = poly.data.reshape(*poly.data.shape[:2], -1)
+    data_sc = data_flat * np.sqrt(dx_half/2)[None,:,None]
+    p = np.arange(poly.polyorder)
+
+    wred = np.pi/2 * wn
+    phase_wi = _phase_stable(poly, wn)
+    t_pin = _get_tnl(p[:,None,None], wred[None,:] * dx_half[:,None]) * phase_wi
+
+    # Perform the following, but faster:
+    #   resulth = einsum('pin,pil->nl', t_pin, data_sc)
+    npi = poly.polyorder * poly.nsegments
+    result_flat = t_pin.reshape(npi,-1).T.dot(data_sc.reshape(npi,-1)).T
+    return result_flat.reshape(*poly.data.shape[2:], wn.size)
+
+
 class _PowerModel:
     """Model from a high-frequency series expansion:
 
@@ -353,25 +372,6 @@ def _power_model(stat, poly):
         deriv_x1 = deriv_x1[:,None]
     moments = _power_moments(stat, deriv_x1)
     return _PowerModel(moments)
-
-
-def _compute_unl_inner(poly, wn):
-    """Compute piecewise Legendre to Matsubara transform."""
-    dx_half = poly.dx / 2
-
-    data_flat = poly.data.reshape(*poly.data.shape[:2], -1)
-    data_sc = data_flat * np.sqrt(dx_half/2)[None,:,None]
-    p = np.arange(poly.polyorder)
-
-    wred = np.pi/2 * wn
-    phase_wi = _phase_stable(poly, wn)
-    t_pin = _get_tnl(p[:,None,None], wred[None,:] * dx_half[:,None]) * phase_wi
-
-    # Perform the following, but faster:
-    #   resulth = einsum('pin,pil->nl', t_pin, data_sc)
-    npi = poly.polyorder * poly.nsegments
-    result_flat = t_pin.reshape(npi,-1).T.dot(data_sc.reshape(npi,-1)).T
-    return result_flat.reshape(*poly.data.shape[2:], wn.size)
 
 
 def _refine_grid(knots, alpha):
