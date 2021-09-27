@@ -37,12 +37,33 @@ class DecomposedMatrix:
         """Matrix-matrix multiplication."""
         return self.a @ x
 
-    def lstsq(self, x):
-        """Return `y` such that `np.linalg.norm(A @ y - x)` is minimal"""
+    def matmul(self, x, axis=None):
+        """Compute `A @ x` (optionally along specified axis of x)"""
+        if axis is None:
+            return self._lstsq(x)
+
+        x = np.asarray(x)
+        target_axis = max(x.ndim - 2, 0)
+        x = np.rollaxis(x, axis, target_axis + 1)
+        r = self @ x
+        return np.rollaxis(r, target_axis, axis)
+
+    def _lstsq(self, x):
         r = self.u.T @ x
         r = r / (self.s[:, None] if r.ndim > 1 else self.s)
         return self.vt.T @ r
 
+    def lstsq(self, x, axis=None):
+        """Return `y` such that `np.linalg.norm(A @ y - x)` is minimal"""
+        if axis is None:
+            return self._lstsq(x)
+
+        x = np.asarray(x)
+        target_axis = max(x.ndim - 2, 0)
+        x = np.rollaxis(x, axis, target_axis + 1)
+        r = self._lstsq(x)
+        return np.rollaxis(r, target_axis, axis)
+
     def __array__(self, dtype=None):
         """Convert to numpy array."""
-        return self.a
+        return self.a.astype(dtype)

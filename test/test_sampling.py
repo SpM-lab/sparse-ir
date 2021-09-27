@@ -25,3 +25,16 @@ def test_decomp():
     y = rng.randn(49, 2)
     np.testing.assert_allclose(np.linalg.lstsq(A, y, rcond=None)[0],
                                Ad.lstsq(y), atol=1e-14 * norm_A, rtol=0)
+
+
+def test_axis():
+    rng = np.random.RandomState(4712)
+    A = rng.randn(17, 21)
+
+    Ad = sampling.DecomposedMatrix(A)
+    norm_A = Ad.s[0] / Ad.s[-1]
+
+    x = rng.randn(2, 21, 4, 7)
+    np.testing.assert_allclose(
+            Ad.matmul(x, axis=1), np.einsum('xj,ijkl->ixkl', A, x),
+            atol=1e-14 * norm_A, rtol=0)
