@@ -6,6 +6,8 @@ from warnings import warn
 from . import kernel as _kernel
 from . import sve
 
+ACCURACY = 1.5e-8
+
 
 class IRBasis:
     """Intermediate representation (IR) basis in reduced variables.
@@ -50,6 +52,11 @@ class IRBasis:
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
+
+        # By default, we want to compute the same number of basis functions with/without
+        # xprec.
+        if eps is None:
+            eps = ACCURACY
 
         self.kernel = kernel
         if sve_result is None:
@@ -138,6 +145,9 @@ class FiniteTempBasis:
                              "or 'F' for fermionic")
         if not (beta > 0):
             raise ValueError("inverse temperature beta must be positive")
+
+        if eps is None:
+            eps = ACCURACY
 
         self.kernel = kernel
         if sve_result is None:

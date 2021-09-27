@@ -2,9 +2,14 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 import pytest
+import importlib
 
 from irbasis3.basis import FiniteTempBasis
 from irbasis3.kernel import KernelFFlat, KernelBFlat
+
+eps = None
+if importlib.util.find_spec("xprec") is not None:
+    eps = 1.0e-15
 
 all_basis_sets = [(stat, kernel, lambda_)
                   for stat, kernel in [('F', KernelFFlat), ('B', KernelBFlat)]
@@ -22,7 +27,7 @@ def test_single_pole(stat, K, lambda_):
     beta = lambda_/wmax
 
     kernel = K(lambda_)
-    basis = FiniteTempBasis(kernel, stat, beta)
+    basis = FiniteTempBasis(kernel, stat, beta, eps)
 
     if stat == 'F':
         stat_shift = 1
