@@ -6,8 +6,8 @@ import pytest
 from irbasis3.basis import FiniteTempBasis
 from irbasis3.kernel import KernelFFlat, KernelBFlat
 
-all_basis_sets = [(kernel, lambda_)
-                  for kernel in [KernelFFlat, KernelBFlat]
+all_basis_sets = [(stat, kernel, lambda_)
+                  for stat, kernel in [('F', KernelFFlat), ('B', KernelBFlat)]
                   for lambda_ in [1E+1, 1E+3]
                   ]
 
@@ -15,15 +15,14 @@ all_basis_sets = [(kernel, lambda_)
 A pole at omega=pole. Compare analytic results of G(iwn) and numerical
 results computed by using unl.
 """
-@pytest.mark.parametrize("K, lambda_", all_basis_sets)
-def test_single_pole(K, lambda_):
+@pytest.mark.parametrize("stat, K, lambda_", all_basis_sets)
+def test_single_pole(stat, K, lambda_):
     wmax = 1.0
     pole = 0.1 * wmax
     beta = lambda_/wmax
 
     kernel = K(lambda_)
-    basis = FiniteTempBasis(kernel, beta)
-    stat = basis.statistics
+    basis = FiniteTempBasis(kernel, stat, beta)
 
     if stat == 'F':
         stat_shift = 1

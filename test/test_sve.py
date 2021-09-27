@@ -15,7 +15,7 @@ BASES = [
 def bases():
     def _make_basis(stat, lambda_):
         K = {'F': irbasis3.KernelFFlat, 'B': irbasis3.KernelBFlat}[stat](lambda_)
-        return irbasis3.IRBasis(K)
+        return irbasis3.IRBasis(K, stat)
 
     return {p: _make_basis(*p) for p in BASES}
 

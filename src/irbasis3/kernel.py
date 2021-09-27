@@ -95,7 +95,6 @@ class KernelFFlat(KernelBase):
     def __init__(self, lambda_):
         super().__init__()
         self.lambda_ = lambda_
-        self.statistics = 'F'
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)"""
@@ -176,7 +175,6 @@ class KernelBFlat(KernelBase):
     def __init__(self, lambda_):
         super().__init__(ypower=1)
         self.lambda_ = lambda_
-        self.statistics = 'B'
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)"""
@@ -250,14 +248,6 @@ class KernelBFlat(KernelBase):
         if sign == -1:
             return _KernelBFlatOdd(self, sign)
         return super().get_symmetrized(sign)
-
-class KernelNewBFlat(KernelFFlat):
-    """New bosonic analytical continuation kernel.
-    This kernel has the same function form as KernelFFlat.
-    """
-    def __init__(self, lambda_):
-        super().__init__(lambda_)
-        self.statistics = 'B'
 
 
 class ReducedKernel(KernelBase):

@@ -30,10 +30,10 @@ class IRBasis:
     Code example:
     -------------
 
-        # Compute IR basis suitable for β*W <= 42
+        # Compute IR basis suitable for fermions and β*W <= 42
         import irbasis3
         K = irbasis3.KernelFFlat(lambda_=42)
-        basis = irbasis3.IRBasis(K)
+        basis = irbasis3.IRBasis(K, statistics='F')
 
         # Assume spectrum is a single pole at x = 0.2, compute G(iw)
         # on the first few Matsubara frequencies
@@ -44,7 +44,11 @@ class IRBasis:
     ---------
      - `FiniteTempBasis`: for a basis directly in time/frequency.
     """
-    def __init__(self, kernel, eps=None, sve_result=None):
+    def __init__(self, kernel, statistics, eps=None, sve_result=None):
+        if statistics not in 'BF':
+            raise ValueError("Statistics must be either 'B' for bosonic"
+                             "or 'F' for fermionic")
+
         self.kernel = kernel
         if sve_result is None:
             u, s, v = sve.compute(kernel, eps)
@@ -57,11 +61,12 @@ class IRBasis:
         # so for significantly larger frequencies we use the asymptotics,
         # since it has lower relative error.
         conv_radius = 40 * self.kernel.lambda_
-        _even_odd = {'F': 'odd', 'B': 'even'}[kernel.statistics]
+        _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
         self.u = u
         self.uhat = u.hat(_even_odd, n_asymp=conv_radius)
         self.s = s
         self.v = v
+        self.statistics = statistics
 
     def __getitem__(self, index):
         """Return basis functions/singular values for given index/indices.
@@ -76,11 +81,6 @@ class IRBasis:
     def lambda_(self):
         """Basis cutoff parameter Λ = β * ωmax"""
         return self.kernel.lambda_
-
-    @property
-    def statistics(self):
-        """Statistics: 'F' for fermions, 'B' for bosons."""
-        return self.kernel.statistics
 
     @property
     def size(self):
@@ -118,17 +118,23 @@ class FiniteTempBasis:
     Code example:
     -------------
 
-        # Compute IR basis for β = 10, W <= 4.2
+        # Compute IR basis for fermions and β = 10, W <= 4.2
         import irbasis3
         K = irbasis3.KernelFFlat(lambda_=42)
-        basis = irbasis3.FiniteTempBasis(K, beta=10)
+        basis = irbasis3.FiniteTempBasis(K, statistics='F', beta=10)
 
         # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
         # on the first few Matsubara frequencies
         gl = basis.s * basis.v(2.5)
         giw = gl @ basis.uhat([1, 3, 5, 7])
     """
-    def __init__(self, kernel, beta, eps=None, sve_result=None):
+    def __init__(self, kernel, statistics, beta, eps=None, sve_result=None):
+        if statistics not in 'BF':
+            raise ValueError("Statistics must be either 'B' for bosonic"
+                             "or 'F' for fermionic")
+        if not (beta > 0):
+            raise ValueError("inverse temperature beta must be positive")
+
         self.kernel = kernel
         if sve_result is None:
             u, s, v = sve.compute(kernel, eps)
@@ -158,7 +164,7 @@ class FiniteTempBasis:
         uhat_base = u.__class__(np.sqrt(beta) * u.data, u.knots)
 
         conv_radius = 40 * self.kernel.lambda_
-        _even_odd = {'F': 'odd', 'B': 'even'}[kernel.statistics]
+        _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
         self.uhat = uhat_base.hat(_even_odd, conv_radius)
 
     @property

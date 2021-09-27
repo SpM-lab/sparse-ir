@@ -20,10 +20,10 @@ Quick start
 -----------
 Here is some example code:
 
-    # Compute IR basis for β = 10, W <= 4.2
+    # Compute IR basis for fermions and β = 10, W <= 4.2
     import irbasis3
     K = irbasis3.KernelFFlat(lambda_=42)
-    basis = irbasis3.FiniteTempBasis(K, beta=10)
+    basis = irbasis3.FiniteTempBasis(K, statistics='F', beta=10)
 
     # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
     # on the first few Matsubara frequencies
