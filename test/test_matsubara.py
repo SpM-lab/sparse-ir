@@ -6,7 +6,7 @@ import pytest
 from irbasis3.basis import FiniteTempBasis
 from irbasis3.kernel import KernelFFlat, KernelBFlat
 
-all_basis_sets = [(kernel, lambda_) for kernel in [KernelFFlat] for lambda_ in [1E+1, 1E+2, 1E+4, 1E+5, 1E+6, 1E+7]]
+all_basis_sets = [(kernel, lambda_) for kernel in [KernelFFlat, KernelBFlat] for lambda_ in [1E+1, 1E+2, 1E+4, 1E+5, 1E+6]]
 #all_basis_sets = [(kernel, lambda_) for kernel in [KernelBFlat] for lambda_ in [1E+4]]
 
 """

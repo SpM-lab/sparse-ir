@@ -354,13 +354,11 @@ def _compute_unl(poly, wn):
     deriv_x1 = np.asarray(list(_derivs(poly, x=1)))
     if deriv_x1.ndim == 1:
         deriv_x1 = deriv_x1[:,None]
-    #print("debug", deriv_x1.shape, poly.polyorder)
     moments = _power_moments(stat, deriv_x1)
     asym_model = _PowerModel(stat, moments)
     result_asymp = asym_model.giw(wn).T
 
-    #return np.where(cond_inner, result_inner, result_asymp)
-    return result_inner
+    return np.where(cond_inner, result_inner, result_asymp)
 
 
 def _compute_unl_inner(poly, wn):
