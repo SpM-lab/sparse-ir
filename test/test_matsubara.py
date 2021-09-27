@@ -8,7 +8,8 @@ from irbasis3.kernel import KernelFFlat, KernelBFlat
 
 all_basis_sets = [(kernel, lambda_)
                   for kernel in [KernelFFlat, KernelBFlat]
-                  for lambda_ in [1E+1, 1E+2, 1E+3]]# 1E+5, 1E+6, 1E+7]]
+                  for lambda_ in [1E+1, 1E+3]
+                  ]
 
 """
 A pole at omega=pole. Compare analytic results of G(iwn) and numerical
