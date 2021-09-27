@@ -49,7 +49,7 @@ class KernelBase:
     @property
     def is_centrosymmetric(self):
         """True iff K(x,y) = K(-x, -y) for all (x, y)"""
-        raise NotImplementedError()
+        return False
 
     def get_symmetrized(self, sign):
         """Return symmetrized kernel `K(x, y) + sign * K(x, -y)`.
@@ -97,13 +97,11 @@ class KernelFFlat(KernelBase):
         self.lambda_ = lambda_
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
-        """Evaluate kernel at point (x, y)"""
         x, y = _check_domain(self, x, y)
         u_plus, u_minus, v = _compute_uv(self.lambda_, x, y, x_plus, x_minus)
         return self._compute(u_plus, u_minus, v)
 
     def _compute(self, u_plus, u_minus, v):
-        """Compute kernel in reduced variables"""
         # By introducing u_\pm = (1 \pm x)/2 and v = lambda * y, we can write
         # the kernel in the following two ways:
         #
@@ -177,7 +175,6 @@ class KernelBFlat(KernelBase):
         self.lambda_ = lambda_
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
-        """Evaluate kernel at point (x, y)"""
         x, y = _check_domain(self, x, y)
         u_plus, u_minus, v = _compute_uv(self.lambda_, x, y, x_plus, x_minus)
         return self._compute(u_plus, u_minus, v)

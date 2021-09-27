@@ -70,6 +70,7 @@ setup(
     ],
     extras_require={
         'test': ['pytest', 'irbasis', 'xprec'],
+        'doc': ['sphinx>=2.1', 'myst-parser', 'sphinx_rtd_theme'],
         },
 
     package_dir={'': 'src'},

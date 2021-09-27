@@ -29,6 +29,8 @@ class IRBasis:
 
     Code example:
     -------------
+    The following example code assumes the spectral function is a single pole
+    at x = 0.2::
 
         # Compute IR basis suitable for fermions and β*W <= 42
         import irbasis3
@@ -117,6 +119,8 @@ class FiniteTempBasis:
 
     Code example:
     -------------
+    The following example code assumes the spectral function is a single pole
+    at ω = 2.5::
 
         # Compute IR basis for fermions and β = 10, W <= 4.2
         import irbasis3
@@ -144,6 +148,7 @@ class FiniteTempBasis:
                 raise ValueError("mismatched shapes in SVE")
 
         self.kernel = kernel
+        self.statistics = statistics
         self.beta = beta
 
         # The polynomials are scaled to the new variables by transforming the
@@ -170,11 +175,6 @@ class FiniteTempBasis:
     @property
     def wmax(self):
         return self.kernel.lambda_ / self.beta
-
-    @property
-    def statistics(self):
-        """Statistics: 'F' for fermions, 'B' for bosons."""
-        return self.kernel.statistics
 
     @property
     def size(self):

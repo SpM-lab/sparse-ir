@@ -7,6 +7,8 @@ __pycache__/
 dist/
 *.egg-info/
 
+doc/*build/
+
 notebooks/*.ipynb
 
 !.gitignore

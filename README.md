@@ -18,7 +18,7 @@ accuracy.
 
 Quick start
 -----------
-Here is some example code:
+Here is some python code illustrating the API:
 
     # Compute IR basis for fermions and β = 10, W <= 4.2
     import irbasis3
@@ -31,16 +31,23 @@ Here is some example code:
     giw = gl @ basis.uhat([1, 3, 5, 7])
 
 You may want to start with reading up on the [intermediate representation].
-Basically, the intermediate representation is related to the analytic
-continuation of bosonic/fermionic spectral functions from (real) frequencies
-to imaginary time, a transformation mediated by a kernel `K`.  This kernel now
+It is tied to the analytic continuation of bosonic/fermionic spectral
+functions from (real) frequencies to imaginary time, a transformation mediated
+by a kernel `K`.  The kernel depends on a cutoff, which you should choose to be
+`lambda_ >= β*W`, where `β` is the inverse temperature and `W` is the bandwidth:
+
+One can now perform a [singular value expansion] on this kernel, which
 generates two sets of orthonormal basis functions, one set `v[l](w)` for
 real frequency side `w`, and one set `u[l](tau)` for the same obejct in
 imaginary (Euclidean) time `tau`, together with a "coupling" strength `s[l]`
-between the two sides.  By this construction, the imaginary time basis can
-be shown to be *optimal* in terms of compactness.
+between the two sides.
+
+By this construction, the imaginary time basis can be shown to be *optimal* in
+terms of compactness.
+
 
 [intermediate representation]: https://arxiv.org/abs/2106.12685
+[singular value expansion]: https://en.wikipedia.org/wiki/Singular_value_decomposition
 
 License
 -------
