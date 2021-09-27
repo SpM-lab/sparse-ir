@@ -40,8 +40,8 @@ def _check_smooth(u, s, uscale, fudge_factor):
 @pytest.mark.parametrize("stat,lambda_", BASES)
 def test_smooth(bases, stat, lambda_):
     basis = bases[stat, lambda_]
-    _check_smooth(basis.u, basis.s, 2*basis.u(1).max(), 12)
-    _check_smooth(basis.v, basis.s, 50, 10)
+    _check_smooth(basis.u, basis.s, 2*basis.u(1).max(), 24)
+    _check_smooth(basis.v, basis.s, 50, 20)
 
 
 @pytest.mark.parametrize("stat,lambda_", BASES)
