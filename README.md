@@ -26,7 +26,8 @@ Here is some python code illustrating the API:
     basis = irbasis3.FiniteTempBasis(K, statistics='F', beta=10)
 
     # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
-    # on the first few Matsubara frequencies
+    # on the first few Matsubara frequencies.
+    # Note: Fermionic/bosonic Matsubara frequencies are denoted by odd/even integers.
     gl = basis.s * basis.v(2.5)
     giw = gl @ basis.uhat([1, 3, 5, 7])
 
