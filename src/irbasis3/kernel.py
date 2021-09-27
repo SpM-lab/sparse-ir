@@ -253,7 +253,7 @@ class KernelBFlat(KernelBase):
 
 class KernelNewBFlat(KernelFFlat):
     """New bosonic analytical continuation kernel.
-    This kernel has the same function form as KernelFFlat. 
+    This kernel has the same function form as KernelFFlat.
     """
     def __init__(self, lambda_):
         super().__init__(lambda_)
@@ -355,7 +355,9 @@ class _KernelBFlatOdd(ReducedKernel):
         with np.errstate(over='ignore', invalid='ignore'):
             antisymm_result = -y * np.sinh(v_half * x) / np.sinh(v_half)
 
-        return np.where(np.logical_and(x * v_half < 1, v_half > tiny),
+        return np.where(np.logical_and(
+                            np.logical_and(x * v_half < 1, v_half > tiny),
+                            v_half < 100),
                         antisymm_result, naive_result)
 
 
