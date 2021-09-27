@@ -143,11 +143,17 @@ class FiniteTempBasis:
         self.u = u.__class__(u.data, beta/2 * (u.knots + 1))
         self.v = v.__class__(v.data, wmax * v.knots)
 
+        # The radius of convergence of the asymptotic expansion is Lambda/2,
+        # so for significantly larger frequencies we use the asymptotics,
+        # since it has lower relative error.
+        conv_radius = 40 * self.kernel.lambda_
+
         # HACK: as we don't yet support Fourier transforms on anything but the
         # unit interval, we need to scale the underlying data.  This breaks
         # the correspondence between U.hat and Uhat though.
+        uhat_base = u.__class__(np.sqrt(beta) * u.data, u.knots)
         _even_odd = {'F': 'odd', 'B': 'even'}[kernel.statistics]
-        self.uhat = u.__class__(np.sqrt(beta) * u.data, u.knots).hat(_even_odd)
+        self.uhat = uhat_base.hat(_even_odd, conv_radius)
         self.s = np.sqrt(beta/2 * wmax) * (wmax**(-kernel.ypower)) * s
 
     @property
