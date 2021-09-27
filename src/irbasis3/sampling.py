@@ -8,36 +8,34 @@ from . import svd
 class DecomposedMatrix:
     """Matrix in SVD decomposed form for fast and accurate fitting.
 
-    Stores a matrix `A` in its thin SVD form: `A == (u * s) @ vt`.  This
-    allows for:
-
-     - fast and accurate least squares fits: `A.lstsq(x)`
-     - reasonably fast matrix multiplication: `A @ x`
-     - fast reconstruction of the matrix: `np.asarray(A)`
+    Stores a matrix `A` together with its thin SVD form: `A == (u * s) @ vt`.
+    This allows for fast and accurate least squares fits using `A.lstsq(x)`.
     """
     @classmethod
-    def from_matrix(cls, a, eps=None):
+    def get_svd_result(cls, a, eps=None):
         """Construct decomposition from matrix"""
         u, s, v = svd.compute(a, strategy='accurate')
         where = s.astype(bool) if eps is None else s/s[0] <= eps
         if not where.all():
-            u = u[:, where]
-            s = s[where]
-            vt = v.T[where]
+            return u[:, where], s[where], v.T[where]
         else:
-            vt = v.T
-        return cls(u, s, vt)
+            return u, s, v.T
 
-    def __init__(self, u, s, vt):
-        self.u = np.asarray(u)
-        self.s = np.asarray(s)
-        self.vt = np.asarray(vt)
+    def __init__(self, a, svd_result=None):
+        a = np.asarray(a)
+        if svd_result is None:
+            u, s, vt = self.__class__.get_svd_result(a)
+        else:
+            u, s, vt = map(np.asarray, svd_result)
+
+        self.a = a
+        self.u = u
+        self.s = s
+        self.vt = vt
 
     def __matmul__(self, x):
         """Matrix-matrix multiplication."""
-        r = self.vt @ x
-        r = (self.s[:, None] if r.ndim > 1 else self.s) * r
-        return self.u @ r
+        return self.a @ x
 
     def lstsq(self, x):
         """Return `y` such that `np.linalg.norm(A @ y - x)` is minimal"""
@@ -47,4 +45,4 @@ class DecomposedMatrix:
 
     def __array__(self, dtype=None):
         """Convert to numpy array."""
-        return (self.u * self.s) @ self.vt
+        return self.a

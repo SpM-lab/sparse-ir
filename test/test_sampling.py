@@ -8,7 +8,7 @@ def test_decomp():
     rng = np.random.RandomState(4711)
     A = rng.randn(49, 39)
 
-    Ad = sampling.DecomposedMatrix.from_matrix(A)
+    Ad = sampling.DecomposedMatrix(A)
     norm_A = Ad.s[0] / Ad.s[-1]
     np.testing.assert_allclose(A, np.asarray(Ad), atol=1e-15 * norm_A, rtol=0)
 
