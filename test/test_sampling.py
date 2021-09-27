@@ -35,6 +35,7 @@ def test_axis():
     norm_A = Ad.s[0] / Ad.s[-1]
 
     x = rng.randn(2, 21, 4, 7)
+    ref = np.tensordot(A, x, (-1,1)).transpose((1,0,2,3))
     np.testing.assert_allclose(
-            Ad.matmul(x, axis=1), np.einsum('xj,ijkl->ixkl', A, x),
+            Ad.matmul(x, axis=1), ref,
             atol=1e-13 * norm_A, rtol=0)

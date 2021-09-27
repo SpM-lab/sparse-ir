@@ -35,7 +35,7 @@ class DecomposedMatrix:
 
     def __matmul__(self, x):
         """Matrix-matrix multiplication."""
-        return self.a @ x
+        return np.tensordot(self.a, x, (-1,0))
 
     def matmul(self, x, axis=None):
         """Compute `A @ x` (optionally along specified axis of x)"""
@@ -43,10 +43,9 @@ class DecomposedMatrix:
             return self._lstsq(x)
 
         x = np.asarray(x)
-        target_axis = max(x.ndim - 2, 0)
-        x = np.rollaxis(x, axis, target_axis + 1)
+        x = np.moveaxis(x, axis, 0)
         r = self @ x
-        return np.rollaxis(r, target_axis, axis)
+        return np.moveaxis(r, 0, axis)
 
     def _lstsq(self, x):
         r = self.u.T @ x
