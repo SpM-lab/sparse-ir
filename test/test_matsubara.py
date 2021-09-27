@@ -6,11 +6,13 @@ import pytest
 from irbasis3.basis import FiniteTempBasis
 from irbasis3.kernel import KernelFFlat, KernelBFlat
 
-all_basis_sets = [(kernel, lambda_) for kernel in [KernelFFlat, KernelBFlat] for lambda_ in [1E+1, 1E+2, 1E+4, 1E+5, 1E+6]]
-#all_basis_sets = [(kernel, lambda_) for kernel in [KernelBFlat] for lambda_ in [1E+4]]
+all_basis_sets = [(kernel, lambda_)
+                  for kernel in [KernelFFlat, KernelBFlat]
+                  for lambda_ in [1E+1, 1E+2, 1E+3]]# 1E+5, 1E+6, 1E+7]]
 
 """
-A pole at omega=pole. Compare analytic results of G(iwn) and numerical results computed by using unl.
+A pole at omega=pole. Compare analytic results of G(iwn) and numerical
+results computed by using unl.
 """
 @pytest.mark.parametrize("K, lambda_", all_basis_sets)
 def test_single_pole(K, lambda_):
@@ -32,7 +34,8 @@ def test_single_pole(K, lambda_):
     func_G = lambda n: 1/(1J * (2*n+stat_shift)*np.pi/beta - pole)
 
     # Compute G(iwn) using unl
-    matsu_test = np.array([-1, 0, 1, 1E+2, 1E+4, 1E+6, 1E+8, 1E+10, 1E+12], dtype=np.int64)
+    matsu_test = np.array([-1, 0, 1, 1E+2, 1E+4, 1E+6, 1E+8, 1E+10, 1E+12],
+                          dtype=np.int64)
     prj_w = basis.uhat(2*matsu_test+stat_shift).T
     Giwn_t = prj_w @ gl
 
