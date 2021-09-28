@@ -75,4 +75,21 @@ def test_tau_noise():
     Gtau_n = Gtau +  noise * np.linalg.norm(Gtau) * rng.randn(*Gtau.shape)
     Gl_n = smpl.fit(Gtau_n)
 
-    np.testing.assert_allclose(Gl, Gl_n, atol=10 * noise * Gl_magn, rtol=0)
+    np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
+
+
+def test_tau_noise():
+    K = irbasis3.KernelBFlat(99)
+    basis = irbasis3.IRBasis(K, 'B')
+    smpl = sampling.MatsubaraSampling(basis)
+    rng = np.random.RandomState(4711)
+
+    rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
+    Gl = basis.s * rhol
+    Gl_magn = np.linalg.norm(Gl)
+    Giw = smpl.evaluate(Gl)
+
+    noise = 1e-5
+    Giw_n = Giw +  noise * np.linalg.norm(Giw) * rng.randn(*Giw.shape)
+    Gl_n = smpl.fit(Giw_n)
+    np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)

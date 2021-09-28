@@ -3,8 +3,6 @@
 import numpy as np
 from warnings import warn
 
-from . import svd
-
 
 class SamplingBase:
     """Base class for sparse sampling.
@@ -63,7 +61,7 @@ class TauSampling(SamplingBase):
 
     @classmethod
     def eval_matrix(cls, basis, x):
-        return basis.u(x)
+        return basis.u(x).T
 
 
 class MatsubaraSampling(SamplingBase):
@@ -74,7 +72,7 @@ class MatsubaraSampling(SamplingBase):
 
     @classmethod
     def eval_matrix(cls, basis, x):
-        return basis.uhat(x)
+        return basis.uhat(x).T
 
 
 class DecomposedMatrix:
@@ -86,12 +84,12 @@ class DecomposedMatrix:
     @classmethod
     def get_svd_result(cls, a, eps=None):
         """Construct decomposition from matrix"""
-        u, s, v = svd.compute(a, strategy='accurate')
+        u, s, vH = np.linalg.svd(a, full_matrices=False)
         where = s.astype(bool) if eps is None else s/s[0] <= eps
         if not where.all():
-            return u[:, where], s[where], v.T[where]
+            return u[:, where], s[where], vH[where]
         else:
-            return u, s, v.T
+            return u, s, vH
 
     def __init__(self, a, svd_result=None):
         a = np.asarray(a)
@@ -123,9 +121,9 @@ class DecomposedMatrix:
         return np.moveaxis(r, target_axis, axis)
 
     def _lstsq(self, x):
-        r = self.u.T @ x
+        r = self.u.conj().T @ x
         r = r / (self.s[:, None] if r.ndim > 1 else self.s)
-        return self.vt.T @ r
+        return self.vt.conj().T @ r
 
     def lstsq(self, x, axis=None):
         """Return `y` such that `np.linalg.norm(A @ y - x)` is minimal"""
