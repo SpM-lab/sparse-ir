@@ -63,7 +63,7 @@ def test_axis0():
 def test_tau_noise():
     K = irbasis3.KernelFFlat(100)
     basis = irbasis3.IRBasis(K, 'F')
-    smpl = sampling.TauSampling(basis)
+    smpl = irbasis3.TauSampling(basis)
     rng = np.random.RandomState(4711)
 
     rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
@@ -81,7 +81,7 @@ def test_tau_noise():
 def test_tau_noise():
     K = irbasis3.KernelBFlat(99)
     basis = irbasis3.IRBasis(K, 'B')
-    smpl = sampling.MatsubaraSampling(basis)
+    smpl = irbasis3.MatsubaraSampling(basis)
     rng = np.random.RandomState(4711)
 
     rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]

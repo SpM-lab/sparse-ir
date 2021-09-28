@@ -35,22 +35,30 @@ class SamplingBase:
                  ConditioningWarning)
 
     def evaluate(self, al, axis=None):
-        """Evaluate the basis coefficients"""
+        """Evaluate the basis coefficients the sparse sampling points"""
         return self.matrix.matmul(al, axis)
 
     def fit(self, ax, axis=None):
+        """Fit basis coefficients from the sparse sampling points"""
         return self.matrix.lstsq(ax, axis)
 
     @classmethod
     def default_sampling_points(cls, basis):
+        """Return default sampling points"""
         raise NotImplementedError()
 
     @classmethod
     def eval_matrix(cls, basis, x):
+        """Return evaluation matrix from coefficients to sampling points"""
         raise NotImplementedError()
 
 
 class TauSampling(SamplingBase):
+    """Sparse sampling in imaginary time.
+
+    Allows the transformation between the IR basis and a set of sampling points
+    in (scaled/unscaled) imaginary time.
+    """
     @classmethod
     def default_sampling_points(cls, basis):
         poly = basis.u[-1]
@@ -65,6 +73,11 @@ class TauSampling(SamplingBase):
 
 
 class MatsubaraSampling(SamplingBase):
+    """Sparse sampling in Matsubara frequencies.
+
+    Allows the transformation between the IR basis and a set of sampling points
+    in (scaled/unscaled) imaginary frequencies.
+    """
     @classmethod
     def default_sampling_points(cls, basis):
         polyhat = basis.uhat[-1]
