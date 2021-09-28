@@ -9,6 +9,7 @@ Contents
    :maxdepth: 2
 
    kernels
+   sampling
 ```
 
 Indices and tables

@@ -29,9 +29,9 @@ class SamplingBase:
         self.x = x
 
         # Check conditioning
-        cond = self.matrix.s[0] / self.matrix.s[-1]
-        if cond > 1e8:
-            warn("Sampling matrix is poorly conditioned (cond = %.2g)" % cond,
+        self.cond = self.matrix.s[0] / self.matrix.s[-1]
+        if self.cond > 1e8:
+            warn("Sampling matrix is poorly conditioned (cond = %.2g)" % self.cond,
                  ConditioningWarning)
 
     def evaluate(self, al, axis=None):
