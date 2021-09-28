@@ -39,3 +39,20 @@ def test_axis():
     np.testing.assert_allclose(
             Ad.matmul(x, axis=1), ref,
             atol=1e-13 * norm_A, rtol=0)
+
+def test_axis0():
+    rng = np.random.RandomState(4712)
+    A = rng.randn(17, 21)
+
+    Ad = sampling.DecomposedMatrix(A)
+    norm_A = Ad.s[0] / Ad.s[-1]
+
+    x = rng.randn(21, 2)
+
+    np.testing.assert_allclose(
+            Ad.matmul(x, axis=0), A@x,
+            atol=1e-13 * norm_A, rtol=0)
+
+    np.testing.assert_allclose(
+            Ad.matmul(x), A@x,
+            atol=1e-13 * norm_A, rtol=0)

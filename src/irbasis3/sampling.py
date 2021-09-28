@@ -40,7 +40,7 @@ class DecomposedMatrix:
     def matmul(self, x, axis=None):
         """Compute `A @ x` (optionally along specified axis of x)"""
         if axis is None:
-            return self._lstsq(x)
+            return self.__matmul__(x)
 
         x = np.asarray(x)
         x = np.moveaxis(x, axis, 0)
