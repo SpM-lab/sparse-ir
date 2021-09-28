@@ -1,6 +1,8 @@
 # Copyright (C) 2020-2021 Markus Wallerberger and others
 # SPDX-License-Identifier: MIT
 import numpy as np
+
+import irbasis3
 from irbasis3 import sampling
 
 
@@ -56,3 +58,21 @@ def test_axis0():
     np.testing.assert_allclose(
             Ad.matmul(x), A@x,
             atol=1e-13 * norm_A, rtol=0)
+
+
+def test_tau_noise():
+    K = irbasis3.KernelFFlat(100)
+    basis = irbasis3.IRBasis(K, 'F')
+    smpl = sampling.TauSampling(basis)
+    rng = np.random.RandomState(4711)
+
+    rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
+    Gl = basis.s * rhol
+    Gl_magn = np.linalg.norm(Gl)
+    Gtau = smpl.evaluate(Gl)
+
+    noise = 1e-5
+    Gtau_n = Gtau +  noise * np.linalg.norm(Gtau) * rng.randn(*Gtau.shape)
+    Gl_n = smpl.fit(Gtau_n)
+
+    np.testing.assert_allclose(Gl, Gl_n, atol=10 * noise * Gl_magn, rtol=0)

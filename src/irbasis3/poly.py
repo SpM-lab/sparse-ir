@@ -225,13 +225,6 @@ class PiecewiseLegendreFT:
         return nint
 
 
-def sampling_points_x(poly):
-    maxima = poly.deriv().roots()
-    left = .5 * (maxima[:1] + poly.xmin)
-    right = .5 * (maxima[-1:] + poly.xmax)
-    return np.concatenate([left, maxima, right])
-
-
 def _imag_power(n):
     """Imaginary unit raised to an integer power without numerical error"""
     n = np.asarray(n)
