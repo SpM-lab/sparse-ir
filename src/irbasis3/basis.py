@@ -104,8 +104,10 @@ class IRBasis:
     def sve_result(self):
         return self.u, self.s, self.v
 
+class FiniteTempBasisBase:
+    pass
 
-class FiniteTempBasis:
+class FiniteTempBasis(FiniteTempBasisBase):
     """Intermediate representation (IR) basis for given temperature.
 
     For a continuation kernel from real frequencies, ω ∈ [-wmax, wmax], to
@@ -194,3 +196,40 @@ class FiniteTempBasis:
     @property
     def shape(self):
         return self.u.shape
+
+
+class CompositeFiniteTempBasis(FiniteTempBasisBase):
+    """Composite basis for given temperature.
+
+    This class represents a finite-temperature basis consisting of multiple basis sets.
+    Each basis object is an instance of a subclasss of FiniteTempBasisBase.
+
+    Members:
+    --------
+     - `bases`: basis sets
+
+    """
+    def __init__(self, statistics, beta, bases):
+        for b in bases:
+            if b.statistics != statistics:
+                raise ValueError("Inconsistent statistics!")
+            if b.beta != beta:
+                raise ValueError("Inconsistent beta!")
+
+        self.statistics = statistics
+        self.beta = beta
+        self.bases = bases
+
+        self.u = None
+        self.s = None
+        self.v = None
+        self.uhat = None
+
+    @property
+    def size(self):
+        """Number of basis functions / singular values."""
+        return self.size
+
+    @property
+    def shape(self):
+        return self.shape
