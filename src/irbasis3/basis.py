@@ -98,16 +98,25 @@ class IRBasis:
 
     @property
     def shape(self):
+        """Shape of the basis function set"""
         return self.u.shape
+
+    @property
+    def beta(self):
+        """Inverse temperature (this is `None` because unscaled basis)"""
+        return None
+
+    @property
+    def wmax(self):
+        """Frequency cutoff (this is `None` because unscaled basis)"""
+        return None
 
     @property
     def sve_result(self):
         return self.u, self.s, self.v
 
-class FiniteTempBasisBase:
-    pass
 
-class FiniteTempBasis(FiniteTempBasisBase):
+class FiniteTempBasis:
     """Intermediate representation (IR) basis for given temperature.
 
     For a continuation kernel from real frequencies, ω ∈ [-wmax, wmax], to
@@ -198,11 +207,11 @@ class FiniteTempBasis(FiniteTempBasisBase):
         return self.u.shape
 
 
-class CompositeFiniteTempBasis(FiniteTempBasisBase):
+class CompositeFiniteTempBasis:
     """Composite basis for given temperature.
 
-    This class represents a finite-temperature basis consisting of multiple basis sets.
-    Each basis object is an instance of a subclasss of FiniteTempBasisBase.
+    This class represents a finite-temperature basis consisting of multiple
+    basis sets.  Each basis object is a finite-temperature instance.
 
     Members:
     --------
