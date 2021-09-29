@@ -84,7 +84,7 @@ class IRBasis:
         singular values: `basis[:3]`.
         """
         sve_result = self.u[index], self.s[index], self.v[index]
-        return self.__class__(self.kernel, sve_result=sve_result)
+        return self.__class__(self.kernel, self.statistics, sve_result=sve_result)
 
     @property
     def lambda_(self):
@@ -192,6 +192,16 @@ class FiniteTempBasis:
         conv_radius = 40 * self.kernel.lambda_
         _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
         self.uhat = uhat_base.hat(_even_odd, conv_radius)
+
+    def __getitem__(self, index):
+        """Return basis functions/singular values for given index/indices.
+
+        This can be used to truncate the basis to the n most significant
+        singular values: `basis[:3]`.
+        """
+        sve_result = self.u[index], self.s[index], self.v[index]
+        return self.__class__(self.kernel, self.statistics, self.beta,
+                              sve_result=sve_result)
 
     @property
     def wmax(self):
