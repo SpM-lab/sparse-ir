@@ -6,27 +6,48 @@ Auxiliary module for root finding routines.
 import numpy as np
 
 
-def find_all(f, xgrid):
+def find_all(f, xgrid, type='continuous'):
     """Find all roots of function between gridpoints"""
+    xgrid = np.asarray(xgrid)
+    if xgrid.ndim != 1:
+        raise ValueError("grid must be a one-dimensional array")
+
+    # First, extract roots that lie directly on the grid points
     fx = f(xgrid)
     hit = fx == 0
     x_hit = xgrid[hit]
+
+    # Next, find out where the sign changes (sign bit flips) remove the
+    # previously found points from consideration (we need to remove both
+    # directions for transitions + -> - and - -> +)
     sign_change = np.signbit(fx[:-1]) != np.signbit(fx[1:])
     sign_change &= ~hit[:-1] & ~hit[1:]
     if not sign_change.any():
         return x_hit
 
+    # sign_change[i] being set means that the sign changes from xgrid[i] to
+    # xgrid[i+1].  This means a corresponds to those xgrid[i] and b to those
+    # xgrid[i+1] where sign_change[i] is set.
     where_a = np.hstack((sign_change, False))
     where_b = np.hstack((False, sign_change))
     a = xgrid[where_a]
     b = xgrid[where_b]
     fa = fx[where_a]
     fb = fx[where_b]
-    xeps = np.finfo(xgrid.dtype).eps * np.abs(xgrid).max()
-    return np.sort(np.hstack([x_hit, _bisect(f, a, b, fa, fb, xeps)]))
+
+    # Depending on whether we have a discrete or continuous function, do
+    # this.
+    if type == 'continuous':
+        xeps = np.finfo(xgrid.dtype).eps * np.abs(xgrid).max()
+        x_bisect = _bisect_cont(f, a, b, fa, fb, xeps)
+    elif type == 'discrete':
+        x_bisect = _bisect_discr(f, a, b, fa, fb)
+    else:
+        raise ValueError("invalid type")
+    return np.sort(np.hstack([x_hit, x_bisect]))
 
 
-def _bisect(f, a, b, fa, fb, xeps):
+def _bisect_cont(f, a, b, fa, fb, xeps):
     """Bisect roots already found"""
     while True:
         mid = 0.5 * (a + b)
@@ -43,8 +64,30 @@ def _bisect(f, a, b, fa, fb, xeps):
     roots = mid[found]
     if found.all():
         return roots
-    more = _bisect(f, a[~found], b[~found], fa[~found], fb[~found], xeps)
-    return np.hstack((roots, more))
+    more = _bisect_cont(f, a[~found], b[~found], fa[~found], fb[~found], xeps)
+    return np.hstack([roots, more])
+
+
+def _bisect_discr(f, a, b, fa, fb):
+    """Bisect roots already found"""
+    while True:
+        mid = (a + b) // 2
+        found = a == mid
+        if found.any():
+            break
+
+        fmid = f(mid)
+        towards_a = np.signbit(fa) != np.signbit(fmid)
+        a = np.where(towards_a, a, mid)
+        fa = np.where(towards_a, fa, fmid)
+        b = np.where(towards_a, mid, b)
+        fb = np.where(towards_a, fmid, fb)
+
+    roots = mid[found]
+    if found.all():
+        return roots
+    more = _bisect_discr(f, a[~found], b[~found], fa[~found], fb[~found])
+    return np.hstack([roots, more])
 
 
 def discrete_extrema(f, xgrid):
