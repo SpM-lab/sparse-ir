@@ -156,7 +156,7 @@ class PiecewiseLegendreFT:
             raise NotImplementedError("Only interval [-1, 1] supported")
         self.poly = poly
         self.freq = freq
-        self.zeta = {'even': 0, 'odd': 1}[freq]
+        self.zeta = {'any': None, 'even': 0, 'odd': 1}[freq]
         if n_asymp is None:
             self.n_asymp = np.inf
             self._model = None
@@ -189,31 +189,15 @@ class PiecewiseLegendreFT:
             raise ValueError("select single polynomial")
         if grid is None:
             grid = self._DEFAULT_GRID
-        if part is None:
-            parity = self.poly(self.poly.xmax) / self.poly(self.poly.xmin)
-            if np.allclose(parity, 1):
-                part = 'real' if self.zeta == 0 else 'imag'
-            elif np.allclose(parity, -1):
-                part = 'imag' if self.zeta == 0 else 'real'
-            else:
-                raise ValueError("cannot detect parity.")
-        if part == 'real':
-            f = lambda n: self(2*n + self.zeta).real
-        elif part == 'imag':
-            f = lambda n: self(2*n + self.zeta).imag
-        else:
-            raise ValueError("part must be either 'real' or 'imag'")
 
+        f = self._func_for_part(part)
         x0 = _roots.discrete_extrema(f, PiecewiseLegendreFT._DEFAULT_GRID)
-        x0 = 2 * x0 + self.zeta
-        if x0[0] == 0:
-            x0 = np.hstack([-x0[::-1], x0[1:]])
-        else:
-            x0 = np.hstack([-x0[::-1], x0])
-        return x0
+        return self._symmetrize(x0)
 
     def _check_domain(self, n):
         n = np.asarray(n)
+        if self.freq == 'any':
+            return n
         if np.issubdtype(n.dtype, np.integer):
             nint = n
         else:
@@ -223,6 +207,30 @@ class PiecewiseLegendreFT:
         if not (nint % 2 == self.zeta).all():
             raise ValueError("n have wrong parity")
         return nint
+
+    def _func_for_part(self, part=None):
+        if part is None:
+            parity = self.poly(self.poly.xmax) / self.poly(self.poly.xmin)
+            if np.allclose(parity, 1):
+                part = 'real' if self.zeta == 0 else 'imag'
+            elif np.allclose(parity, -1):
+                part = 'imag' if self.zeta == 0 else 'real'
+            else:
+                raise ValueError("cannot detect parity.")
+        if part == 'real':
+            return lambda n: self(2*n + self.zeta).real
+        elif part == 'imag':
+            return lambda n: self(2*n + self.zeta).imag
+        else:
+            raise ValueError("part must be either 'real' or 'imag'")
+
+    def _symmetrize(self, x0):
+        x0 = 2 * x0 + self.zeta
+        if x0[0] == 0:
+            x0 = np.hstack([-x0[::-1], x0[1:]])
+        else:
+            x0 = np.hstack([-x0[::-1], x0])
+        return x0
 
 
 def _imag_power(n):
@@ -280,7 +288,16 @@ def _phase_stable(poly, wn):
     # Now `wn` still results in extra revolutions, but the mapping back does
     # not cut digits that were not there in the first place.
     xmid_diff, extra_shift = _shift_xmid(poly.knots, poly.dx)
-    phase_shifted = np.exp(1j * np.pi/2 * wn[None,:] * xmid_diff[:,None])
+
+    if np.issubdtype(wn.dtype, np.integer):
+        shift_arg = wn[None,:] * xmid_diff[:,None]
+    else:
+        delta_wn, wn = np.modf(wn)
+        wn = wn.astype(int)
+        shift_arg = wn[None,:] * xmid_diff[:,None]
+        shift_arg += delta_wn[None,:] * (extra_shift + xmid_diff)[:,None]
+
+    phase_shifted = np.exp(0.5j * np.pi * shift_arg)
     corr = _imag_power((extra_shift[:,None] + 1) * wn[None,:])
     return corr * phase_shifted
 
