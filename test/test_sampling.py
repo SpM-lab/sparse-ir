@@ -78,7 +78,7 @@ def test_tau_noise():
     np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
 
 
-def test_tau_noise():
+def test_wn_noise():
     K = irbasis3.KernelBFlat(99)
     basis = irbasis3.IRBasis(K, 'B')
     smpl = irbasis3.MatsubaraSampling(basis)

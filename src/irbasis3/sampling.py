@@ -9,7 +9,7 @@ class SamplingBase:
 
     Encodes the "basis transformation" of a propagator from the truncated IR
     basis coefficients `G_ir[l]` to time/frequency sampled on sparse points
-    `G(x[i])` together with its inverse, a least squares fit:
+    `G(x[i])` together with its inverse, a least squares fit::
 
              ________________                   ___________________
             |                |    evaluate     |                   |
@@ -17,22 +17,28 @@ class SamplingBase:
             |  coefficients  |<----------------|  sampling points  |
             |________________|      fit        |___________________|
 
+    Attributes:
+    -----------
+     - `basis` : IR Basis instance
+     - `matrix` : Evaluation matrix is decomposed form
+     - `sampling_points` : Set of sampling points
     """
-    def __init__(self, basis, x=None):
-        if x is None:
-            x = self.__class__.default_sampling_points(basis)
+    def __init__(self, basis, sampling_points=None):
+        if sampling_points is None:
+            sampling_points = self.__class__.default_sampling_points(basis)
         else:
-            x = np.asarray(x)
+            sampling_points = np.array(sampling_points)
 
         self.basis = basis
-        self.matrix = DecomposedMatrix(self.__class__.eval_matrix(basis, x))
-        self.x = x
+        self.matrix = DecomposedMatrix(
+                        self.__class__.eval_matrix(basis, sampling_points))
+        self.sampling_points = sampling_points
 
         # Check conditioning
         self.cond = self.matrix.s[0] / self.matrix.s[-1]
         if self.cond > 1e8:
-            warn("Sampling matrix is poorly conditioned (cond = %.2g)" % self.cond,
-                 ConditioningWarning)
+            warn("Sampling matrix is poorly conditioned (cond = %.2g)"
+                 % self.cond, ConditioningWarning)
 
     def evaluate(self, al, axis=None):
         """Evaluate the basis coefficients the sparse sampling points"""
@@ -71,21 +77,58 @@ class TauSampling(SamplingBase):
     def eval_matrix(cls, basis, x):
         return basis.u(x).T
 
+    @property
+    def tau(self):
+        """Sampling points in (reduced) imaginary time"""
+        return self.sampling_points
+
 
 class MatsubaraSampling(SamplingBase):
     """Sparse sampling in Matsubara frequencies.
 
     Allows the transformation between the IR basis and a set of sampling points
     in (scaled/unscaled) imaginary frequencies.
+
+    Attributes:
+    -----------
+     - `basis` : IR Basis instance
+     - `matrix` : Evaluation matrix is decomposed form
+     - `sampling_points` : Set of sampling points
     """
     @classmethod
-    def default_sampling_points(cls, basis):
+    def default_sampling_points(cls, basis, mitigate=True):
+        # Use the (discrete) extrema of the corresponding highest-order basis
+        # function in Matsubara.  This turns out to be close to optimal with
+        # respect to conditioning for this size (within a few percent).
         polyhat = basis.uhat[-1]
-        return polyhat.extrema()
+        wn = polyhat.extrema()
+
+        # While the condition number for sparse sampling in tau saturates at a
+        # modest level, the conditioning in Matsubara steadily deteriorates due
+        # to the fact that we are not free to set sampling points continuously.
+        # At double precision, tau sampling is bettwen conditioned than iwn
+        # by a factor of ~4 (still OK). To battle this, we fence the largest
+        # frequency with two carefully chosen oversampling points, which brings
+        # the two sampling problems within a factor of 2.
+        if mitigate:
+            wn_outer = wn[[0, -1]]
+            wn_diff = (0.05 * wn_outer // 2).astype(int) * 2
+            if wn.size >= 20:
+                wn = np.hstack([wn, wn_outer - wn_diff])
+            if wn.size >= 42:
+                wn = np.hstack([wn, wn_outer + wn_diff])
+            wn = np.unique(wn)
+
+        return wn
 
     @classmethod
     def eval_matrix(cls, basis, x):
         return basis.uhat(x).T
+
+    @property
+    def wn(self):
+        """Sampling points as (reduced) Matsubara frequencies"""
+        return self.sampling_points
 
 
 class DecomposedMatrix:
