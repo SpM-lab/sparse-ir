@@ -16,14 +16,16 @@ class KernelBase:
     the kernel must be square-integrable, for its singular values to decay
     exponentially, it must be smooth.
     `ypower` is the power of `y` in the front of the kernel.
+    `conv_radius` is a convergence radius of the high-frequency expansion.
     """
-    def __init__(self, xmin=-1, xmax=1, ymin=-1, ymax=1, ypower=0):
+    def __init__(self, xmin=-1, xmax=1, ymin=-1, ymax=1, ypower=0, conv_radius=None):
         """Initialize a kernel over [xmin, xmax] x [ymin, ymax] with ypower"""
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
         self.ymax = ymax
         self.ypower = ypower
+        self.conv_radius = conv_radius
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)
@@ -95,6 +97,7 @@ class KernelFFlat(KernelBase):
     def __init__(self, lambda_):
         super().__init__()
         self.lambda_ = lambda_
+        self.conv_radius = 40 * lambda_
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         x, y = _check_domain(self, x, y)
@@ -173,6 +176,7 @@ class KernelBFlat(KernelBase):
     def __init__(self, lambda_):
         super().__init__(ypower=1)
         self.lambda_ = lambda_
+        self.conv_radius = 40 * lambda_
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         x, y = _check_domain(self, x, y)

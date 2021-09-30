@@ -69,10 +69,9 @@ class IRBasis:
         # The radius of convergence of the asymptotic expansion is Lambda/2,
         # so for significantly larger frequencies we use the asymptotics,
         # since it has lower relative error.
-        conv_radius = 40 * self.kernel.lambda_
         _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
         self.u = u
-        self.uhat = u.hat(_even_odd, n_asymp=conv_radius)
+        self.uhat = u.hat(_even_odd, n_asymp=kernel.conv_radius)
         self.s = s
         self.v = v
         self.statistics = statistics
