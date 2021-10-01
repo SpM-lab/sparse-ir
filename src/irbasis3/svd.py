@@ -111,8 +111,7 @@ def _ddouble_svd_trunc(a):
     """Truncated SVD with double double precision"""
     if _xprec_linalg is None:
         raise RuntimeError("require xprec package for this precision")
-    u, s, vh = _xprec_linalg.svd_trunc_jacobi(a)
-    #u, s, vh = _xprec_linalg.svd_trunc(a)
+    u, s, vh = _xprec_linalg.svd_trunc(a)
     return u, s, vh.T
 
 
