@@ -18,7 +18,12 @@ from . import kernel as _kernel
 from . import poly as _poly
 from . import sve as _sve
 
-ACCURACY = 1.5e-8
+try:
+    import xprec
+except ImportError:
+    raise RuntimeError("xprec is mandatory for using the adapter module!")
+
+ACCURACY = 1.0e-15
 
 
 def load(statistics, Lambda, h5file=None):
