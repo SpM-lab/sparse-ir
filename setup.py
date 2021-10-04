@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 import io, os.path, re
 from setuptools import setup, find_packages
+import versioneer
 
 
 def readfile(*parts):
@@ -12,14 +13,6 @@ def readfile(*parts):
         return f.read()
 
 
-def extract_version(*parts):
-    """Extract value of __version__ variable by parsing python script"""
-    initfile = readfile(*parts)
-    version_re = re.compile(r"(?m)^__version__\s*=\s*['\"]([^'\"]*)['\"]")
-    match = version_re.search(initfile)
-    return match.group(1)
-
-
 def rebase_links(text, base_url):
     """Rebase links to doc/ directory to ensure they work online."""
     doclink_re = re.compile(
@@ -28,14 +21,16 @@ def rebase_links(text, base_url):
     return result
 
 
-VERSION = extract_version('src', 'irbasis3', '__init__.py')
+VERSION = versioneer.get_version()
+git_hash = versioneer.get_versions()['full-revisionid']
 REPO_URL = "https://github.com/SpM-lab/irbasis3"
-DOCTREE_URL = "%s/tree/v%s" % (REPO_URL, VERSION)
+DOCTREE_URL = "%s/tree/%s" % (REPO_URL, git_hash)
 LONG_DESCRIPTION = rebase_links(readfile('README.md'), DOCTREE_URL)
 
 setup(
     name='irbasis3',
-    version=VERSION,
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
 
     description=
         'intermediate representation (IR) basis for electronic propagator',
