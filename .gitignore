@@ -8,10 +8,10 @@ dist/
 build/
 *.egg-info/
 
-doc/*build/
+doc/*build*/
 
 notebooks/*.ipynb
 
-!.gitignore
+!/.gitignore
 !/.github/
 !/.editorconfig

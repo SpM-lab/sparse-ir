@@ -11,6 +11,7 @@ Contents
    kernels
    sampling
    porting
+   hacking
 ```
 
 Indices and tables
