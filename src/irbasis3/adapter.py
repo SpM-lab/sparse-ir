@@ -13,17 +13,19 @@ by default we only populate the basis down to singular values of 1.5e-8.
 You can change this by setting the `ACCURACY` parameter.
 """
 import numpy as _np
+from warnings import warn
 
 from . import kernel as _kernel
 from . import poly as _poly
 from . import sve as _sve
 
 try:
-    import xprec
+    import xprec as _xprec
 except ImportError:
-    raise RuntimeError("xprec is mandatory for using the adapter module!")
-
-ACCURACY = 1.0e-15
+    warn("xprec package is not found - expect degraded accuracy!")
+    ACCURACY = 1.0e-9
+else:
+    ACCURACY = 1.0e-15
 
 
 def load(statistics, Lambda, h5file=None):

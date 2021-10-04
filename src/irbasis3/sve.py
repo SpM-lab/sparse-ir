@@ -8,6 +8,8 @@ from . import poly
 from . import svd
 from . import kernel
 
+HAVE_XPREC = svd._ddouble is not None
+
 
 def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
             sve_strat=None, svd_strat=None):
@@ -241,7 +243,7 @@ def _choose_accuracy(eps, work_dtype):
                "eps = {:.2g}.  Expect singular values and basis functions\n"
                "for large l to have lower precision than the cutoff.\n")
         msg = msg.format(float(eps), float(np.square(safe_eps)))
-        if svd._ddouble is None:
+        if not HAVE_XPREC:
             msg += "You can install the xprec package to gain more precision.\n"
         warn(msg, UserWarning, 3)
 

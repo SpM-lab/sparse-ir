@@ -6,8 +6,6 @@ from warnings import warn
 from . import kernel as _kernel
 from . import sve
 
-ACCURACY = 1.5e-8
-
 
 class IRBasis:
     """Intermediate representation (IR) basis in reduced variables.
@@ -53,11 +51,6 @@ class IRBasis:
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
 
-        # By default, we want to compute the same number of basis functions with/without
-        # xprec.
-        if eps is None:
-            eps = ACCURACY
-
         self.kernel = kernel
         if sve_result is None:
             u, s, v = sve.compute(kernel, eps)
@@ -65,6 +58,11 @@ class IRBasis:
             u, s, v = sve_result
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
+
+        if eps is None and not sve.HAVE_XPREC:
+            warn("xprec package is not available:\n"
+                 "expect single precision (1.5e-8) only as both cutoff and\n"
+                 "accuracy of the basis functions")
 
         # The radius of convergence of the asymptotic expansion is Lambda/2,
         # so for significantly larger frequencies we use the asymptotics,
@@ -156,9 +154,6 @@ class FiniteTempBasis:
         if not (beta > 0):
             raise ValueError("inverse temperature beta must be positive")
 
-        if eps is None:
-            eps = ACCURACY
-
         self.kernel = kernel
         if sve_result is None:
             u, s, v = sve.compute(kernel, eps)
@@ -170,6 +165,11 @@ class FiniteTempBasis:
         self.kernel = kernel
         self.statistics = statistics
         self.beta = beta
+
+        if eps is None and not sve.HAVE_XPREC:
+            warn("xprec package is not available:\n"
+                 "expect single precision (1.5e-8) only as both cutoff and\n"
+                 "accuracy of the basis functions")
 
         # The polynomials are scaled to the new variables by transforming the
         # knots according to: tau = beta/2 * (x + 1), w = wmax * y.  Scaling
