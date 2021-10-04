@@ -10,6 +10,7 @@ Contents
 
    kernels
    sampling
+   porting
 ```
 
 Indices and tables

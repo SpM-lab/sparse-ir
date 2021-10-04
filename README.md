@@ -12,9 +12,9 @@ Installation
 
     pip install irbasis3 xprec
 
-Though not strictly required, we recommend installing the `xprec` alongside
-`irbasis3` as it allows to compute the IR basis functions with greater
-accuracy.
+Though not strictly required, we strongly recommend installing the `xprec`
+package alongside `irbasis3` as it allows to compute the IR basis functions
+with greater accuracy.
 
 Quick start
 -----------
