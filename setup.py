@@ -20,18 +20,9 @@ def extract_version(*parts):
     return match.group(1)
 
 
-def rebase_links(text, base_url):
-    """Rebase links to doc/ directory to ensure they work online."""
-    doclink_re = re.compile(
-                        r"(?m)^\s*\[\s*([^\]\n\r]+)\s*\]:\s*(doc/[./\w]+)\s*$")
-    result, nsub = doclink_re.subn(r"[\1]: %s/\2" % base_url, text)
-    return result
-
-
 VERSION = extract_version('src', 'irbasis3', '__init__.py')
 REPO_URL = "https://github.com/SpM-lab/irbasis3"
-DOCTREE_URL = "%s/tree/v%s" % (REPO_URL, VERSION)
-LONG_DESCRIPTION = rebase_links(readfile('README.md'), DOCTREE_URL)
+LONG_DESCRIPTION = readfile('README.md')
 
 setup(
     name='irbasis3',
