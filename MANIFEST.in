@@ -1,2 +1,0 @@
-include versioneer.py
-include src/irbasis3/_version.py
