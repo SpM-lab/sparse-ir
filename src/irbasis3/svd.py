@@ -20,7 +20,7 @@ except ImportError:
 
 try:
     from scipy.linalg.lapack import dgejsv as _lapack_dgejsv
-except AttributeError:
+except ImportError:
     _lapack_dgejsv = None
 
 
