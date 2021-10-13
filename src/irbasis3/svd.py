@@ -3,7 +3,6 @@
 from warnings import warn
 import numpy as np
 import scipy.linalg.interpolative as intp_decomp
-import scipy.linalg.lapack as sp_lapack
 
 try:
     from xprec import ddouble as _ddouble, finfo
@@ -20,7 +19,7 @@ except ImportError:
     finfo = np.finfo
 
 try:
-    _lapack_dgejsv = sp_lapack.dgejsv
+    from scipy.linalg.lapack import dgejsv as _lapack_dgejsv
 except AttributeError:
     _lapack_dgejsv = None
 
@@ -105,7 +104,7 @@ def _dgejsv(a, mode='A'):
 
     mode = mode.upper()
     joba = dict(zip("CEFGAR", range(6)))[mode]
-    s, u, v, _stat, istat, info = sp_lapack.dgejsv(a, joba)
+    s, u, v, _stat, istat, info = _lapack_dgejsv(a, joba)
     if info < 0:
         raise ValueError("LAPACK error - invalid parameter")
     if istat[2] != 0:
