@@ -19,6 +19,11 @@ except ImportError:
     MAX_EPS = np.finfo(MAX_DTYPE).eps
     finfo = np.finfo
 
+try:
+    _lapack_dgejsv = sp_lapack.dgejsv
+except AttributeError:
+    _lapack_dgejsv = None
+
 
 def compute(a_matrix, n_sv_hint=None, strategy='fast'):
     """Compute thin/truncated singular value decomposition
@@ -47,6 +52,11 @@ def compute(a_matrix, n_sv_hint=None, strategy='fast'):
         v = vh.swapaxes(-2, -1).conj()
     elif strategy == 'accurate':
         # Most accurate SVD
+        if _lapack_dgejsv is None:
+            warn("dgejsv (accurate SVD) is not available. Falling back to\n"
+                 "default SVD.  Expect slightly lower precision.\n"
+                 "Use xprec or scipy >= 1.5 to fix the issue.")
+            return compute(a_matrix, n_sv_hint, strategy='default')
         u, s, v = _dgejsv(a_matrix, mode='F')
     else:
         raise ValueError("invalid strategy:" + str(strategy))

@@ -57,7 +57,7 @@ setup(
     python_requires='>=3',
     install_requires=[
         'numpy',
-        'scipy>=1.5' # For scipy.linalg.lapack.dgesjv
+        'scipy'
     ],
     extras_require={
         'test': ['pytest', 'irbasis', 'xprec'],
