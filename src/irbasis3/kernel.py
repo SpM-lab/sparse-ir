@@ -199,11 +199,10 @@ class KernelBFlat(KernelBase):
         # has a singularity at v=0, which can be cured by treating that case
         # separately.  Secondly, the denominator loses precision around 0 since
         # exp(v) = 1 + v + ..., which can be avoided using expm1(...)
-        #tiny = np.finfo(dtype).tiny
-        tiny = 1e-200
-        with np.errstate(invalid='ignore'):
-            denom = np.where(abs_v < tiny, 1, abs_v / np.expm1(-abs_v))
-
+        not_tiny = abs_v >= 1e-200
+        denom = np.ones_like(abs_v)
+        np.divide(abs_v, np.expm1(-abs_v, where=not_tiny),
+                  out=denom, where=not_tiny)
         return -1/dtype.type(self.lambda_) * enum * denom
 
     def hints(self, eps):
@@ -315,16 +314,18 @@ class _KernelFFlatOdd(ReducedKernel):
             K(x, y) = -sinh(Λ/2 * x * y) / cosh(Λ/2 * y)
     """
     def __call__(self, x, y, x_plus=None, x_minus=None):
-        naive_result = super().__call__(x, y, x_plus, x_minus)
+        result = super().__call__(x, y, x_plus, x_minus)
 
         # For x * y around 0, antisymmetrization introduces cancellation, which
         # reduces the relative precision.  To combat this, we replace the
         # values with the explicit form
         v_half = self.inner.lambda_/2 * y
-        with np.errstate(over='ignore', invalid='ignore'):
-            antisymm_result = -np.sinh(v_half * x) / np.cosh(v_half)
-        return np.where(np.logical_and(x * v_half < 1, np.abs(v_half) < 100),
-                        antisymm_result, naive_result)
+        xy_small = x * v_half < 1
+        cosh_finite = v_half < 85
+        np.divide(-np.sinh(v_half * x, where=xy_small),
+                  np.cosh(v_half, where=cosh_finite),
+                  out=result, where=np.logical_and(xy_small, cosh_finite))
+        return result
 
 
 class _KernelBFlatOdd(ReducedKernel):
@@ -336,20 +337,20 @@ class _KernelBFlatOdd(ReducedKernel):
             K(x, y) = -y * sinh(Λ/2 * x * y) / sinh(Λ/2 * y)
     """
     def __call__(self, x, y, x_plus=None, x_minus=None):
-        naive_result = super().__call__(x, y, x_plus, x_minus)
+        result = super().__call__(x, y, x_plus, x_minus)
 
         # For x * y around 0, antisymmetrization introduces cancellation, which
         # reduces the relative precision.  To combat this, we replace the
         # values with the explicit form
         v_half = self.inner.lambda_/2 * y
-        tiny = 1e-200 #np.finfo(naive_result.dtype).tiny
-        with np.errstate(over='ignore', invalid='ignore'):
-            antisymm_result = -y * np.sinh(v_half * x) / np.sinh(v_half)
-
-        return np.where(np.logical_and(
-                            np.logical_and(x * v_half < 1, v_half > tiny),
-                            v_half < 100),
-                        antisymm_result, naive_result)
+        xv_half = x * v_half
+        xy_small = xv_half < 1
+        sinh_range = np.logical_and(v_half > 1e-200, v_half < 85)
+        np.divide(
+            np.multiply(-y, np.sinh(xv_half, where=xy_small), where=xy_small),
+            np.sinh(v_half, where=sinh_range),
+            out=result, where=np.logical_and(xy_small, sinh_range))
+        return result
 
 
 def matrix_from_gauss(kernel, gauss_x, gauss_y):
