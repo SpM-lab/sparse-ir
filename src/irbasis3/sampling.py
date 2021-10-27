@@ -41,7 +41,7 @@ class SamplingBase:
                  % self.cond, ConditioningWarning)
 
     def evaluate(self, al, axis=None):
-        """Evaluate the basis coefficients the sparse sampling points"""
+        """Evaluate the basis coefficients at the sparse sampling points"""
         return self.matrix.matmul(al, axis)
 
     def fit(self, ax, axis=None):
@@ -106,13 +106,13 @@ class MatsubaraSampling(SamplingBase):
         # While the condition number for sparse sampling in tau saturates at a
         # modest level, the conditioning in Matsubara steadily deteriorates due
         # to the fact that we are not free to set sampling points continuously.
-        # At double precision, tau sampling is bettwen conditioned than iwn
+        # At double precision, tau sampling is better conditioned than iwn
         # by a factor of ~4 (still OK). To battle this, we fence the largest
         # frequency with two carefully chosen oversampling points, which brings
         # the two sampling problems within a factor of 2.
         if mitigate:
             wn_outer = wn[[0, -1]]
-            wn_diff = (0.05 * wn_outer // 2).astype(int) * 2
+            wn_diff = 2 * np.round(0.03 * wn_outer).astype(int)
             if wn.size >= 20:
                 wn = np.hstack([wn, wn_outer - wn_diff])
             if wn.size >= 42:
