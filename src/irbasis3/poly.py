@@ -100,7 +100,7 @@ class PiecewiseLegendrePoly:
         where $p(x)$ are the polynomials.
 
         f: funtion-like object that evalues f(x) for a 1D array of x.
-           The last axis of the result must correspond to x axis.
+           By default (axis=None), the last axis of the result must correspond to x axis.
 
         deg: None or int, optional
             Degree of Gauss-Legendre quadrature rule
