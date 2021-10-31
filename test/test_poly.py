@@ -42,9 +42,9 @@ def test_broadcast(basis):
     np.testing.assert_array_almost_equal_nulp(
             u.value(l, x), [u[ll](xx) for (ll, xx) in zip(l, x)])
 
-
-def test_overlap(basis):
-    u, s, v = basis
+@pytest.mark.parametrize("lambda_, atol", [(42,1e-14), (1E+5,5e-12)])
+def test_overlap(lambda_, atol):
+    u, s, v = sve.compute(kernel.KernelFFlat(lambda_))
 
     # Keep only even number of polynomials
     u, s, v = u[:2*(s.size//2)], s[:2*(s.size//2)], v[:2*(s.size//2)]
@@ -53,24 +53,22 @@ def test_overlap(basis):
     ref = np.ones(s.size)
     ref[0] = 0
     np.testing.assert_allclose(
-       np.abs(u.overlap(u[0])-1), ref, rtol=0, atol=1e-14
+       np.abs(u.overlap(u[0])-1), ref, rtol=0, atol=atol
     )
 
     # Axis
     trans_f = lambda x: u[0](x).T
     np.testing.assert_allclose(
-       np.abs(u.overlap(trans_f, axis=0)-1), ref, rtol=0, atol=1e-14
+       np.abs(u.overlap(trans_f, axis=0)-1), ref, rtol=0, atol=atol
     )
 
     np.testing.assert_allclose(
-        u.overlap(u), np.identity(s.size), rtol=0, atol=1e-14
+        u.overlap(u), np.identity(s.size), rtol=0, atol=atol
     )
 
     u_tensor = poly.PiecewiseLegendrePoly(u.data.reshape(u.data.shape[:2] + (npoly//2, 2)), u.knots)
     res = u_tensor.overlap(u_tensor)
     assert res.shape == (npoly//2, 2, npoly//2, 2)
     np.testing.assert_allclose(
-        res.reshape(npoly, npoly), np.identity(s.size), rtol=0, atol=1e-14
+        res.reshape(npoly, npoly), np.identity(s.size), rtol=0, atol=atol
     )
-
-

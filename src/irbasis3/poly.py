@@ -121,7 +121,7 @@ class PiecewiseLegendrePoly:
         if _xprec_available:
             work_dtype = ddouble
         rule = gauss.legendre(deg, dtype=work_dtype).piecewise(self.knots)
-        x, w = rule.x.astype(np.float64), rule.w.astype(np.float64)
+        x, w = rule.x.astype(self.data.dtype), rule.w.astype(self.data.dtype)
 
         fval = f(x)
         if axis is not None:
