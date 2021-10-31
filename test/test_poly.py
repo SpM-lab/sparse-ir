@@ -46,6 +46,10 @@ def test_broadcast(basis):
 def test_overlap(basis):
     u, s, v = basis
 
+    # Keep only even number of polynomials
+    u, s, v = u[:2*(s.size//2)], s[:2*(s.size//2)], v[:2*(s.size//2)]
+    npoly = s.size
+
     ref = np.ones(s.size)
     ref[0] = 0
     np.testing.assert_allclose(
@@ -58,7 +62,15 @@ def test_overlap(basis):
        np.abs(u.overlap(trans_f, axis=0)-1), ref, rtol=0, atol=1e-14
     )
 
-    # Matrix-valued functions
     np.testing.assert_allclose(
         u.overlap(u), np.identity(s.size), rtol=0, atol=1e-14
     )
+
+    u_tensor = poly.PiecewiseLegendrePoly(u.data.reshape(u.data.shape[:2] + (npoly//2, 2)), u.knots)
+    res = u_tensor.overlap(u_tensor)
+    assert res.shape == (npoly//2, 2, npoly//2, 2)
+    np.testing.assert_allclose(
+        res.reshape(npoly, npoly), np.identity(s.size), rtol=0, atol=1e-14
+    )
+
+

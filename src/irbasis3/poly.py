@@ -124,7 +124,10 @@ class PiecewiseLegendrePoly:
             polyval = polyval[None,:]
         poly_rest_dims = polyval.shape[:-1]
 
-        res = np.einsum('iw,jw,w->ij', polyval, fval, rule.w, optimize=True)
+        nquad_points = rule.x.size
+        res = np.einsum('iw,jw,w->ij',
+            polyval.reshape((-1,nquad_points)),
+            fval.reshape((-1,nquad_points)), rule.w, optimize=True)
 
         return res.reshape(poly_rest_dims + f_rest_dims).squeeze()
         
