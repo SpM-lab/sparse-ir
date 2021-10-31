@@ -7,6 +7,12 @@ import scipy.special as sp_special
 from . import _roots
 from . import gauss
 
+try:
+    import xprec as xprec
+    _xprec_available =  True
+    from xprec import ddouble
+except ImportError:
+    _xprec_available =  False
 
 class PiecewiseLegendrePoly:
     """Piecewise Legendre polynomial.
@@ -94,7 +100,7 @@ class PiecewiseLegendrePoly:
         where $p(x)$ are the polynomials.
 
         f: funtion-like object that evalues f(x) for a 1D array of x.
-           The first axis of the result must correspond to x axis.
+           The last axis of the result must correspond to x axis.
 
         deg: None or int, optional
             Degree of Gauss-Legendre quadrature rule
@@ -110,24 +116,29 @@ class PiecewiseLegendrePoly:
         """
         if deg is None:
             deg = 2*self.polyorder
-        rule = gauss.legendre(deg, dtype=self.data.dtype).piecewise(self.knots)
 
-        fval = f(rule.x)
+        work_dtype = np.float64
+        if _xprec_available:
+            work_dtype = ddouble
+        rule = gauss.legendre(deg, dtype=work_dtype).piecewise(self.knots)
+        x, w = rule.x.astype(np.float64), rule.w.astype(np.float64)
+
+        fval = f(x)
         if axis is not None:
             fval = np.moveaxis(fval, axis, -1)
         if fval.ndim == 1:
             fval = fval[None,:]
         f_rest_dims = fval.shape[:-1]
 
-        polyval = self(rule.x)
+        polyval = self(x)
         if polyval.ndim == 1:
             polyval = polyval[None,:]
         poly_rest_dims = polyval.shape[:-1]
 
-        nquad_points = rule.x.size
+        nquad_points = x.size
         res = np.einsum('iw,jw,w->ij',
             polyval.reshape((-1,nquad_points)),
-            fval.reshape((-1,nquad_points)), rule.w, optimize=True)
+            fval.reshape((-1,nquad_points)), w, optimize=True)
 
         return res.reshape(poly_rest_dims + f_rest_dims).squeeze()
         
