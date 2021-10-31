@@ -5,6 +5,7 @@ import numpy.polynomial.legendre as np_legendre
 import scipy.special as sp_special
 
 from . import _roots
+from . import gauss
 
 
 class PiecewiseLegendrePoly:
@@ -86,6 +87,47 @@ class PiecewiseLegendrePoly:
         res = np_legendre.legval(xtilde, data, tensor=False)
         res *= self._norm[i]
         return res
+
+    def overlap(self, f, deg=None, axis=None):
+        """
+        Evaluate overlap \int dx p(x) f(x) using piecewise Gauss-Legendre quadrature,
+        where $p(x)$ are the polynomials.
+
+        f: funtion-like object that evalues f(x) for a 1D array of x.
+           The first axis of the result must correspond to x axis.
+
+        deg: None or int, optional
+            Degree of Gauss-Legendre quadrature rule
+            By default, we set deg to 2 * polyorder.
+ 
+        axis: None or int, optional
+            Axis of the function f along which the integral is performed.
+            By default (axis=None), the last axis is used.
+
+        return: array-like object
+            The shapres are (poly_dims, f_dims), where poly_dims are the shape of the polynomial
+            and f_dims are those of the function f(x).
+        """
+        if deg is None:
+            deg = 2*self.polyorder
+        rule = gauss.legendre(deg, dtype=self.data.dtype).piecewise(self.knots)
+
+        fval = f(rule.x)
+        if axis is not None:
+            fval = np.moveaxis(fval, axis, -1)
+        if fval.ndim == 1:
+            fval = fval[None,:]
+        f_rest_dims = fval.shape[:-1]
+
+        polyval = self(rule.x)
+        if polyval.ndim == 1:
+            polyval = polyval[None,:]
+        poly_rest_dims = polyval.shape[:-1]
+
+        res = np.einsum('iw,jw,w->ij', polyval, fval, rule.w, optimize=True)
+
+        return res.reshape(poly_rest_dims + f_rest_dims).squeeze()
+        
 
     def deriv(self, n=1):
         """Get polynomial for the n'th derivative"""

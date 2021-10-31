@@ -41,3 +41,24 @@ def test_broadcast(basis):
     l = [2, 7]
     np.testing.assert_array_almost_equal_nulp(
             u.value(l, x), [u[ll](xx) for (ll, xx) in zip(l, x)])
+
+
+def test_overlap(basis):
+    u, s, v = basis
+
+    ref = np.ones(s.size)
+    ref[0] = 0
+    np.testing.assert_allclose(
+       np.abs(u.overlap(u[0])-1), ref, rtol=0, atol=1e-14
+    )
+
+    # Axis
+    trans_f = lambda x: u[0](x).T
+    np.testing.assert_allclose(
+       np.abs(u.overlap(trans_f, axis=0)-1), ref, rtol=0, atol=1e-14
+    )
+
+    # Matrix-valued functions
+    np.testing.assert_allclose(
+        u.overlap(u), np.identity(s.size), rtol=0, atol=1e-14
+    )
