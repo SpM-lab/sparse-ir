@@ -3,12 +3,12 @@
 import numpy as np
 import numpy.polynomial.legendre as np_legendre
 
-from irbasis3 import _gauss
+from irbasis3 import gauss
 
 
 def test_collocate():
-    r = _gauss.legendre(20)
-    cmat = _gauss.legendre_collocation(r)
+    r = gauss.legendre(20)
+    cmat = gauss.legendre_collocation(r)
     emat = np_legendre.legvander(r.x, r.x.size-1)
     np.testing.assert_allclose(emat.dot(cmat), np.eye(20), atol=1e-13, rtol=0)
 
@@ -29,7 +29,7 @@ def _gauss_validate(rule):
     np.testing.assert_allclose(rule.x_backward, rule.b - rule.x)
 
 def test_gauss_leg():
-    rule = _gauss.legendre(200)
+    rule = gauss.legendre(200)
     _gauss_validate(rule)
     x, w = np.polynomial.legendre.leggauss(200)
     np.testing.assert_allclose(rule.x, x)
@@ -38,5 +38,5 @@ def test_gauss_leg():
 
 def test_piecewise():
     edges = [-4, -1, 1, 3]
-    rule = _gauss.legendre(20).piecewise(edges)
+    rule = gauss.legendre(20).piecewise(edges)
     _gauss_validate(rule)

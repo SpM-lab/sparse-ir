@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from irbasis3 import kernel
-from irbasis3 import _gauss
+from irbasis3 import gauss
 
 KERNELS = [
     kernel.KernelFFlat(9),
@@ -21,7 +21,7 @@ def test_accuracy(K):
     dtype = np.float32
     dtype_x = np.float64
 
-    rule = _gauss.legendre(10, dtype)
+    rule = gauss.legendre(10, dtype)
     hints = K.hints(1e-16)
     gauss_x = rule.piecewise(hints.segments_x)
     gauss_y = rule.piecewise(hints.segments_y)
