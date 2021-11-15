@@ -112,7 +112,7 @@ class MatsubaraSampling(SamplingBase):
         # the two sampling problems within a factor of 2.
         if mitigate:
             wn_outer = wn[[0, -1]]
-            wn_diff = 2 * np.round(0.03 * wn_outer).astype(int)
+            wn_diff = 2 * np.round(0.025 * wn_outer).astype(int)
             if wn.size >= 20:
                 wn = np.hstack([wn, wn_outer - wn_diff])
             if wn.size >= 42:
