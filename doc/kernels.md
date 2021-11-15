@@ -40,6 +40,7 @@ kernel, modifying the values as needed:
 
     class KernelFGauss(irbasis3.kernel.KernelBase):
         def __init__(self, lambda_, std):
+            super().__init__(self)
             self._inner = irbasis3.KernelFFlat(lambda_)
             self.lambda_ = lambda_
             self.std = std
