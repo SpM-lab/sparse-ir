@@ -308,12 +308,11 @@ def _get_tnl(l, w):
 
         T_l(w) = \int_{-1}^1 dx \exp(iwx) P_l(x)
     """
-    i_pow_l = _imag_power(l)
-    return 2 * np.where(
-        w >= 0,
-        i_pow_l * sp_special.spherical_jn(l, w),
-        (i_pow_l * sp_special.spherical_jn(l, -w)).conj(),
-        )
+    # spherical_jn gives NaN for w < 0, but since we know that P_l(x) is real,
+    # we simply conjugate the result for w > 0 in these cases.
+    result = 2 * _imag_power(l) * sp_special.spherical_jn(l, np.abs(w))
+    np.conjugate(result, out=result, where=w < 0)
+    return result
 
 
 def _shift_xmid(knots, dx):
