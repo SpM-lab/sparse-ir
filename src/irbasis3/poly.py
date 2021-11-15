@@ -94,33 +94,39 @@ class PiecewiseLegendrePoly:
         res *= self._norm[i]
         return res
 
-    def overlap(self, f, deg=None, axis=None):
+    def overlap(self, f, axis=None, _deg=None):
+        r"""Evaluate overlap integral of this polynomial with function `f`.
+
+        Given the function `f`, evaluate the integral:
+
+            ∫ dx * f(x) * self(x)
+
+        using piecewise Gauss-Legendre quadrature, where `self` are the
+        polynomials.
+
+        Arguments:
+        ----------
+         - f: funtion-like object that evalues f(x) for a 1D array of x.
+           By default (axis=None), the last axis of the result must correspond
+           to x axis.
+
+         - axis: None or int, optional
+           Axis of the function f along which the integral is performed.
+           By default (axis=None), the last axis is used.
+
+        Return:
+        -------
+        array-like object, where the shapres are (poly_dims, f_dims), where
+        poly_dims are the shape of the polynomial and f_dims are those of the
+        function f(x).
         """
-        Evaluate overlap \int dx p(x) f(x) using piecewise Gauss-Legendre quadrature,
-        where $p(x)$ are the polynomials.
-
-        f: funtion-like object that evalues f(x) for a 1D array of x.
-           By default (axis=None), the last axis of the result must correspond to x axis.
-
-        deg: None or int, optional
-            Degree of Gauss-Legendre quadrature rule
-            By default, we set deg to 2 * polyorder.
- 
-        axis: None or int, optional
-            Axis of the function f along which the integral is performed.
-            By default (axis=None), the last axis is used.
-
-        return: array-like object
-            The shapres are (poly_dims, f_dims), where poly_dims are the shape of the polynomial
-            and f_dims are those of the function f(x).
-        """
-        if deg is None:
-            deg = 2*self.polyorder
+        if _deg is None:
+            _deg = 2*self.polyorder
 
         work_dtype = np.float64
         if _xprec_available:
             work_dtype = ddouble
-        rule = gauss.legendre(deg, dtype=work_dtype).piecewise(self.knots)
+        rule = gauss.legendre(_deg, dtype=work_dtype).piecewise(self.knots)
         x, w = rule.x.astype(self.data.dtype), rule.w.astype(self.data.dtype)
 
         fval = f(x)
@@ -141,7 +147,6 @@ class PiecewiseLegendrePoly:
             fval.reshape((-1,nquad_points)), w, optimize=True)
 
         return res.reshape(poly_rest_dims + f_rest_dims).squeeze()
-        
 
     def deriv(self, n=1):
         """Get polynomial for the n'th derivative"""
