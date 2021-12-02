@@ -60,7 +60,7 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
         svd_strat = default_svd_strat
     if sve_strat is None:
         sve_strat = CentrosymmSVE if K.is_centrosymmetric else SamplingSVE
-    sve = sve_strat(K, eps, n_gauss, work_dtype)
+    sve = sve_strat(K, eps, n_gauss=n_gauss, dtype=work_dtype)
     matrix = sve.matrix
     u, s, v = svd.compute(matrix, sve.nsvals_hint, svd_strat)
     u, s, v = svd.truncate(u, s, v, eps, n_sv)
@@ -87,7 +87,7 @@ class SamplingSVE:
 
     [1] P. Hansen, Discrete Inverse Problems, Ch. 3.1
     """
-    def __init__(self, K, eps, n_gauss=None, dtype=float):
+    def __init__(self, K, eps, *, n_gauss=None, dtype=float):
         self.K = K
         sve_hints = K.hints(eps)
         if n_gauss is None:
@@ -166,15 +166,15 @@ class CentrosymmSVE:
 
     [1]: A. Karlin, Total Positivity (1968).
     """
-    def __init__(self, K, eps, n_gauss=None, dtype=float, InnerSVE=None):
+    def __init__(self, K, eps, *, InnerSVE=None, **inner_args):
         if InnerSVE is None:
             InnerSVE = SamplingSVE
         self.K = K
         self.eps = eps
 
         # Inner kernels for even and odd functions
-        self.even = InnerSVE(K.get_symmetrized(+1), eps, n_gauss, dtype)
-        self.odd = InnerSVE(K.get_symmetrized(-1), eps, n_gauss, dtype)
+        self.even = InnerSVE(K.get_symmetrized(+1), eps, **inner_args)
+        self.odd = InnerSVE(K.get_symmetrized(-1), eps, **inner_args)
 
         # Now extract the hints
         self.nsvals_hint = max(self.even.nsvals_hint, self.odd.nsvals_hint)
