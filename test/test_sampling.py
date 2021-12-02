@@ -4,7 +4,7 @@ import numpy as np
 
 import irbasis3
 from irbasis3 import sampling
-
+import pytest
 
 def test_decomp():
     rng = np.random.RandomState(4711)
@@ -93,3 +93,17 @@ def test_wn_noise():
     Giw_n = Giw +  noise * np.linalg.norm(Giw) * rng.randn(*Giw.shape)
     Gl_n = smpl.fit(Giw_n)
     np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
+
+
+@pytest.mark.parametrize("stat", ["F", "B"])
+def test_oversampling(stat):
+    K = irbasis3.KernelBFlat(99)
+    basis = irbasis3.IRBasis(K, stat)
+    print("dim", basis.size)
+    for log_oversampling in [1, 2]:
+        smpl_matsu = irbasis3.MatsubaraSampling(basis, log_oversampling=log_oversampling)
+        smpl_tau = irbasis3.TauSampling(basis, log_oversampling=log_oversampling)
+        assert np.unique(smpl_matsu.sampling_points % 2).size == 1
+        print(smpl_matsu.sampling_points)
+        print(smpl_tau.sampling_points)
+        #assert np.abs(smpl_matsu.sampling_points.size - (2**log_oversampling) * basis.size) < 0.3*smpl_matsu.sampling_points.size

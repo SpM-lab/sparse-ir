@@ -3,6 +3,30 @@
 import numpy as np
 from warnings import warn
 
+def _double(w):
+    # Take middle points
+    mid_w = np.array(0.5*(w[:-1]+w[1:]), dtype=w.dtype)
+    return np.unique(np.hstack((w, mid_w)))
+
+def _oversampling(sampling_points):
+    if issubclass(sampling_points.dtype.type, np.integer):
+        if all(sampling_points%2 == 1):
+            return 2*_double(sampling_points//2)+1
+        elif all(sampling_points%2 == 0):
+            return 2*_double(sampling_points//2)
+        else:
+            raise RuntimeError("Invalid input.")
+    elif sampling_points.dtype == np.float64:
+        return _double(sampling_points)
+    else:
+        raise RuntimeError("Invalid input.")
+
+def _mul_with_1d_array(X, y, axis):
+    """ Multiply numpy ndarray X with 1d array y along a given axis """
+    ss = X.ndim * [None]
+    ss[axis] = slice(None)
+    return X * y[ss]
+
 
 class SamplingBase:
     """Base class for sparse sampling.
@@ -22,31 +46,48 @@ class SamplingBase:
      - `basis` : IR Basis instance
      - `matrix` : Evaluation matrix is decomposed form
      - `sampling_points` : Set of sampling points
+     - `log_oversampling` : Oversampling factor. The number of the resultant sampling points will be increased approximately by 2^log_oversampling
+     - `warn_cond` : Warn if the condition number is large.
     """
-    def __init__(self, basis, sampling_points=None):
+    def __init__(self, basis, sampling_points=None, log_oversampling=0, warn_cond=True, regularizer=None):
         if sampling_points is None:
             sampling_points = self.__class__.default_sampling_points(basis)
         else:
             sampling_points = np.array(sampling_points)
+        
+        if log_oversampling > 0:
+            for _ in range(log_oversampling):
+                sampling_points = _oversampling(sampling_points)
+        
+        if regularizer is None:
+            self.regularizer = np.ones(sampling_points.size)
+        else:
+            self.regularizer = np.asarray(regularizer)
 
         self.basis = basis
         self.matrix = DecomposedMatrix(
-                        self.__class__.eval_matrix(basis, sampling_points))
+                        self.__class__.eval_matrix(basis, sampling_points) * self.regularizer[None, :]
+                        )
         self.sampling_points = sampling_points
 
         # Check conditioning
+        # FIXME: take into account regularizer
         self.cond = self.matrix.s[0] / self.matrix.s[-1]
-        if self.cond > 1e8:
+        if warn_cond and self.cond > 1e8:
             warn("Sampling matrix is poorly conditioned (cond = %.2g)"
                  % self.cond, ConditioningWarning)
 
     def evaluate(self, al, axis=None):
         """Evaluate the basis coefficients at the sparse sampling points"""
+        if axis is None: axis = 0
+        al = _mul_with_1d_array(al, 1/self.regularizer, axis=axis)
         return self.matrix.matmul(al, axis)
 
     def fit(self, ax, axis=None):
         """Fit basis coefficients from the sparse sampling points"""
-        return self.matrix.lstsq(ax, axis)
+        if axis is None: axis = 0
+        res = self.matrix.lstsq(ax, axis)
+        return _mul_with_1d_array(res, self.regularizer, axis=axis)
 
     @classmethod
     def default_sampling_points(cls, basis):
