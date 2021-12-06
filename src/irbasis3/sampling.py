@@ -25,7 +25,7 @@ def _mul_with_1d_array(X, y, axis):
     """ Multiply numpy ndarray X with 1d array y along a given axis """
     ss = X.ndim * [None]
     ss[axis] = slice(None)
-    return X * y[ss]
+    return X * y[tuple(ss)]
 
 
 class SamplingBase:
@@ -48,6 +48,7 @@ class SamplingBase:
      - `sampling_points` : Set of sampling points
      - `log_oversampling` : Oversampling factor. The number of the resultant sampling points will be increased approximately by 2^log_oversampling
      - `warn_cond` : Warn if the condition number is large.
+     - `regularizer` : None (disable), True (singular values), or a 1D array-like object of floats.
     """
     def __init__(self, basis, sampling_points=None, log_oversampling=0, warn_cond=True, regularizer=None):
         if sampling_points is None:
@@ -60,13 +61,15 @@ class SamplingBase:
                 sampling_points = _oversampling(sampling_points)
         
         if regularizer is None:
-            self.regularizer = np.ones(sampling_points.size)
+            self.regularizer = np.ones(basis.size)
+        elif regularizer is True:
+            self.regularizer = basis.s
         else:
             self.regularizer = np.asarray(regularizer)
 
         self.basis = basis
         self.matrix = DecomposedMatrix(
-                        self.__class__.eval_matrix(basis, sampling_points) * self.regularizer[None, :]
+                        self.__class__.eval_matrix(basis, sampling_points) * self.regularizer[None,:]
                         )
         self.sampling_points = sampling_points
 

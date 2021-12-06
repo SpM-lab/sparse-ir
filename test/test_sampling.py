@@ -99,11 +99,28 @@ def test_wn_noise():
 def test_oversampling(stat):
     K = irbasis3.KernelBFlat(99)
     basis = irbasis3.IRBasis(K, stat)
-    print("dim", basis.size)
     for log_oversampling in [1, 2]:
         smpl_matsu = irbasis3.MatsubaraSampling(basis, log_oversampling=log_oversampling)
         smpl_tau = irbasis3.TauSampling(basis, log_oversampling=log_oversampling)
+        assert smpl_tau.sampling_points.size > basis.size
+        assert smpl_matsu.sampling_points.size > basis.size
         assert np.unique(smpl_matsu.sampling_points % 2).size == 1
-        print(smpl_matsu.sampling_points)
-        print(smpl_tau.sampling_points)
-        #assert np.abs(smpl_matsu.sampling_points.size - (2**log_oversampling) * basis.size) < 0.3*smpl_matsu.sampling_points.size
+        assert all(smpl_tau.sampling_points[:-1] < smpl_tau.sampling_points[1:])
+
+
+def test_regularizer():
+    K = irbasis3.KernelBFlat(99)
+    basis = irbasis3.IRBasis(K, 'B')
+    smpl = irbasis3.MatsubaraSampling(basis)
+    smpl_reg = irbasis3.MatsubaraSampling(basis, regularizer=basis.s)
+
+    rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
+    Gl = basis.s * rhol
+
+    Giw = smpl.evaluate(Gl)
+    Giw_reg = smpl_reg.evaluate(Gl)
+
+    np.testing.assert_allclose(Giw, Giw_reg)
+
+    Gl_reconst = smpl_reg.fit(Giw)
+    np.testing.assert_allclose(Gl, Gl_reconst, rtol=0, atol=1e-10*np.abs(Gl).max())
