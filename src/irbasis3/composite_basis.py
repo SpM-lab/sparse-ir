@@ -8,6 +8,7 @@ class _CompositePiecewiseLegendreyBase:
         self._polys = polys
         self._sizes = np.array([p.size for p in self._polys])
         self._cumsum_sizes = np.cumsum(self._sizes)
+        self._size = np.sum(self._sizes)
 
     def __getitem__(self, l):
         """Return part of a set of piecewise polynomials"""
@@ -21,6 +22,13 @@ class _CompositePiecewiseLegendreyBase:
         idx_p = np.searchsorted(self._cumsum_sizes, l, "right")
         l_ = l - self._cumsum_sizes[idx_p-1] if idx_p >= 1 else l
         return idx_p, l_
+
+    @property
+    def shape(self): return (self.size,)
+
+    @property
+    def size(self): return self._size
+
 
 class CompositePiecewiseLegendrePoly(_CompositePiecewiseLegendreyBase):
     """Union of several piecewise Legendre polynomials"""
@@ -65,13 +73,6 @@ class CompositePiecewiseLegendrePoly(_CompositePiecewiseLegendreyBase):
         return np.unique(np.hstack([p.roots(alpha) for p in self._polys]))
     
     @property
-    def shape(self):
-        return (self.size,)
-
-    @property
-    def size(self): return np.sum((p.size for p in self._polys))
-
-    @property
     def ndim(self): return 1
 
 class CompositePiecewiseLegendreFT(_CompositePiecewiseLegendreyBase):
@@ -90,3 +91,22 @@ class CompositePiecewiseLegendreFT(_CompositePiecewiseLegendreyBase):
     def __call__(self, n):
         """Obtain Fourier transform of polynomial for given frequencies"""
         return np.vstack((p(n) for p in self._polys))
+
+class CompositeBasis:
+    """Union of several basis sets"""
+    def __init__(self, bases):
+        """Initialize a composite basis
+
+        Args:
+            bases (list): list of FiniteTempBasis instances
+        """
+        self._size = np.sum((b.size for b in bases))
+        self.u = CompositePiecewiseLegendrePoly([b.u for b in bases])
+        self.v = CompositePiecewiseLegendrePoly([b.v for b in bases])
+        self.uhat = CompositePiecewiseLegendreFT([b.uhat for b in bases])
+
+    @property
+    def size(self): return self._size
+
+    @property
+    def shape(self): return (self._size,)
