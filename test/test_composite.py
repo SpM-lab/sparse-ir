@@ -4,7 +4,7 @@ import numpy as np
 import irbasis3
 from irbasis3 import sve
 from irbasis3 import kernel
-from irbasis3 import composite_basis
+from irbasis3 import composite
 
 import pytest
 
@@ -26,11 +26,11 @@ def test_composite_poly(basis):
     u, s, v = basis
     l = s.size
 
-    u_comp = composite_basis.CompositePiecewiseLegendrePoly([u, u])
+    u_comp = composite.CompositeBasisFunction([u, u])
     _check_composite_poly(u_comp, [u, u], np.linspace(-1, 1, 10))
 
     uhat = u.hat("odd")
-    uhat_comp = composite_basis.CompositePiecewiseLegendreFT([uhat, uhat])
+    uhat_comp = composite.CompositeBasisFunctionFT([uhat, uhat])
     _check_composite_poly(uhat_comp, [uhat, uhat], np.array([-3, 1, 5]))
 
 def test_composite_basis():
@@ -40,7 +40,7 @@ def test_composite_basis():
     K = irbasis3.KernelBFlat(lambda_)
     basis = irbasis3.FiniteTempBasis(K, "F", beta, eps=1e-6)
     basis2 = irbasis3.FiniteTempBasis(K, "F", beta, eps=1e-3)
-    basis_comp = composite_basis.CompositeBasis([basis, basis2])
+    basis_comp = composite.CompositeBasis([basis, basis2])
     _check_composite_poly(basis_comp.u, [basis.u, basis2.u], np.linspace(0, beta, 10))
     _check_composite_poly(basis_comp.uhat, [basis.uhat, basis2.uhat], np.array([1,3]))
     _check_composite_poly(basis_comp.v, [basis.v, basis2.v], np.linspace(-wmax, -wmax, 10))

@@ -46,7 +46,7 @@ class IRBasis:
     ---------
      - `FiniteTempBasis`: for a basis directly in time/frequency.
     """
-    def __init__(self, kernel, statistics, eps=None, sve_result=None):
+    def __init__(self, kernel, statistics, eps=None, sve_result=None, _mitigate_sampling_points=True):
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
@@ -73,6 +73,11 @@ class IRBasis:
         self.s = s
         self.v = v
         self.statistics = statistics
+
+        # Default sampling points
+        self.default_tau_sampling_points = _default_tau_sampling_points(self.u)
+        self.default_matsubara_sampling_points = _default_matsubara_sampling_points(
+            self.uhat, _mitigate_sampling_points)
 
     def __getitem__(self, index):
         """Return basis functions/singular values for given index/indices.
@@ -147,7 +152,7 @@ class FiniteTempBasis:
         gl = basis.s * basis.v(2.5)
         giw = gl @ basis.uhat([1, 3, 5, 7])
     """
-    def __init__(self, kernel, statistics, beta, eps=None, sve_result=None):
+    def __init__(self, kernel, statistics, beta, eps=None, sve_result=None, _mitigate_sampling_points=True):
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
@@ -192,6 +197,11 @@ class FiniteTempBasis:
         _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
         self.uhat = uhat_base.hat(_even_odd, conv_radius)
 
+        # Default sampling points
+        self.default_tau_sampling_points = _default_tau_sampling_points(self.u)
+        self.default_matsubara_sampling_points = _default_matsubara_sampling_points(
+            self.uhat, _mitigate_sampling_points)
+
     def __getitem__(self, index):
         """Return basis functions/singular values for given index/indices.
 
@@ -214,3 +224,37 @@ class FiniteTempBasis:
     @property
     def shape(self):
         return self.u.shape
+
+
+def _default_tau_sampling_points(u):
+    poly = u[-1]
+    maxima = poly.deriv().roots()
+    left = .5 * (maxima[:1] + poly.xmin)
+    right = .5 * (maxima[-1:] + poly.xmax)
+    return np.concatenate([left, maxima, right])
+
+
+def _default_matsubara_sampling_points(uhat, mitigate=True):
+    # Use the (discrete) extrema of the corresponding highest-order basis
+    # function in Matsubara.  This turns out to be close to optimal with
+    # respect to conditioning for this size (within a few percent).
+    polyhat = uhat[-1]
+    wn = polyhat.extrema()
+
+    # While the condition number for sparse sampling in tau saturates at a
+    # modest level, the conditioning in Matsubara steadily deteriorates due
+    # to the fact that we are not free to set sampling points continuously.
+    # At double precision, tau sampling is better conditioned than iwn
+    # by a factor of ~4 (still OK). To battle this, we fence the largest
+    # frequency with two carefully chosen oversampling points, which brings
+    # the two sampling problems within a factor of 2.
+    if mitigate:
+        wn_outer = wn[[0, -1]]
+        wn_diff = 2 * np.round(0.025 * wn_outer).astype(int)
+        if wn.size >= 20:
+            wn = np.hstack([wn, wn_outer - wn_diff])
+        if wn.size >= 42:
+            wn = np.hstack([wn, wn_outer + wn_diff])
+        wn = np.unique(wn)
+
+    return wn

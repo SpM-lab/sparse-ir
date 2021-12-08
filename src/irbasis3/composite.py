@@ -1,17 +1,15 @@
 import numpy as np
 
-from .poly import PiecewiseLegendreFT, PiecewiseLegendrePoly
-
-class _CompositePiecewiseLegendreyBase:
-    """Union of several piecewise Legendre polynomials"""
+class _CompositeBasisFunctionBase:
+    """Union of several basis functions"""
     def __init__(self, polys):
-        self._polys = polys
+        self._polys = tuple(polys)
         self._sizes = np.array([p.size for p in self._polys])
         self._cumsum_sizes = np.cumsum(self._sizes)
         self._size = np.sum(self._sizes)
 
     def __getitem__(self, l):
-        """Return part of a set of piecewise polynomials"""
+        """Return part of a set of basis functions"""
         if isinstance(l, int) or issubclass(type(l), np.integer):
             idx_p, l_ = self._internal_pos(l)
             return self._polys[idx_p][l_]
@@ -30,22 +28,19 @@ class _CompositePiecewiseLegendreyBase:
     def size(self): return self._size
 
 
-class CompositePiecewiseLegendrePoly(_CompositePiecewiseLegendreyBase):
-    """Union of several piecewise Legendre polynomials"""
+class CompositeBasisFunction(_CompositeBasisFunctionBase):
+    """Union of several basis functions for the imaginary-time/real-frequency domains"""
     def __init__(self, polys):
-        """Initialize CompositePieceWiseLegendrePoly
+        """Initialize CompositeBasisFunction
 
         Arguments:
         ----------
-         - polys: list of PiecewiseLegendrePoly instances with ndim=1
+         - polys: iterable object of basis-function-like instances with ndim=1
         """
-        assert isinstance(polys, list)
-        assert all([isinstance(x, PiecewiseLegendrePoly) for x in polys]) 
-        assert all([x.ndim==1 for x in polys]) 
         super().__init__(polys)
 
     def __call__(self, x):
-        """Evaluate polynomial at position x"""
+        """Evaluate basis function at position x"""
         return np.vstack((p(x) for p in self._polys))
     
     def value(self, l, x):
@@ -57,7 +52,7 @@ class CompositePiecewiseLegendrePoly(_CompositePiecewiseLegendreyBase):
         return np.squeeze(np.asarray([self[ll](xx) for ll, xx in zip(l, x)]))
 
     def overlap(self, f, axis=None, _deg=None):
-        r"""Evaluate overlap integral of this polynomial with function `f`"""
+        r"""Evaluate overlap integral of this basis function with function `f`"""
         return np.vstack((p.overlap(f, axis, _deg) for p in self._polys))
 
     def deriv(self, n=1):
@@ -66,30 +61,28 @@ class CompositePiecewiseLegendrePoly(_CompositePiecewiseLegendreyBase):
 
     def hat(self, freq, n_asymp=None):
         """Get Fourier transformed object"""
-        return CompositePiecewiseLegendreFT([PiecewiseLegendreFT(p, freq, n_asymp) for p in self._polys])
+        return CompositeBasisFunctionFT([p.hat(freq, n_asymp) for p in self._polys])
 
     def roots(self, alpha=2):
-        """Find all roots of the piecewise polynomial"""
+        """Find all roots of the basis function """
         return np.unique(np.hstack([p.roots(alpha) for p in self._polys]))
     
     @property
     def ndim(self): return 1
 
-class CompositePiecewiseLegendreFT(_CompositePiecewiseLegendreyBase):
-    """Union of fourier transform of several piecewise Legendre polynomials """
+class CompositeBasisFunctionFT(_CompositeBasisFunctionBase):
+    """Union of fourier transform of several basis functions for the Matsubara domain"""
     def __init__(self, polys):
-        """Initialize CompositePieceWiseLegendreFT
+        """Initialize CompositeBasisFunctionFT
 
         Arguments:
         ----------
-         - polys: list of PiecewiseLegendreFT
+         - polys: iterable object of basis-function-like instances
         """
-        assert isinstance(polys, list)
-        assert all([isinstance(x, PiecewiseLegendreFT) for x in polys]) 
         super().__init__(polys)
 
     def __call__(self, n):
-        """Obtain Fourier transform of polynomial for given frequencies"""
+        """Obtain Fourier transform of basis function for given frequencies"""
         return np.vstack((p(n) for p in self._polys))
 
 class CompositeBasis:
@@ -98,12 +91,15 @@ class CompositeBasis:
         """Initialize a composite basis
 
         Args:
-            bases (list): list of FiniteTempBasis instances
+            bases): iterable object of FiniteTempBasis instances
         """
         self._size = np.sum((b.size for b in bases))
-        self.u = CompositePiecewiseLegendrePoly([b.u for b in bases])
-        self.v = CompositePiecewiseLegendrePoly([b.v for b in bases])
-        self.uhat = CompositePiecewiseLegendreFT([b.uhat for b in bases])
+        self.u = CompositeBasisFunction([b.u for b in bases])
+        self.v = CompositeBasisFunction([b.v for b in bases])
+        self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases])
+
+        self.default_tau_sampling_points = np.unique(np.hstack((b.default_tau_sampling_points for b in bases)))
+        self.default_matsubara_sampling_points = np.unique(np.hstack((b.default_matsubara_sampling_points for b in bases)))
 
     @property
     def size(self): return self._size
