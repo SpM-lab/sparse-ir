@@ -93,10 +93,11 @@ class CompositeBasis:
         Args:
             bases): iterable object of FiniteTempBasis instances
         """
+        assert np.unique([b.statistics for b in bases]).size == 1, "All bases must have the same statistics!"
         self._size = np.sum((b.size for b in bases))
-        self.u = CompositeBasisFunction([b.u for b in bases])
-        self.v = CompositeBasisFunction([b.v for b in bases])
-        self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases])
+        self.u = CompositeBasisFunction([b.u for b in bases]) if all(b.u is not None for b in bases) else None
+        self.v = CompositeBasisFunction([b.v for b in bases]) if all(b.v is not None for b in bases) else None
+        self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases]) if self.u is not None else None
 
         self.default_tau_sampling_points = np.unique(np.hstack((b.default_tau_sampling_points for b in bases)))
         self.default_matsubara_sampling_points = np.unique(np.hstack((b.default_matsubara_sampling_points for b in bases)))

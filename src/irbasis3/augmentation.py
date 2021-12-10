@@ -1,5 +1,6 @@
 import numpy as np
 from .poly import PiecewiseLegendrePoly
+from .basis import _default_matsubara_sampling_points, _default_tau_sampling_points
 
 class LegendreBasis(object):
     """Legendre basis
@@ -12,7 +13,7 @@ class LegendreBasis(object):
 
     Ref: L. Boehnke et al., PRB 84, 075145 (2011)
     """
-    def __init__(self, statistics, beta, size):
+    def __init__(self, statistics, beta, size, _mitigate_sampling_points=True):
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
@@ -39,3 +40,8 @@ class LegendreBasis(object):
 
         # self.v
         self.v = None
+
+        # Default sampling points
+        self.default_tau_sampling_points = _default_tau_sampling_points(self.u)
+        self.default_matsubara_sampling_points = _default_matsubara_sampling_points(
+            self.uhat, _mitigate_sampling_points)

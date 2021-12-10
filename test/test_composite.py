@@ -5,6 +5,7 @@ import irbasis3
 from irbasis3 import sve
 from irbasis3 import kernel
 from irbasis3 import composite
+from irbasis3 import augmentation
 
 import pytest
 
@@ -37,10 +38,20 @@ def test_composite_basis():
     lambda_ = 99
     beta = 10
     wmax = lambda_/beta
-    K = irbasis3.KernelBFlat(lambda_)
+    K = irbasis3.KernelFFlat(lambda_)
     basis = irbasis3.FiniteTempBasis(K, "F", beta, eps=1e-6)
     basis2 = irbasis3.FiniteTempBasis(K, "F", beta, eps=1e-3)
     basis_comp = composite.CompositeBasis([basis, basis2])
     _check_composite_poly(basis_comp.u, [basis.u, basis2.u], np.linspace(0, beta, 10))
     _check_composite_poly(basis_comp.uhat, [basis.uhat, basis2.uhat], np.array([1,3]))
     _check_composite_poly(basis_comp.v, [basis.v, basis2.v], np.linspace(-wmax, -wmax, 10))
+
+def test_augmented_basis():
+    """Augmented bosonic basis"""
+    lambda_ = 99
+    beta = 10
+    wmax = lambda_/beta
+    K = irbasis3.KernelBFlat(lambda_)
+    basis = irbasis3.FiniteTempBasis(K, "B", beta, eps=1e-6)
+    basis_legg = augmentation.LegendreBasis("B", beta, 2)
+    basis_comp = composite.CompositeBasis([basis_legg, basis])
