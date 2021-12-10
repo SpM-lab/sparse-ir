@@ -23,7 +23,7 @@ def compute_Tnl(vsample, n_legendre):
     return Tnl
 
 @pytest.mark.parametrize("stat", ["F", "B"])
-def test_legenre(stat):
+def test_legendre_basis(stat):
     beta = 2.0
     Nl = 10
     basis = augmentation.LegendreBasis(stat, beta, Nl)

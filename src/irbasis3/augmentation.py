@@ -8,7 +8,7 @@ class LegendreBasis(object):
     where P_l[x] is the $l$-th Legendre polynomial.
 
     The basis functions are defined by
-        U_l(\tau) \equiv \sqrt{2l+1} P_l[x(\tau)]/beta.
+        U_l(\tau) \equiv (\sqrt{2l+1}/beta) * P_l[x(\tau)].
 
     Ref: L. Boehnke et al., PRB 84, 075145 (2011)
     """
