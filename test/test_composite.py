@@ -14,9 +14,9 @@ def basis():
     return sve.compute(kernel.KernelFFlat(42))
 
 def _check_composite_poly(u_comp, u_list, test_points):
-    assert u_comp.size == np.sum((u.size for u in u_list))
+    assert u_comp.size == np.sum([u.size for u in u_list])
     assert u_comp.shape == (u_comp.size,)
-    np.testing.assert_allclose(u_comp(test_points), np.vstack((u(test_points) for u in u_list)))
+    np.testing.assert_allclose(u_comp(test_points), np.vstack([u(test_points) for u in u_list]))
     idx = 0
     for isub in range(len(u_list)):
         for ip in range(u_list[isub].size):
