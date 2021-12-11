@@ -224,6 +224,9 @@ class PiecewiseLegendreFT:
         else:
             self.n_asymp = n_asymp
             self._model = _power_model(freq, poly)
+    
+    @property
+    def size(self): return self.poly.size
 
     def __getitem__(self, l):
         return self.__class__(self.poly[l], self.freq)
@@ -394,22 +397,15 @@ class _PowerModel:
         self.moments = np.asarray(moments)
         self.nmom, self.nl = self.moments.shape
 
-    @staticmethod
-    def _inv_iw_safe(wn, result_dtype):
-        """Return inverse of frequency or zero if freqency is zero"""
-        result = np.zeros(wn.shape, result_dtype)
-        wn_nonzero = wn != 0
-        result[wn_nonzero] = 1/(1j * np.pi/2 * wn[wn_nonzero])
-        return result
-
     def _giw_ravel(self, wn):
         """Return model Green's function for vector of frequencies"""
         result_dtype = np.result_type(1j, wn, self.moments)
         result = np.zeros((wn.size, self.nl), result_dtype)
-        inv_iw = self._inv_iw_safe(wn, result_dtype)[:,None]
+        inv_iw = 1j * np.pi/2 * wn
+        np.reciprocal(inv_iw, out=inv_iw, where=(wn != 0))
         for mom in self.moments[::-1]:
             result += mom
-            result *= inv_iw
+            result *= inv_iw[:, None]
         return result
 
     def giw(self, wn):

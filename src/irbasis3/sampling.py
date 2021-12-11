@@ -51,10 +51,7 @@ class SamplingBase:
      - `regularizer` : None (disable), True (singular values), or a 1D array-like object of floats.
     """
     def __init__(self, basis, sampling_points=None, log_oversampling=0, warn_cond=True, regularizer=None):
-        if sampling_points is None:
-            sampling_points = self.__class__.default_sampling_points(basis)
-        else:
-            sampling_points = np.array(sampling_points)
+        self.sampling_points = sampling_points
         
         if log_oversampling > 0:
             for _ in range(log_oversampling):
@@ -71,7 +68,6 @@ class SamplingBase:
         self.matrix = DecomposedMatrix(
                         self.__class__.eval_matrix(basis, sampling_points) * self.regularizer[None,:]
                         )
-        self.sampling_points = sampling_points
 
         # Check conditioning
         # FIXME: take into account regularizer
@@ -109,13 +105,10 @@ class TauSampling(SamplingBase):
     Allows the transformation between the IR basis and a set of sampling points
     in (scaled/unscaled) imaginary time.
     """
-    @classmethod
-    def default_sampling_points(cls, basis):
-        poly = basis.u[-1]
-        maxima = poly.deriv().roots()
-        left = .5 * (maxima[:1] + poly.xmin)
-        right = .5 * (maxima[-1:] + poly.xmax)
-        return np.concatenate([left, maxima, right])
+    def __init__(self, basis, sampling_points=None):
+        if sampling_points is None:
+            sampling_points = basis.default_tau_sampling_points
+        super().__init__(basis, sampling_points)
 
     @classmethod
     def eval_matrix(cls, basis, x):
@@ -139,31 +132,10 @@ class MatsubaraSampling(SamplingBase):
      - `matrix` : Evaluation matrix is decomposed form
      - `sampling_points` : Set of sampling points
     """
-    @classmethod
-    def default_sampling_points(cls, basis, mitigate=True):
-        # Use the (discrete) extrema of the corresponding highest-order basis
-        # function in Matsubara.  This turns out to be close to optimal with
-        # respect to conditioning for this size (within a few percent).
-        polyhat = basis.uhat[-1]
-        wn = polyhat.extrema()
-
-        # While the condition number for sparse sampling in tau saturates at a
-        # modest level, the conditioning in Matsubara steadily deteriorates due
-        # to the fact that we are not free to set sampling points continuously.
-        # At double precision, tau sampling is better conditioned than iwn
-        # by a factor of ~4 (still OK). To battle this, we fence the largest
-        # frequency with two carefully chosen oversampling points, which brings
-        # the two sampling problems within a factor of 2.
-        if mitigate:
-            wn_outer = wn[[0, -1]]
-            wn_diff = 2 * np.round(0.025 * wn_outer).astype(int)
-            if wn.size >= 20:
-                wn = np.hstack([wn, wn_outer - wn_diff])
-            if wn.size >= 42:
-                wn = np.hstack([wn, wn_outer + wn_diff])
-            wn = np.unique(wn)
-
-        return wn
+    def __init__(self, basis, sampling_points=None):
+        if sampling_points is None:
+            sampling_points = basis.default_matsubara_sampling_points
+        super().__init__(basis, sampling_points)
 
     @classmethod
     def eval_matrix(cls, basis, x):
