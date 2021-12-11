@@ -27,7 +27,8 @@ def compute_Tnl(vsample, n_legendre):
 def test_legendre_basis(stat):
     beta = 10.0
     Nl = 100
-    basis = augmentation.LegendreBasis(stat, beta, Nl)
+    cl = np.sqrt(2*np.arange(Nl) + 1)
+    basis = augmentation.LegendreBasis(stat, beta, Nl, cl=cl)
 
     tau = np.array([0, 0.1*beta, 0.4*beta, beta])
     uval = basis.u(tau)
@@ -35,7 +36,7 @@ def test_legendre_basis(stat):
     for l in range(Nl):
         np.testing.assert_allclose(
             uval[l,:],
-            (np.sqrt(2*l+1)/beta) * eval_legendre(l, 2*tau/beta-1)
+            cl[l] * (np.sqrt(2*l+1)/beta) * eval_legendre(l, 2*tau/beta-1)
             )
     
     zeta = {"F":  1, "B": 0}[stat]
@@ -44,7 +45,7 @@ def test_legendre_basis(stat):
 
     uhat_val = basis.uhat(w)
     uhat_val_ref = compute_Tnl(w, Nl)
-    np.testing.assert_allclose(uhat_val.T, uhat_val_ref)
+    np.testing.assert_allclose(uhat_val.T, uhat_val_ref * cl[None,:])
 
     # G(iv) = 1/(iv-pole)
     # G(tau) = -e^{-tau*pole}/(1 + e^{-beta*pole}) [F]
@@ -58,14 +59,15 @@ def test_legendre_basis(stat):
     giv = 1/(1J*matsu_smpl.sampling_points*np.pi/beta - pole)
     gl_from_matsu = matsu_smpl.fit(giv)
 
-    np.testing.assert_allclose(gl_from_tau, gl_from_matsu)
+    np.testing.assert_allclose(gl_from_tau, gl_from_matsu, atol=1e-10*np.abs(gl_from_matsu).max(), rtol=0)
 
 
 @pytest.mark.parametrize("stat", ["F", "B"])
 def test_const_basis(stat):
     beta = 100
-    basis = augmentation.MatsubaraConstBasis(stat, beta)
+    value = 2.001
+    basis = augmentation.MatsubaraConstBasis(stat, beta, value)
 
     zeta = {"F":  1, "B": 0}[stat]
     v = 2*np.arange(10)+zeta
-    np.testing.assert_array_equal(basis.uhat(v), np.ones_like(v))
+    np.testing.assert_array_equal(basis.uhat(v), np.ones_like(v) * value)

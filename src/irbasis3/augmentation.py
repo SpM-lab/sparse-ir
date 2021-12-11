@@ -5,15 +5,17 @@ from .basis import _default_matsubara_sampling_points, _default_tau_sampling_poi
 class LegendreBasis(object):
     """Legendre basis
 
-    G(tau) = \sum_{l=0} \sqrt{2l+1} P_l[x(\tau)] G_l/beta,
+    In the original paper [L. Boehnke et al., PRB 84, 075145 (2011)],
+    they used 
+        G(tau) = \sum_{l=0} \sqrt{2l+1} P_l[x(\tau)] G_l/beta,
     where P_l[x] is the $l$-th Legendre polynomial.
 
-    The basis functions are defined by
-        U_l(\tau) \equiv (\sqrt{2l+1}/beta) * P_l[x(\tau)].
-
-    Ref: L. Boehnke et al., PRB 84, 075145 (2011)
+    In this class, the basis functions are defined by
+        U_l(\tau) \equiv c_l (\sqrt{2l+1}/beta) * P_l[x(\tau)],
+    where c_l are additional l-depenent constant factors.
+    By default, we take c_l = 1, which reduces to the original definition.
     """
-    def __init__(self, statistics, beta, size, _mitigate_sampling_points=True):
+    def __init__(self, statistics, beta, size, _mitigate_sampling_points=True, cl=None):
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
@@ -25,12 +27,15 @@ class LegendreBasis(object):
         self.statistics = statistics
         self.beta = beta
         self.size = size
+        if cl is None:
+            cl = np.ones(self.size)
+        self.cl = cl
 
         # self.u
         knots = np.array([0, beta])
         data = np.zeros((size, knots.size-1, size))
         for l in range(size):
-            data[l, 0, l] = np.sqrt((l+0.5)/beta)
+            data[l, 0, l] = np.sqrt((l+0.5)/beta) * cl[l]
         self.u = PiecewiseLegendrePoly(data, knots)
 
         # self.uhat
@@ -53,7 +58,7 @@ class MatsubaraConstBasis(object):
 
        The unity in the matsubara-frequency domain
        """
-       def __init__(self, statistics, beta):
+       def __init__(self, statistics, beta, value=1):
             if statistics not in 'BF':
                 raise ValueError("Statistics must be either 'B' for bosonic"
                                "or 'F' for fermionic")
@@ -63,12 +68,13 @@ class MatsubaraConstBasis(object):
             self.statistics = statistics
             self.beta = beta
             self.size = 1
+            self.value = value
     
             # self.u
             self.u = None
     
             # self.uhat
-            self.uhat = _ConstTerm()
+            self.uhat = _ConstTerm(value)
     
             # self.v
             self.v = None
@@ -77,9 +83,10 @@ class MatsubaraConstBasis(object):
             self.default_tau_sampling_points = np.array([])
             self.default_matsubara_sampling_points = np.array([])
 class _ConstTerm:
-    def __init__(self):
+    def __init__(self, value):
         self.size = 1
+        self.value = value
 
     def __call__(self, n):
-        """Return 1 for given frequencies"""
-        return np.ones_like(n)
+        """Return value for given frequencies"""
+        return self.value * np.ones_like(n)
