@@ -35,7 +35,7 @@ class CompositeBasisFunction(_CompositeBasisFunctionBase):
 
         Arguments:
         ----------
-         - polys: iterable object of basis-function-like instances with ndim=1
+         - polys: iterable object of basis-function-like instances
         """
         super().__init__(polys)
 
@@ -56,19 +56,17 @@ class CompositeBasisFunction(_CompositeBasisFunctionBase):
         return np.vstack((p.overlap(f, axis, _deg) for p in self._polys))
 
     def deriv(self, n=1):
-        """Get polynomial for the n'th derivative"""
+        """Get the n'th derivative"""
         return np.vstack([p.deriv(n) for p in self._polys])
 
-    def hat(self, freq, n_asymp=None):
-        """Get Fourier transformed object"""
-        return CompositeBasisFunctionFT([p.hat(freq, n_asymp) for p in self._polys])
+    #def hat(self, freq, n_asymp=None):
+        #"""Get Fourier transformed object"""
+        #return CompositeBasisFunctionFT([p.hat(freq, n_asymp) for p in self._polys])
 
-    def roots(self, alpha=2):
-        """Find all roots of the basis function """
-        return np.unique(np.hstack([p.roots(alpha) for p in self._polys]))
+    #def roots(self, alpha=2):
+        #"""Find all roots of the basis function """
+        #return np.unique(np.hstack([p.roots(alpha) for p in self._polys]))
     
-    @property
-    def ndim(self): return 1
 
 class CompositeBasisFunctionFT(_CompositeBasisFunctionBase):
     """Union of fourier transform of several basis functions for the Matsubara domain"""
@@ -94,10 +92,11 @@ class CompositeBasis:
             bases): iterable object of FiniteTempBasis instances
         """
         assert np.unique([b.statistics for b in bases]).size == 1, "All bases must have the same statistics!"
+        assert np.unique([b.beta for b in bases]).size == 1, "All bases must have the same beta!"
         self._size = np.sum((b.size for b in bases))
         self.u = CompositeBasisFunction([b.u for b in bases]) if all(b.u is not None for b in bases) else None
         self.v = CompositeBasisFunction([b.v for b in bases]) if all(b.v is not None for b in bases) else None
-        self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases]) if self.u is not None else None
+        self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases]) if all(b.uhat is not None for b in bases) else None
 
         self.default_tau_sampling_points = np.unique(np.hstack((b.default_tau_sampling_points for b in bases)))
         self.default_matsubara_sampling_points = np.unique(np.hstack((b.default_matsubara_sampling_points for b in bases)))

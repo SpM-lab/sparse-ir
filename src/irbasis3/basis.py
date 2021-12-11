@@ -257,4 +257,8 @@ def _default_matsubara_sampling_points(uhat, mitigate=True):
             wn = np.hstack([wn, wn_outer + wn_diff])
         wn = np.unique(wn)
 
+    # For boson, include "0".
+    if wn[0] % 2 == 0:
+        wn = np.unique(np.hstack((0, wn)))
+
     return wn

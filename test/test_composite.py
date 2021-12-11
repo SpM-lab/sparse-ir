@@ -46,12 +46,46 @@ def test_composite_basis():
     _check_composite_poly(basis_comp.uhat, [basis.uhat, basis2.uhat], np.array([1,3]))
     _check_composite_poly(basis_comp.v, [basis.v, basis2.v], np.linspace(-wmax, -wmax, 10))
 
-def test_augmented_basis():
+def test_augmented_bosonic_basis():
     """Augmented bosonic basis"""
-    lambda_ = 99
-    beta = 10
-    wmax = lambda_/beta
+    wmax = 2
+    beta = 1000
+    lambda_ = beta * wmax
     K = irbasis3.KernelBFlat(lambda_)
     basis = irbasis3.FiniteTempBasis(K, "B", beta, eps=1e-6)
     basis_legg = augmentation.LegendreBasis("B", beta, 2)
     basis_comp = composite.CompositeBasis([basis_legg, basis])
+
+    # G(tau) = c - e^{-tau*pole}/(1 - e^{-beta*pole})
+    pole = 1.0
+    c = 1e-2
+    tau_smpl = irbasis3.TauSampling(basis_comp)
+    gtau = c - np.exp(-tau_smpl.sampling_points * pole)/(1 - np.exp(-beta * pole))
+    gl_from_tau = tau_smpl.fit(gtau)
+
+    gtau_reconst = tau_smpl.evaluate(gl_from_tau)
+    np.testing.assert_allclose(gtau, gtau_reconst, atol=1e-14 * np.abs(gtau).max(), rtol=0)
+
+
+@pytest.mark.parametrize("stat", ["F", "B"])
+def test_vertex_basis(stat):
+    """Vertex basis"""
+    wmax = 2
+    beta = 1000
+    lambda_ = beta * wmax
+    K = irbasis3.KernelBFlat(lambda_)
+    basis = irbasis3.FiniteTempBasis(K, stat, beta, eps=1e-6)
+    basis_const = augmentation.MatsubaraConstBasis(stat, beta)
+    basis_comp = composite.CompositeBasis([basis_const, basis])
+    assert basis_comp.uhat is not None
+
+    # G(iv) = c + 1/(iv-pole)
+    pole = 1.0
+    c = 1.0
+    matsu_smpl = irbasis3.MatsubaraSampling(basis_comp)
+    giv = c  + 1/(1J*matsu_smpl.sampling_points * np.pi/beta - pole)
+    gl = matsu_smpl.fit(giv)
+
+    giv_reconst = matsu_smpl.evaluate(gl)
+
+    np.testing.assert_allclose(giv, giv_reconst, atol=np.abs(giv).max()*1e-8, rtol=0)

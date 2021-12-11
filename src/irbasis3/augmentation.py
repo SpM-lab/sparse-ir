@@ -30,7 +30,7 @@ class LegendreBasis(object):
         knots = np.array([0, beta])
         data = np.zeros((size, knots.size-1, size))
         for l in range(size):
-            data[l, 0, l] = np.sqrt(2*l+1)/beta
+            data[l, 0, l] = np.sqrt((l+0.5)/beta)
         self.u = PiecewiseLegendrePoly(data, knots)
 
         # self.uhat
@@ -42,6 +42,44 @@ class LegendreBasis(object):
         self.v = None
 
         # Default sampling points
-        self.default_tau_sampling_points = _default_tau_sampling_points(self.u)
+        self.default_tau_sampling_points = 0.5 * beta * (np.polynomial.legendre.leggauss(size)[0]+1)
+        assert self.default_tau_sampling_points.size == size
         self.default_matsubara_sampling_points = _default_matsubara_sampling_points(
             self.uhat, _mitigate_sampling_points)
+            #self.default_matsubara_sampling_points = np.unique(np.hstack((0, self.default_matsubara_sampling_points)))
+
+class MatsubaraConstBasis(object):
+       """Constant term in matsubara-frequency domain
+
+       The unity in the matsubara-frequency domain
+       """
+       def __init__(self, statistics, beta):
+            if statistics not in 'BF':
+                raise ValueError("Statistics must be either 'B' for bosonic"
+                               "or 'F' for fermionic")
+            if not (beta > 0):
+                raise ValueError("inverse temperature beta must be positive")
+  
+            self.statistics = statistics
+            self.beta = beta
+            self.size = 1
+    
+            # self.u
+            self.u = None
+    
+            # self.uhat
+            self.uhat = _ConstTerm()
+    
+            # self.v
+            self.v = None
+    
+            # Default sampling points
+            self.default_tau_sampling_points = np.array([])
+            self.default_matsubara_sampling_points = np.array([])
+class _ConstTerm:
+    def __init__(self):
+        self.size = 1
+
+    def __call__(self, n):
+        """Return 1 for given frequencies"""
+        return np.ones_like(n)
