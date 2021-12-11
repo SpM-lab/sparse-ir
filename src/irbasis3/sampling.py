@@ -50,12 +50,11 @@ class SamplingBase:
      - `warn_cond` : Warn if the condition number is large.
      - `regularizer` : None (disable), True (singular values), or a 1D array-like object of floats.
     """
-    def __init__(self, basis, sampling_points=None, log_oversampling=0, warn_cond=True, regularizer=None):
-        self.sampling_points = sampling_points
-        
+    def __init__(self, basis, sampling_points, log_oversampling=0, warn_cond=True, regularizer=None):
         if log_oversampling > 0:
             for _ in range(log_oversampling):
                 sampling_points = _oversampling(sampling_points)
+        self.sampling_points = sampling_points
         
         if regularizer is None:
             self.regularizer = np.ones(basis.size)
@@ -104,11 +103,17 @@ class TauSampling(SamplingBase):
 
     Allows the transformation between the IR basis and a set of sampling points
     in (scaled/unscaled) imaginary time.
+
+     - `basis` : IR Basis instance
+     - `sampling_points` : Set of sampling points
+     - `log_oversampling` : Oversampling factor. The number of the resultant sampling points will be increased approximately by 2^log_oversampling
+     - `warn_cond` : Warn if the condition number is large.
+     - `regularizer` : None (disable), True (singular values), or a 1D array-like object of floats.
     """
-    def __init__(self, basis, sampling_points=None):
+    def __init__(self, basis, sampling_points=None, log_oversampling=0, warn_cond=True, regularizer=None):
         if sampling_points is None:
             sampling_points = basis.default_tau_sampling_points
-        super().__init__(basis, sampling_points)
+        super().__init__(basis, sampling_points, log_oversampling=log_oversampling, warn_cond=warn_cond, regularizer=regularizer)
 
     @classmethod
     def eval_matrix(cls, basis, x):
@@ -129,13 +134,15 @@ class MatsubaraSampling(SamplingBase):
     Attributes:
     -----------
      - `basis` : IR Basis instance
-     - `matrix` : Evaluation matrix is decomposed form
      - `sampling_points` : Set of sampling points
+     - `log_oversampling` : Oversampling factor. The number of the resultant sampling points will be increased approximately by 2^log_oversampling
+     - `warn_cond` : Warn if the condition number is large.
+     - `regularizer` : None (disable), True (singular values), or a 1D array-like object of floats.
     """
-    def __init__(self, basis, sampling_points=None):
+    def __init__(self, basis, sampling_points=None, log_oversampling=0, warn_cond=True, regularizer=None):
         if sampling_points is None:
             sampling_points = basis.default_matsubara_sampling_points
-        super().__init__(basis, sampling_points)
+        super().__init__(basis, sampling_points, log_oversampling=log_oversampling, warn_cond=warn_cond, regularizer=regularizer)
 
     @classmethod
     def eval_matrix(cls, basis, x):

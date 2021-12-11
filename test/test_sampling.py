@@ -99,6 +99,8 @@ def test_wn_noise():
 def test_oversampling(stat):
     K = irbasis3.KernelBFlat(99)
     basis = irbasis3.IRBasis(K, stat)
+    smpl_matsu0 = irbasis3.MatsubaraSampling(basis)
+    smpl_tau0 = irbasis3.TauSampling(basis)
     for log_oversampling in [1, 2]:
         smpl_matsu = irbasis3.MatsubaraSampling(basis, log_oversampling=log_oversampling)
         smpl_tau = irbasis3.TauSampling(basis, log_oversampling=log_oversampling)
@@ -106,6 +108,8 @@ def test_oversampling(stat):
         assert smpl_matsu.sampling_points.size > basis.size
         assert np.unique(smpl_matsu.sampling_points % 2).size == 1
         assert all(smpl_tau.sampling_points[:-1] < smpl_tau.sampling_points[1:])
+        assert smpl_matsu0.cond > smpl_matsu.cond
+        assert smpl_tau0.cond > smpl_tau.cond
 
 
 def test_regularizer():
