@@ -152,7 +152,7 @@ class FiniteTempBasis:
         gl = basis.s * basis.v(2.5)
         giw = gl @ basis.uhat([1, 3, 5, 7])
     """
-    def __init__(self, kernel, statistics, beta, eps=None, sve_result=None, _mitigate_sampling_points=True):
+    def __init__(self, kernel, statistics, beta, eps=None, sve_result=None, _mitigate_sampling_points=True, max_size=None):
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
@@ -166,6 +166,9 @@ class FiniteTempBasis:
             u, s, v = sve_result
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
+
+        if max_size is not None and u.size > max_size:
+            u, s, v = u[0:max_size], s[0:max_size], v[0:max_size]
 
         self.kernel = kernel
         self.statistics = statistics
