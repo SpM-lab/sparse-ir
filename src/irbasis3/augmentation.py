@@ -82,6 +82,8 @@ class MatsubaraConstBasis(object):
             # Default sampling points
             self.default_tau_sampling_points = np.array([])
             self.default_matsubara_sampling_points = np.array([])
+
+
 class _ConstTerm:
     def __init__(self, value):
         self.size = 1
