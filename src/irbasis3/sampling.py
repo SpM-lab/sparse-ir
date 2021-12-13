@@ -24,11 +24,6 @@ class SamplingBase:
      - `sampling_points` : Set of sampling points
     """
     def __init__(self, basis, sampling_points):
-        #sampling_points = np.array(sampling_points)
-        #if sampling_points is None:
-            #sampling_points = self.__class__.default_sampling_points(basis)
-        #else:
-            #sampling_points = np.array(sampling_points)
         self.sampling_points = sampling_points
         self.basis = basis
         self.matrix = DecomposedMatrix(
