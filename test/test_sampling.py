@@ -4,7 +4,7 @@ import numpy as np
 
 import irbasis3
 from irbasis3 import sampling
-
+import pytest
 
 def test_decomp():
     rng = np.random.RandomState(4711)
@@ -93,3 +93,38 @@ def test_wn_noise():
     Giw_n = Giw +  noise * np.linalg.norm(Giw) * rng.randn(*Giw.shape)
     Gl_n = smpl.fit(Giw_n)
     np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
+
+
+@pytest.mark.parametrize("stat", ["F", "B"])
+def test_oversampling(stat):
+    K = irbasis3.KernelBFlat(99)
+    basis = irbasis3.IRBasis(K, stat)
+    smpl_matsu0 = irbasis3.MatsubaraSampling(basis)
+    smpl_tau0 = irbasis3.TauSampling(basis)
+    for log_oversampling in [1, 2]:
+        smpl_matsu = irbasis3.MatsubaraSampling(basis, log_oversampling=log_oversampling)
+        smpl_tau = irbasis3.TauSampling(basis, log_oversampling=log_oversampling)
+        assert smpl_tau.sampling_points.size > basis.size
+        assert smpl_matsu.sampling_points.size > basis.size
+        assert np.unique(smpl_matsu.sampling_points % 2).size == 1
+        assert all(smpl_tau.sampling_points[:-1] < smpl_tau.sampling_points[1:])
+        assert smpl_matsu0.cond > smpl_matsu.cond
+        assert smpl_tau0.cond > smpl_tau.cond
+
+
+def test_regularizer():
+    K = irbasis3.KernelBFlat(99)
+    basis = irbasis3.IRBasis(K, 'B')
+    smpl = irbasis3.MatsubaraSampling(basis)
+    smpl_reg = irbasis3.MatsubaraSampling(basis, regularizer=basis.s)
+
+    rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
+    Gl = basis.s * rhol
+
+    Giw = smpl.evaluate(Gl)
+    Giw_reg = smpl_reg.evaluate(Gl)
+
+    np.testing.assert_allclose(Giw, Giw_reg)
+
+    Gl_reconst = smpl_reg.fit(Giw)
+    np.testing.assert_allclose(Gl, Gl_reconst, rtol=0, atol=1e-10*np.abs(Gl).max())
