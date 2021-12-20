@@ -8,7 +8,7 @@ def readfile(*parts):
     """Return contents of file with path relative to script directory"""
     herepath = os.path.abspath(os.path.dirname(__file__))
     fullpath = os.path.join(herepath, *parts)
-    with io.open(fullpath, 'r') as f:
+    with io.open(fullpath, 'r', encoding='utf-8') as f:
         return f.read()
 
 
