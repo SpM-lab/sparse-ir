@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class _CompositeBasisFunctionBase:
     """Union of several basis functions"""
     def __init__(self, polys):
@@ -29,7 +30,8 @@ class _CompositeBasisFunctionBase:
 
 
 class CompositeBasisFunction(_CompositeBasisFunctionBase):
-    """Union of several basis functions for the imaginary-time/real-frequency domains"""
+    """Union of several basis functions for the imaginary-time/real-frequency
+    domains"""
     def __init__(self, polys):
         """Initialize CompositeBasisFunction
 
@@ -42,7 +44,7 @@ class CompositeBasisFunction(_CompositeBasisFunctionBase):
     def __call__(self, x):
         """Evaluate basis function at position x"""
         return np.vstack([p(x) for p in self._polys])
-    
+
     def value(self, l, x):
         """Return value for l and x."""
         if not isinstance(l, np.ndarray):
@@ -66,7 +68,7 @@ class CompositeBasisFunction(_CompositeBasisFunctionBase):
     #def roots(self, alpha=2):
         #"""Find all roots of the basis function """
         #return np.unique(np.hstack([p.roots(alpha) for p in self._polys]))
-    
+
 
 class CompositeBasisFunctionFT(_CompositeBasisFunctionBase):
     """Union of fourier transform of several basis functions for the Matsubara domain"""
@@ -83,6 +85,7 @@ class CompositeBasisFunctionFT(_CompositeBasisFunctionBase):
         """Obtain Fourier transform of basis function for given frequencies"""
         return np.vstack([p(n) for p in self._polys])
 
+
 class CompositeBasis:
     """Union of several basis sets"""
     def __init__(self, bases):
@@ -91,15 +94,23 @@ class CompositeBasis:
         Args:
             bases): iterable object of FiniteTempBasis instances
         """
-        assert np.unique([b.statistics for b in bases]).size == 1, "All bases must have the same statistics!"
-        assert np.unique([b.beta for b in bases]).size == 1, "All bases must have the same beta!"
-        self._size = np.sum([b.size for b in bases])
-        self.u = CompositeBasisFunction([b.u for b in bases]) if all(b.u is not None for b in bases) else None
-        self.v = CompositeBasisFunction([b.v for b in bases]) if all(b.v is not None for b in bases) else None
-        self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases]) if all(b.uhat is not None for b in bases) else None
+        if not all(b.statistics == bases[0].statistics for b in bases):
+            raise ValueError("All bases must have the same statistics!")
+        if not all(b.beta == bases[0].beta for b in bases):
+            raise ValueError("All bases must have the same beta!")
 
-        self.default_tau_sampling_points = np.unique(np.hstack([b.default_tau_sampling_points for b in bases]))
-        self.default_matsubara_sampling_points = np.unique(np.hstack([b.default_matsubara_sampling_points for b in bases]))
+        self._size = np.sum([b.size for b in bases])
+        self.u = CompositeBasisFunction([b.u for b in bases]) \
+                    if all(b.u is not None for b in bases) else None
+        self.v = CompositeBasisFunction([b.v for b in bases]) \
+                    if all(b.v is not None for b in bases) else None
+        self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases]) \
+                    if all(b.uhat is not None for b in bases) else None
+
+        self.default_tau_sampling_points = np.unique(
+            np.hstack([b.default_tau_sampling_points for b in bases]))
+        self.default_matsubara_sampling_points = np.unique(
+            np.hstack([b.default_matsubara_sampling_points for b in bases]))
 
     @property
     def size(self): return self._size
