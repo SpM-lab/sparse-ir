@@ -46,7 +46,7 @@ class IRBasis:
     ---------
      - `FiniteTempBasis`: for a basis directly in time/frequency.
     """
-    def __init__(self, kernel, statistics, eps=None, sve_result=None, _mitigate_sampling_points=True):
+    def __init__(self, kernel, statistics, eps=None, sve_result=None):
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
@@ -73,11 +73,6 @@ class IRBasis:
         self.s = s
         self.v = v
         self.statistics = statistics
-
-        # Default sampling points
-        self.default_tau_sampling_points = _default_tau_sampling_points(self.u)
-        self.default_matsubara_sampling_points = _default_matsubara_sampling_points(
-            self.uhat, _mitigate_sampling_points)
 
     def __getitem__(self, index):
         """Return basis functions/singular values for given index/indices.
@@ -117,6 +112,14 @@ class IRBasis:
     def sve_result(self):
         return self.u, self.s, self.v
 
+    def default_tau_sampling_points(self):
+        """Default sampling points on the imaginary time/x axis"""
+        return _default_tau_sampling_points(self.u)
+
+    def default_matsubara_sampling_points(self, *, mitigate=True):
+        """Default sampling points on the imaginary frequency axis"""
+        return _default_matsubara_sampling_points(self.uhat, mitigate)
+
 
 class FiniteTempBasis:
     """Intermediate representation (IR) basis for given temperature.
@@ -152,7 +155,7 @@ class FiniteTempBasis:
         gl = basis.s * basis.v(2.5)
         giw = gl @ basis.uhat([1, 3, 5, 7])
     """
-    def __init__(self, kernel, statistics, beta, eps=None, sve_result=None, _mitigate_sampling_points=True):
+    def __init__(self, kernel, statistics, beta, eps=None, sve_result=None):
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
@@ -197,11 +200,6 @@ class FiniteTempBasis:
         _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
         self.uhat = uhat_base.hat(_even_odd, conv_radius)
 
-        # Default sampling points
-        self.default_tau_sampling_points = _default_tau_sampling_points(self.u)
-        self.default_matsubara_sampling_points = _default_matsubara_sampling_points(
-            self.uhat, _mitigate_sampling_points)
-
     def __getitem__(self, index):
         """Return basis functions/singular values for given index/indices.
 
@@ -214,6 +212,7 @@ class FiniteTempBasis:
 
     @property
     def wmax(self):
+        """Cutoff in real frequency."""
         return self.kernel.lambda_ / self.beta
 
     @property
@@ -223,7 +222,16 @@ class FiniteTempBasis:
 
     @property
     def shape(self):
+        """Shape of the basis function set"""
         return self.u.shape
+
+    def default_tau_sampling_points(self):
+        """Default sampling points on the imaginary time/x axis"""
+        return _default_tau_sampling_points(self.u)
+
+    def default_matsubara_sampling_points(self, *, mitigate=True):
+        """Default sampling points on the imaginary frequency axis"""
+        return _default_matsubara_sampling_points(self.uhat, mitigate)
 
 
 def _default_tau_sampling_points(u):

@@ -71,7 +71,8 @@ class CompositeBasisFunction(_CompositeBasisFunctionBase):
 
 
 class CompositeBasisFunctionFT(_CompositeBasisFunctionBase):
-    """Union of fourier transform of several basis functions for the Matsubara domain"""
+    """Union of fourier transform of several basis functions for the
+    Matsubara domain"""
     def __init__(self, polys):
         """Initialize CompositeBasisFunctionFT
 
@@ -100,6 +101,7 @@ class CompositeBasis:
             raise ValueError("All bases must have the same beta!")
 
         self._size = np.sum([b.size for b in bases])
+        self.bases = bases
         self.u = CompositeBasisFunction([b.u for b in bases]) \
                     if all(b.u is not None for b in bases) else None
         self.v = CompositeBasisFunction([b.v for b in bases]) \
@@ -107,13 +109,17 @@ class CompositeBasis:
         self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases]) \
                     if all(b.uhat is not None for b in bases) else None
 
-        self.default_tau_sampling_points = np.unique(
-            np.hstack([b.default_tau_sampling_points for b in bases]))
-        self.default_matsubara_sampling_points = np.unique(
-            np.hstack([b.default_matsubara_sampling_points for b in bases]))
-
     @property
     def size(self): return self._size
 
     @property
     def shape(self): return (self._size,)
+
+    def default_tau_sampling_points(self):
+        return np.unique(np.hstack(
+                    [b.default_tau_sampling_points() for b in self.bases]))
+
+    def default_matsubara_sampling_points(self, *, mitigate=True):
+        return np.unique(np.hstack(
+                    [b.default_matsubara_sampling_points(mitigate=mitigate)
+                     for b in self.bases]))

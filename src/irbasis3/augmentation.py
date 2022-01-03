@@ -1,6 +1,9 @@
 import numpy as np
+import numpy.polynomial.legendre as np_legendre
+
 from .poly import PiecewiseLegendrePoly
 from .basis import _default_matsubara_sampling_points, _default_tau_sampling_points
+
 
 class LegendreBasis(object):
     r"""Legendre basis
@@ -19,8 +22,7 @@ class LegendreBasis(object):
     where c_l are additional l-depenent constant factors.
     By default, we take c_l = 1, which reduces to the original definition.
     """
-    def __init__(self, statistics, beta, size, _mitigate_sampling_points=True,
-                 cl=None):
+    def __init__(self, statistics, beta, size, cl=None):
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
                              "or 'F' for fermionic")
@@ -52,43 +54,44 @@ class LegendreBasis(object):
         # self.v
         self.v = None
 
-        # Default sampling points
-        self.default_tau_sampling_points = \
-            0.5 * beta * (np.polynomial.legendre.leggauss(size)[0]+1)
-        assert self.default_tau_sampling_points.size == size
-        self.default_matsubara_sampling_points = \
-            _default_matsubara_sampling_points(self.uhat, _mitigate_sampling_points)
+    def default_tau_sampling_points(self):
+        return 0.5 * self.beta * (np_legendre.leggauss(self.size)[0] + 1)
+
+    def default_matsubara_sampling_points(self, *, mitigate=True):
+        return _default_matsubara_sampling_points(self.uhat, mitigate)
 
 
 class MatsubaraConstBasis(object):
-       """Constant term in matsubara-frequency domain
+    """Constant term in matsubara-frequency domain
 
-       The unity in the matsubara-frequency domain
-       """
-       def __init__(self, statistics, beta, value=1):
-            if statistics not in 'BF':
-                raise ValueError("Statistics must be either 'B' for bosonic"
-                               "or 'F' for fermionic")
-            if not (beta > 0):
-                raise ValueError("inverse temperature beta must be positive")
+    The unity in the matsubara-frequency domain
+    """
+    def __init__(self, statistics, beta, value=1):
+        if statistics not in 'BF':
+            raise ValueError("Statistics must be either 'B' for bosonic"
+                            "or 'F' for fermionic")
+        if not (beta > 0):
+            raise ValueError("inverse temperature beta must be positive")
 
-            self.statistics = statistics
-            self.beta = beta
-            self.size = 1
-            self.value = value
+        self.statistics = statistics
+        self.beta = beta
+        self.size = 1
+        self.value = value
 
-            # self.u
-            self.u = None
+        # self.u
+        self.u = None
 
-            # self.uhat
-            self.uhat = _ConstTerm(value)
+        # self.uhat
+        self.uhat = _ConstTerm(value)
 
-            # self.v
-            self.v = None
+        # self.v
+        self.v = None
 
-            # Default sampling points
-            self.default_tau_sampling_points = np.array([])
-            self.default_matsubara_sampling_points = np.array([])
+    def default_tau_sampling_points(self):
+        return np.array([])
+
+    def default_matsubara_sampling_points(self, *, mitigate=True):
+        return np.array([])
 
 
 class _ConstTerm:

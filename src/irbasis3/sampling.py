@@ -24,7 +24,7 @@ class SamplingBase:
      - `sampling_points` : Set of sampling points
     """
     def __init__(self, basis, sampling_points):
-        self.sampling_points = sampling_points
+        self.sampling_points = np.array(sampling_points)
         self.basis = basis
         self.matrix = DecomposedMatrix(
                         self.__class__.eval_matrix(basis, self.sampling_points))
@@ -44,11 +44,6 @@ class SamplingBase:
         return self.matrix.lstsq(ax, axis)
 
     @classmethod
-    def default_sampling_points(cls, basis):
-        """Return default sampling points"""
-        raise NotImplementedError()
-
-    @classmethod
     def eval_matrix(cls, basis, x):
         """Return evaluation matrix from coefficients to sampling points"""
         raise NotImplementedError()
@@ -62,7 +57,7 @@ class TauSampling(SamplingBase):
     """
     def __init__(self, basis, sampling_points=None):
         if sampling_points is None:
-            sampling_points = basis.default_tau_sampling_points
+            sampling_points = basis.default_tau_sampling_points()
         super().__init__(basis, sampling_points)
 
     @classmethod
@@ -89,7 +84,7 @@ class MatsubaraSampling(SamplingBase):
     """
     def __init__(self, basis, sampling_points=None):
         if sampling_points is None:
-            sampling_points = basis.default_matsubara_sampling_points
+            sampling_points = basis.default_matsubara_sampling_points()
         super().__init__(basis, sampling_points)
 
     @classmethod
