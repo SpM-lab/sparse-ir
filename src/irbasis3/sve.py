@@ -61,9 +61,9 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
     if sve_strat is None:
         sve_strat = CentrosymmSVE if K.is_centrosymmetric else SamplingSVE
     sve = sve_strat(K, eps, n_gauss=n_gauss, dtype=work_dtype)
-    matrix = sve.matrix
-    u, s, v = svd.compute(matrix, sve.nsvals_hint, svd_strat)
-    u, s, v = svd.truncate(u, s, v, eps, n_sv)
+    u, s, v = zip(*(svd.compute(matrix, sve.nsvals_hint, svd_strat)
+                    for matrix in sve.matrices))
+    u, s, v = truncate(u, s, v, eps, n_sv)
     return sve.postprocess(u, s, v, dtype)
 
 
@@ -105,12 +105,12 @@ class SamplingSVE:
         self._sqrtw_y = np.sqrt(self._gauss_y.w)
 
     @property
-    def matrix(self):
-        """SVD problem underlying the SVE."""
+    def matrices(self):
+        """SVD problems underlying the SVE."""
         result = kernel.matrix_from_gauss(self.K, self._gauss_x, self._gauss_y)
         result *= self._sqrtw_x[:, None]
         result *= self._sqrtw_y[None, :]
-        return result
+        return result,
 
     def postprocess(self, u, s, v, dtype=None):
         """Constructs the SVE result from the SVD"""
@@ -180,9 +180,12 @@ class CentrosymmSVE:
         self.nsvals_hint = max(self.even.nsvals_hint, self.odd.nsvals_hint)
 
     @property
-    def matrix(self):
+    def matrices(self):
         """Set of SVD problems underlying the SVE."""
-        return np.array([self.even.matrix, self.odd.matrix])
+        m, = self.even.matrices
+        yield m
+        m, = self.odd.matrices
+        yield m
 
     def postprocess(self, u, s, v, dtype):
         """Constructs the SVE result from the SVD"""
@@ -261,3 +264,37 @@ def _canonicalize(ulx, vly):
     gauge = np.sign(ulx(1))
     ulx.data[None, None, :] *= 1/gauge
     vly.data[None, None, :] *= gauge
+
+
+def truncate(u, s, v, rtol=0, lmax=None):
+    """Truncate singular value expansion.
+
+    Arguments:
+
+     - `u`, `s`, `v : Thin singular value expansion
+     - `rtol` : If given, only singular values satisfying `s[l]/s[0] > rtol`
+       are retained.
+     - `lmax` : If given, at most the `lmax` most significant singular values
+       are retained.
+    """
+    if lmax is not None and (lmax < 0 or int(lmax) != lmax):
+        raise ValueError("invalid value of maximum number of singular values")
+    if rtol < 0 or rtol > 1:
+        raise ValueError("invalid relative tolerance")
+
+    sall = np.hstack(s)
+
+    # Determine singular value cutoff
+    ssort = np.sort(sall)
+    cutoff = rtol * ssort[-1]
+    if lmax is not None and lmax < sall.size:
+        cutoff = max(cutoff, ssort[sall.size - lmax] if lmax > 0 else np.inf)
+
+    # Determine how many singular values survive in each group
+    swhich = np.repeat(np.arange(len(s)), [si.size for si in s])
+    scount = np.bincount(swhich, sall > cutoff, minlength=len(s)).astype(int)
+
+    u_cut = [ui[:, :counti] for (ui, counti) in zip(u, scount)]
+    s_cut = [si[:counti] for (si, counti) in zip(s, scount)]
+    v_cut = [vi[:, :counti] for (vi, counti) in zip(v, scount)]
+    return u_cut, s_cut, v_cut
