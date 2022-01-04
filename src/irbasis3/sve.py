@@ -284,11 +284,13 @@ def truncate(u, s, v, rtol=0, lmax=None):
 
     sall = np.hstack(s)
 
-    # Determine singular value cutoff
+    # Determine singular value cutoff.  Note that by selecting a cutoff even
+    # in the case of lmax, we make sure to never remove parts of a degenerate
+    # singular value space, rather, we reduce the size of the basis.
     ssort = np.sort(sall)
     cutoff = rtol * ssort[-1]
     if lmax is not None and lmax < sall.size:
-        cutoff = max(cutoff, ssort[sall.size - lmax] if lmax > 0 else np.inf)
+        cutoff = max(cutoff, ssort[sall.size - lmax - 1])
 
     # Determine how many singular values survive in each group
     swhich = np.repeat(np.arange(len(s)), [si.size for si in s])

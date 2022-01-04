@@ -59,7 +59,7 @@ class IRBasis:
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
 
-        if eps is None and not sve.HAVE_XPREC:
+        if eps is None and sve_result is None and not sve.HAVE_XPREC:
             warn("xprec package is not available:\n"
                  "expect single precision (1.5e-8) only as both cutoff and\n"
                  "accuracy of the basis functions")
@@ -174,7 +174,7 @@ class FiniteTempBasis:
         self.statistics = statistics
         self.beta = beta
 
-        if eps is None and not sve.HAVE_XPREC:
+        if eps is None and sve_result is None and not sve.HAVE_XPREC:
             warn("xprec package is not available:\n"
                  "expect single precision (1.5e-8) only as both cutoff and\n"
                  "accuracy of the basis functions")
