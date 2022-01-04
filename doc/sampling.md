@@ -12,6 +12,17 @@ by two classes:
  - `MatsubaraSampling`: sparse sampling in Matsubara frequencies, useful for,
    e.g., solving diagrammatic equations such as the Dyson equation.
 
+All sampling classes contain `sampling_points`, which are the corresponding
+sampling points in time or frequency, and a method `evaluate()`, which allows
+one to go from coefficients to sampling points, and a method `fit()` to go
+back::
+
+         ________________                   ___________________
+        |                |    evaluate()   |                   |
+        |     Basis      |---------------->|     Value on      |
+        |  coefficients  |<----------------|  sampling_points  |
+        |________________|      fit()      |___________________|
+
 **Warning**:
 When storing data in sparse time/frequency, *always* store the sampling points
 together with the data.  The exact location of the sampling points may be

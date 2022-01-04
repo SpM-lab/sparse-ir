@@ -21,15 +21,20 @@ Quick start
 Here is some python code illustrating the API:
 
     # Compute IR basis for fermions and β = 10, W <= 4.2
-    import irbasis3
+    import irbasis3, numpy
     K = irbasis3.KernelFFlat(lambda_=42)
     basis = irbasis3.FiniteTempBasis(K, statistics='F', beta=10)
 
     # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
-    # on the first few Matsubara frequencies.
-    # Note: Fermionic/bosonic Matsubara frequencies are denoted by odd/even integers.
+    # on the first few Matsubara frequencies. (Fermionic/bosonic Matsubara
+    # frequencies are denoted by odd/even integers.)
     gl = basis.s * basis.v(2.5)
     giw = gl @ basis.uhat([1, 3, 5, 7])
+
+    # Reconstruct same coefficients from sparse sampling on the Matsubara axis:
+    smpl_iw = irbasis3.MatsubaraSampling(basis)
+    giw = -1/(1j * numpy.pi/basis.beta * smpl_iw.wn - 2.5)
+    gl_rec = smpl_iw.fit(giw)
 
 You may want to start with reading up on the [intermediate representation].
 It is tied to the analytic continuation of bosonic/fermionic spectral
