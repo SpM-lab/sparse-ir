@@ -224,9 +224,15 @@ class PiecewiseLegendreFT:
         else:
             self.n_asymp = n_asymp
             self._model = _power_model(freq, poly)
-    
+
+    @property
+    def shape(self): return self.poly.shape
+
     @property
     def size(self): return self.poly.size
+
+    @property
+    def ndim(self): return self.poly.ndim
 
     def __getitem__(self, l):
         return self.__class__(self.poly[l], self.freq)

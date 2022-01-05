@@ -55,7 +55,8 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
      - `s` is a vector of singular values
      - `v` is a `PiecewisePoly` instance holding the right singular functions
     """
-    eps, work_dtype, default_svd_strat = _choose_accuracy(eps, work_dtype)
+    if eps is None or work_dtype is None or svd_strat is None:
+        eps, work_dtype, default_svd_strat = _choose_accuracy(eps, work_dtype)
     if svd_strat is None:
         svd_strat = default_svd_strat
     if sve_strat is None:
