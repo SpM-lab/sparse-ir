@@ -1,5 +1,6 @@
 # Copyright (C) 2020-2021 Markus Wallerberger and others
 # SPDX-License-Identifier: MIT
+from _pytest.mark import param
 import numpy as np
 from irbasis3 import sve
 from irbasis3 import kernel
@@ -72,3 +73,31 @@ def test_overlap(lambda_, atol):
     np.testing.assert_allclose(
         res.reshape(npoly, npoly), np.identity(s.size), rtol=0, atol=atol
     )
+
+
+param_axis = []
+shapes_axis = [(1,), (1,1), (1,2), (1,2,3)]
+for shape in shapes_axis:
+    for axis in range(len(shape)):
+        param_axis.append((shape, axis))
+
+@pytest.mark.parametrize("shape, axis", param_axis)
+def test_overlap_axis(shape, axis):
+    lambda_ = 42
+    u, s, v = sve.compute(kernel.KernelFFlat(lambda_))
+
+    def f(x):
+        res = np.zeros((x.size, np.prod(shape)))
+        for i in range(res.shape[1]):
+            res[:,i] = i * x
+        res = res.reshape((x.size,) + shape)
+        return np.moveaxis(res, 0, axis)
+    
+    overlap = u.overlap(f, axis=axis)
+
+    overlap_ref = np.empty((u.size, np.prod(shape)), dtype=overlap.dtype)
+    for i in range(overlap_ref.shape[1]):
+        overlap_ref[:,i] = u.overlap(lambda x: i*x)
+    overlap_ref = overlap_ref.reshape((u.size,) + shape)
+    
+    np.testing.assert_allclose(overlap, overlap_ref, rtol=0, atol=1e-10*np.abs(overlap_ref).max())

@@ -122,6 +122,8 @@ class PiecewiseLegendrePoly:
         """
         if _deg is None:
             _deg = 2*self.polyorder
+        if axis is None:
+            axis = -1
 
         work_dtype = np.float64
         if _xprec_available:
@@ -130,10 +132,7 @@ class PiecewiseLegendrePoly:
         x, w = rule.x.astype(self.data.dtype), rule.w.astype(self.data.dtype)
 
         fval = f(x)
-        if axis is not None:
-            fval = np.moveaxis(fval, axis, -1)
-        if fval.ndim == 1:
-            fval = fval[None,:]
+        fval = np.moveaxis(fval, axis, -1)
         f_rest_dims = fval.shape[:-1]
 
         polyval = self(x)
@@ -146,7 +145,7 @@ class PiecewiseLegendrePoly:
             polyval.reshape((-1,nquad_points)),
             fval.reshape((-1,nquad_points)), w, optimize=True)
 
-        return res.reshape(poly_rest_dims + f_rest_dims).squeeze()
+        return res.reshape(poly_rest_dims + f_rest_dims)
 
     def deriv(self, n=1):
         """Get polynomial for the n'th derivative"""
