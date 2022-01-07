@@ -12,15 +12,16 @@ def readfile(*parts):
         return f.read()
 
 
-def extract_version(*parts):
+def extract_varval(*parts, varname):
     """Extract value of __version__ variable by parsing python script"""
     initfile = readfile(*parts)
-    version_re = re.compile(r"(?m)^__version__\s*=\s*['\"]([^'\"]*)['\"]")
-    match = version_re.search(initfile)
+    var_re = re.compile(r"(?m)^__" + varname + r"__\s*=\s*['\"]([^'\"]*)['\"]")
+    match = var_re.search(initfile)
     return match.group(1)
 
 
-VERSION = extract_version('src', 'irbasis3', '__init__.py')
+VERSION = extract_varval('src', 'irbasis3', '__init__.py', varname='version')
+MIN_XPREC_VERSION = extract_varval('src', 'irbasis3', '__init__.py', varname='min_xprec_version')
 REPO_URL = "https://github.com/SpM-lab/irbasis3"
 LONG_DESCRIPTION = readfile('README.md')
 
@@ -57,11 +58,13 @@ setup(
     python_requires='>=3',
     install_requires=[
         'numpy',
-        'scipy'
+        'scipy',
+        'setuptools'
     ],
     extras_require={
         'test': ['pytest', 'irbasis', 'xprec'],
         'doc': ['sphinx>=2.1', 'myst-parser', 'sphinx_rtd_theme'],
+        'xprec': [f'xprec>={MIN_XPREC_VERSION}'],
         },
 
     package_dir={'': 'src'},
