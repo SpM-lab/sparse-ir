@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 
-import irbasis3
-from irbasis3 import sampling
+import sparse_ir
+from sparse_ir import sampling
 
 
 def test_decomp():
@@ -61,9 +61,9 @@ def test_axis0():
 
 
 def test_tau_noise():
-    K = irbasis3.KernelFFlat(100)
-    basis = irbasis3.IRBasis(K, 'F')
-    smpl = irbasis3.TauSampling(basis)
+    K = sparse_ir.KernelFFlat(100)
+    basis = sparse_ir.IRBasis(K, 'F')
+    smpl = sparse_ir.TauSampling(basis)
     rng = np.random.RandomState(4711)
 
     rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
@@ -79,9 +79,9 @@ def test_tau_noise():
 
 
 def test_wn_noise():
-    K = irbasis3.KernelBFlat(99)
-    basis = irbasis3.IRBasis(K, 'B')
-    smpl = irbasis3.MatsubaraSampling(basis)
+    K = sparse_ir.KernelBFlat(99)
+    basis = sparse_ir.IRBasis(K, 'B')
+    smpl = sparse_ir.MatsubaraSampling(basis)
     rng = np.random.RandomState(4711)
 
     rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]

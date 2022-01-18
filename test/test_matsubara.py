@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 import importlib
 
-from irbasis3.basis import FiniteTempBasis
-from irbasis3.kernel import KernelFFlat, KernelBFlat
+from sparse_ir.basis import FiniteTempBasis
+from sparse_ir.kernel import KernelFFlat, KernelBFlat
 
 eps = None
 if importlib.util.find_spec("xprec") is not None:

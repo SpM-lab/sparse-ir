@@ -5,7 +5,7 @@ Drop-in replacement for the irbasis module.
 
 This is designed to be a drop-in replacement for `irbasis`, where the basis
 can be computed on-the-fly for arbitrary values of Lambda.  In other words,
-you should be able to replace `irbasis` with `irbasis3.adapter` and
+you should be able to replace `irbasis` with `sparse_ir.adapter` and
 everything should hopefully still work.
 
 Note however that on-the-fly computation typically has lower accuracy.  Thus,

@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from irbasis3 import kernel
-from irbasis3 import gauss
+from sparse_ir import kernel
+from sparse_ir import gauss
 
 KERNELS = [
     kernel.KernelFFlat(9),

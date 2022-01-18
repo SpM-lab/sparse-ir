@@ -3,8 +3,8 @@ Hacking/Development
 For development, we recommend installing a "editable" version of the
 repository with unit test dependencies::
 
-    git checkout git@github.com:SpM-lab/irbasis3
-    cd irbasis3
+    git checkout git@github.com:SpM-lab/sparse_ir
+    cd sparse_ir
     pip install -e .[test]
 
 Now the installed package automatically updates as you are working on the code.
