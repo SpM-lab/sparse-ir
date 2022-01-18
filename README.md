@@ -1,4 +1,4 @@
-irbasis3 - A library for the intermediate representation of propagators
+sparse-ir - A library for the intermediate representation of propagators
 =======================================================================
 This library provides routines for constructing and working with the
 intermediate representation of correlation functions.  It provides:
@@ -10,20 +10,21 @@ intermediate representation of correlation functions.  It provides:
 Installation
 ------------
 
-    pip install irbasis3 xprec
+    pip install sparse-ir[xprec]
 
 Though not strictly required, we strongly recommend installing the `xprec`
-package alongside `irbasis3` as it allows to compute the IR basis functions
-with greater accuracy.
+package alongside `sparse-ir` as it allows to compute the IR basis functions
+with greater accuracy.  If you do not want to do this, simply remove `[xprec]`
+from the above line.
 
 Quick start
 -----------
 Here is some python code illustrating the API:
 
     # Compute IR basis for fermions and β = 10, W <= 4.2
-    import irbasis3, numpy
-    K = irbasis3.KernelFFlat(lambda_=42)
-    basis = irbasis3.FiniteTempBasis(K, statistics='F', beta=10)
+    import sparse_ir, numpy
+    K = sparse_ir.KernelFFlat(lambda_=42)
+    basis = sparse_ir.FiniteTempBasis(K, statistics='F', beta=10)
 
     # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
     # on the first few Matsubara frequencies. (Fermionic/bosonic Matsubara
@@ -32,7 +33,7 @@ Here is some python code illustrating the API:
     giw = gl @ basis.uhat([1, 3, 5, 7])
 
     # Reconstruct same coefficients from sparse sampling on the Matsubara axis:
-    smpl_iw = irbasis3.MatsubaraSampling(basis)
+    smpl_iw = sparse_ir.MatsubaraSampling(basis)
     giw = -1/(1j * numpy.pi/basis.beta * smpl_iw.wn - 2.5)
     gl_rec = smpl_iw.fit(giw)
 

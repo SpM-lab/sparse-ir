@@ -1,8 +1,8 @@
 # Copyright (C) 2020-2021 Markus Wallerberger and others
 # SPDX-License-Identifier: MIT
 import numpy as np
-import irbasis3
-from irbasis3 import augmentation
+import sparse_ir
+from sparse_ir import augmentation
 from scipy.special import eval_legendre, spherical_jn
 
 import pytest
@@ -51,11 +51,11 @@ def test_legendre_basis(stat):
     # G(tau) = -e^{-tau*pole}/(1 + e^{-beta*pole}) [F]
     #        = -e^{-tau*pole}/(1 - e^{-beta*pole}) [B]
     pole = 1.0
-    tau_smpl = irbasis3.TauSampling(basis)
+    tau_smpl = sparse_ir.TauSampling(basis)
     gtau = -np.exp(-tau_smpl.sampling_points * pole)/(1 - sign * np.exp(-beta * pole))
     gl_from_tau = tau_smpl.fit(gtau)
 
-    matsu_smpl = irbasis3.MatsubaraSampling(basis)
+    matsu_smpl = sparse_ir.MatsubaraSampling(basis)
     giv = 1/(1J*matsu_smpl.sampling_points*np.pi/beta - pole)
     gl_from_matsu = matsu_smpl.fit(giv)
 

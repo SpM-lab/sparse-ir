@@ -1,4 +1,4 @@
-name: irbasis3 python package
+name: sparse_ir python package
 
 on: [push]
 

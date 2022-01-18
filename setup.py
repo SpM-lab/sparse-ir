@@ -12,21 +12,21 @@ def readfile(*parts):
         return f.read()
 
 
-def extract_varval(*parts, varname):
+def extract_varval(varname):
     """Extract value of __version__ variable by parsing python script"""
-    initfile = readfile(*parts)
-    var_re = re.compile(r"(?m)^__" + varname + r"__\s*=\s*['\"]([^'\"]*)['\"]")
+    initfile = readfile('src', 'sparse_ir', '__init__.py')
+    var_re = re.compile(rf"(?m)^{varname}\s*=\s*['\"]([^'\"]*)['\"]")
     match = var_re.search(initfile)
     return match.group(1)
 
 
-VERSION = extract_varval('src', 'irbasis3', '__init__.py', varname='version')
-MIN_XPREC_VERSION = extract_varval('src', 'irbasis3', '__init__.py', varname='min_xprec_version')
-REPO_URL = "https://github.com/SpM-lab/irbasis3"
+REPO_URL = "https://github.com/SpM-lab/sparse-ir"
+VERSION = extract_varval('__version__')
+MIN_XPREC_VERSION = extract_varval('min_xprec_version')
 LONG_DESCRIPTION = readfile('README.md')
 
 setup(
-    name='irbasis3',
+    name='sparse-ir',
     version=VERSION,
 
     description=

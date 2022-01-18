@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MIT
 from _pytest.mark import param
 import numpy as np
-from irbasis3 import sve
-from irbasis3 import kernel
-from irbasis3 import poly
+from sparse_ir import sve
+from sparse_ir import kernel
+from sparse_ir import poly
 
 import pytest
 

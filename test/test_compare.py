@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from irbasis3 import adapter
+from sparse_ir import adapter
 
 try:
     import irbasis

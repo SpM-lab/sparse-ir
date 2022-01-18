@@ -3,28 +3,28 @@ Kernels
 Defines integral kernels for the analytic continuation problem.  Specifically,
 it defines two kernels:
 
- - `irbasis3.KernelFFlat`: continuation of *fermionic* spectral functions.
- - `irbasis3.KernelFFlat`: continuation of *bosonic* spectral functions.
+ - `sparse_ir.KernelFFlat`: continuation of *fermionic* spectral functions.
+ - `sparse_ir.KernelFFlat`: continuation of *bosonic* spectral functions.
 
-These can be fed directly into `irbasis3.IRBasis` or `irbasis3.FiniteTempBasis`
+These can be fed directly into `sparse_ir.IRBasis` or `sparse_ir.FiniteTempBasis`
 to get the intermediate representation.
 
 Predefined kernels
 ------------------
 
 ```{eval-rst}
-.. autoclass:: irbasis3.kernel.KernelFFlat
+.. autoclass:: sparse_ir.kernel.KernelFFlat
     :members:
     :special-members: __call__
 
-.. autoclass:: irbasis3.kernel.KernelBFlat
+.. autoclass:: sparse_ir.kernel.KernelBFlat
     :members:
     :special-members: __call__
 ```
 
 Custom kernels
 --------------
-Adding kernels to `irbasis3` is simple - at the very basic levle, the library
+Adding kernels to `sparse_ir` is simple - at the very basic levle, the library
 expects a kernel `K` to be able to provide two things:
 
  1. the values through `K(x, y)`
@@ -35,13 +35,13 @@ axis instead of the default (flat) one.  We create a new kernel by inheriting
 from `irbasis.kernel.KernelBase` and then simply wrap around a fermionic
 kernel, modifying the values as needed:
 
-    import irbasis3
-    import irbasis3.kernel
+    import sparse_ir
+    import sparse_ir.kernel
 
-    class KernelFGauss(irbasis3.kernel.KernelBase):
+    class KernelFGauss(sparse_ir.kernel.KernelBase):
         def __init__(self, lambda_, std):
             super().__init__(self)
-            self._inner = irbasis3.KernelFFlat(lambda_)
+            self._inner = sparse_ir.KernelFFlat(lambda_)
             self.lambda_ = lambda_
             self.std = std
 
@@ -58,7 +58,7 @@ kernel, modifying the values as needed:
 You can feed this kernel now directly to `irbasis.IRBasis`:
 
     K = GaussFKernel(10., 1.)
-    basis = irbasis3.IRBasis(K, 'F')
+    basis = sparse_ir.IRBasis(K, 'F')
     print(basis.s)
 
 This should get you started.  For a fully-fledged and robust implementation,
@@ -82,14 +82,14 @@ Base classes
 ------------
 
 ```{eval-rst}
-.. autoclass:: irbasis3.kernel.KernelBase
+.. autoclass:: sparse_ir.kernel.KernelBase
     :members:
     :special-members: __call__
 
-.. autoclass:: irbasis3.kernel.ReducedKernel
+.. autoclass:: sparse_ir.kernel.ReducedKernel
     :members:
     :special-members: __call__
 
-.. autoclass:: irbasis3.kernel.SVEHints
+.. autoclass:: sparse_ir.kernel.SVEHints
     :members:
 ```

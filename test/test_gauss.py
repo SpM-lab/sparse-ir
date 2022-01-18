@@ -3,7 +3,7 @@
 import numpy as np
 import numpy.polynomial.legendre as np_legendre
 
-from irbasis3 import gauss
+from sparse_ir import gauss
 
 
 def test_collocate():

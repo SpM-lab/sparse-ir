@@ -1,7 +1,7 @@
 # Copyright (C) 2020-2021 Markus Wallerberger and others
 # SPDX-License-Identifier: MIT
 import numpy as np
-import irbasis3
+import sparse_ir
 
 import pytest
 
@@ -14,8 +14,8 @@ BASES = [
 @pytest.fixture(scope="module")
 def bases():
     def _make_basis(stat, lambda_):
-        K = {'F': irbasis3.KernelFFlat, 'B': irbasis3.KernelBFlat}[stat](lambda_)
-        return irbasis3.IRBasis(K, stat)
+        K = {'F': sparse_ir.KernelFFlat, 'B': sparse_ir.KernelBFlat}[stat](lambda_)
+        return sparse_ir.IRBasis(K, stat)
 
     return {p: _make_basis(*p) for p in BASES}
 

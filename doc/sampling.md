@@ -33,10 +33,10 @@ Sparse sampling transformers
 ----------------------------
 
 ```{eval-rst}
-.. autoclass:: irbasis3.sampling.TauSampling
+.. autoclass:: sparse_ir.sampling.TauSampling
     :members: tau, evaluate, fit
 
-.. autoclass:: irbasis3.sampling.MatsubaraSampling
+.. autoclass:: sparse_ir.sampling.MatsubaraSampling
     :members: wn, evaluate, fit
 ```
 
@@ -44,9 +44,9 @@ Base classes
 -------------
 
 ```{eval-rst}
-.. autoclass:: irbasis3.sampling.SamplingBase
+.. autoclass:: sparse_ir.sampling.SamplingBase
     :members:
 
-.. autoclass:: irbasis3.sampling.DecomposedMatrix
+.. autoclass:: sparse_ir.sampling.DecomposedMatrix
     :members:
 ```

@@ -33,9 +33,9 @@ class IRBasis:
     at x = 0.2::
 
         # Compute IR basis suitable for fermions and β*W <= 42
-        import irbasis3
-        K = irbasis3.KernelFFlat(lambda_=42)
-        basis = irbasis3.IRBasis(K, statistics='F')
+        import sparse_ir
+        K = sparse_ir.KernelFFlat(lambda_=42)
+        basis = sparse_ir.IRBasis(K, statistics='F')
 
         # Assume spectrum is a single pole at x = 0.2, compute G(iw)
         # on the first few Matsubara frequencies
@@ -146,9 +146,9 @@ class FiniteTempBasis:
     at ω = 2.5::
 
         # Compute IR basis for fermions and β = 10, W <= 4.2
-        import irbasis3
-        K = irbasis3.KernelFFlat(lambda_=42)
-        basis = irbasis3.FiniteTempBasis(K, statistics='F', beta=10)
+        import sparse_ir
+        K = sparse_ir.KernelFFlat(lambda_=42)
+        basis = sparse_ir.FiniteTempBasis(K, statistics='F', beta=10)
 
         # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
         # on the first few Matsubara frequencies

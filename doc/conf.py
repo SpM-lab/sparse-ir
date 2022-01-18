@@ -4,7 +4,7 @@
 
 # === Project information
 
-project = 'irbasis3'
+project = 'sparse-ir'
 copyright = '2021, Markus Wallerberger and others'
 author = ', '.join([
     'Markus Wallerberger',
@@ -14,8 +14,8 @@ author = ', '.join([
     'Chikano Naoya',
     ])
 
-release = '3.0-alpha1'
-version = '3.0-alpha1'
+release = '0.2'
+version = '0.2'
 
 # === General configuration
 
