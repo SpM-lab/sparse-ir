@@ -67,7 +67,8 @@ def test_overlap(lambda_, atol):
         u.overlap(u), np.identity(s.size), rtol=0, atol=atol
     )
 
-    u_tensor = poly.PiecewiseLegendrePoly(u.data.reshape(u.data.shape[:2] + (npoly//2, 2)), u.knots)
+    u_tensor = poly.PiecewiseLegendrePoly(
+                    u.data.reshape(u.data.shape[:2] + (npoly//2, 2)), u.knots)
     res = u_tensor.overlap(u_tensor)
     assert res.shape == (npoly//2, 2, npoly//2, 2)
     np.testing.assert_allclose(
@@ -92,12 +93,13 @@ def test_overlap_axis(shape, axis):
             res[:,i] = i * x
         res = res.reshape((x.size,) + shape)
         return np.moveaxis(res, 0, axis)
-    
+
     overlap = u.overlap(f, axis=axis)
 
     overlap_ref = np.empty((u.size, np.prod(shape)), dtype=overlap.dtype)
     for i in range(overlap_ref.shape[1]):
         overlap_ref[:,i] = u.overlap(lambda x: i*x)
     overlap_ref = overlap_ref.reshape((u.size,) + shape)
-    
-    np.testing.assert_allclose(overlap, overlap_ref, rtol=0, atol=1e-10*np.abs(overlap_ref).max())
+
+    np.testing.assert_allclose(overlap, overlap_ref, rtol=0,
+                               atol=1e-10*np.abs(overlap_ref).max())
