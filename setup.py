@@ -23,7 +23,7 @@ def extract_varval(varname):
 REPO_URL = "https://github.com/SpM-lab/sparse-ir"
 VERSION = extract_varval('__version__')
 MIN_XPREC_VERSION = extract_varval('min_xprec_version')
-LONG_DESCRIPTION = readfile('README.md')
+LONG_DESCRIPTION = readfile('README.rst')
 
 setup(
     name='sparse-ir',
@@ -32,7 +32,7 @@ setup(
     description=
         'intermediate representation (IR) basis for electronic propagator',
     long_description=LONG_DESCRIPTION,
-    long_description_content_type='text/markdown',
+    long_description_content_type='text/x-rst',
     keywords=' '.join([
         'irbasis'
         ]),

@@ -18,15 +18,6 @@ class KernelBase:
     `ypower` is the power of `y` in the front of the kernel.
     `conv_radius` is a convergence radius of the high-frequency expansion.
     """
-    def __init__(self, xmin=-1, xmax=1, ymin=-1, ymax=1, ypower=0, conv_radius=None):
-        """Initialize a kernel over [xmin, xmax] x [ymin, ymax] with ypower"""
-        self.xmin = xmin
-        self.xmax = xmax
-        self.ymin = ymin
-        self.ymax = ymax
-        self.ypower = ypower
-        self.conv_radius = conv_radius
-
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)
 
@@ -45,12 +36,29 @@ class KernelBase:
 
         Advises the SVE routines of discretisation parameters suitable in
         tranforming the (infinite) SVE into an (finite) SVD problem.
+        See also :class:`SVEHints`.
         """
         raise NotImplementedError()
 
     @property
+    def xrange(self):
+        """Tuple ``(xmin, xmax)`` delimiting the range of allowed x values"""
+        return -1, 1
+
+    @property
+    def yrange(self):
+        """Tuple ``(ymin, ymax)`` delimiting the range of allowed y values"""
+        return -1, 1
+
+    @property
     def is_centrosymmetric(self):
-        """True iff K(x,y) = K(-x, -y) for all (x, y)"""
+        """Kernel is centrosymmetric.
+
+        Returns true if and only if ``K(x, y) == K(-x, -y)`` for all values of
+        ``x`` and ``y``.  This allows the kernel to be block-diagonalized,
+        speeding up the singular value expansion by a factor of 4.  Defaults
+        to false.
+        """
         return False
 
     def get_symmetrized(self, sign):
@@ -62,22 +70,45 @@ class KernelBase:
         """
         return ReducedKernel(self, sign)
 
+    @property
+    def ypower(self):
+        """Power with which the y coordinate scales."""
+        return 0
+
+    @property
+    def conv_radius(self):
+        """Convergence radius of the Matsubara basis asymptotic model.
+
+        For improved relative numerical accuracy, the IR basis functions on the
+        Matsubara axis ``basis.uhat(n)`` can be evaluated from an asymptotic
+        expression for ``abs(n) > conv_radius``.  If ``conv_radius`` is
+        ``None``, then the asymptotics are unused (the default).
+        """
+        return None
+
 
 class SVEHints:
     """Discretization hints for singular value expansion of a given kernel.
 
-    Attributes:
-    -----------
-     - `segments_x` : List of segments on the `x` axis for the associated
-       piecewise polynomial.  Should reflect the approximate position of
-       roots of a high-order singular function in `x`.
+    .. py:property:: segments_x
 
-     - `segments_y` : Same for `y`.
+       List of segments on the `x` axis for the associated piecewise
+       polynomial.  Should reflect the approximate position of roots of a
+       high-order singular function in `x`.
 
-     - `ngauss` : Gauss-Legendre order to use to guarantee accuracy.
+    .. py:property:: segments_y
 
-     - `nsvals` : Upper bound on the number of singular values above the
-       given threshold
+       List of segments on the `y` axis for the associated piecewise
+       polynomial.  Should reflect the approximate position of roots of a
+       high-order singular function in `y`.
+
+    .. py:property:: ngauss
+
+       Gauss-Legendre order to use to guarantee accuracy
+
+    .. py:property:: nsvals
+
+       Upper bound on the number of singular values above the given threshold
     """
     def __init__(self, segments_x, segments_y, ngauss, nsvals):
         self.segments_x = segments_x
@@ -95,9 +126,7 @@ class KernelFFlat(KernelBase):
             K(x, y) = exp(-Λ * y * (x + 1)/2) / (1 + exp(-Λ*y))
     """
     def __init__(self, lambda_):
-        super().__init__()
         self.lambda_ = lambda_
-        self.conv_radius = 40 * lambda_
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         x, y = _check_domain(self, x, y)
@@ -162,6 +191,9 @@ class KernelFFlat(KernelBase):
             return _KernelFFlatOdd(self, sign)
         return super().get_symmetrized(sign)
 
+    @property
+    def conv_radius(self): return 40 * self.lambda_
+
 
 class KernelBFlat(KernelBase):
     """Bosonic analytical continuation kernel.
@@ -174,9 +206,7 @@ class KernelBFlat(KernelBase):
     Care has to be taken in evaluating this expression around `y == 0`.
     """
     def __init__(self, lambda_):
-        super().__init__(ypower=1)
         self.lambda_ = lambda_
-        self.conv_radius = 40 * lambda_
 
     def __call__(self, x, y, x_plus=None, x_minus=None):
         x, y = _check_domain(self, x, y)
@@ -249,6 +279,12 @@ class KernelBFlat(KernelBase):
             return _KernelBFlatOdd(self, sign)
         return super().get_symmetrized(sign)
 
+    @property
+    def ypower(self): return 1
+
+    @property
+    def conv_radius(self): return 40 * self.lambda_
+
 
 class ReducedKernel(KernelBase):
     """Restriction of centrosymmetric kernel to positive interval.
@@ -272,7 +308,6 @@ class ReducedKernel(KernelBase):
         if np.abs(sign) != 1:
             raise ValueError("sign must square to one")
 
-        super().__init__(0, inner.xmax, 0, inner.ymax)
         self.inner = inner
         self.sign = sign
 
@@ -287,6 +322,16 @@ class ReducedKernel(KernelBase):
         K_plus = self.inner(x, y, x_plus, x_minus)
         K_minus = self.inner(x, -y, x_plus, x_minus)
         return K_plus + K_minus if self.sign == 1 else K_plus - K_minus
+
+    @property
+    def xrange(self):
+        _, xmax = self.inner.xrange
+        return 0, xmax
+
+    @property
+    def yrange(self):
+        _, ymax = self.inner.yrange
+        return 0, ymax
 
     def hints(self, eps):
         inner_hints = self.inner.hints(eps)
@@ -303,6 +348,12 @@ class ReducedKernel(KernelBase):
 
     def get_symmetrized(self, sign):
         raise RuntimeError("cannot symmetrize twice")
+
+    @property
+    def ypower(self): return self.inner.ypower
+
+    @property
+    def conv_radius(self): return self.inner.conv_radius
 
 
 class _KernelFFlatOdd(ReducedKernel):
@@ -365,13 +416,14 @@ def matrix_from_gauss(kernel, gauss_x, gauss_y):
 def _check_domain(kernel, x, y):
     """Check that arguments lie within the correct domain"""
     x = np.asarray(x)
-    if not (x >= kernel.xmin).all() or not (x <= kernel.xmax).all():
-        raise ValueError("x values not in range [{:g},{:g}]"
-                         .format(kernel.xmin, kernel.xmax))
+    xmin, xmax = kernel.xrange
+    if not (x >= xmin).all() or not (x <= xmax).all():
+        raise ValueError("x values not in range [{:g},{:g}]".format(xmin, xmax))
+
     y = np.asarray(y)
-    if not (y >= kernel.ymin).all() or not (y <= kernel.ymax).all():
-        raise ValueError("y values not in range [{:g},{:g}]"
-                         .format(kernel.ymin, kernel.ymax))
+    ymin, ymax = kernel.yrange
+    if not (y >= ymin).all() or not (y <= ymax).all():
+        raise ValueError("y values not in range [{:g},{:g}]".format(ymin, ymax))
     return x, y
 
 

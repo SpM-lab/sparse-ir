@@ -1,10 +1,9 @@
-```{include} ../README.md
-```
+.. include:: ../README.rst
+
 
 Contents
 --------
 
-```{eval-rst}
 .. toctree::
    :maxdepth: 2
 
@@ -12,7 +11,7 @@ Contents
    sampling
    porting
    hacking
-```
+
 
 Indices and tables
 ------------------
