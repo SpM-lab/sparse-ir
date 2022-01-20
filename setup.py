@@ -63,7 +63,7 @@ setup(
     ],
     extras_require={
         'test': ['pytest', 'irbasis', 'xprec'],
-        'doc': ['sphinx>=2.1', 'myst-parser', 'sphinx_rtd_theme'],
+        'doc': ['sphinx>=2.1', 'sphinx_rtd_theme'],
         'xprec': [f'xprec>={MIN_XPREC_VERSION}'],
         },
 

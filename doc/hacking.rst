@@ -12,9 +12,10 @@ Make sure you run unit tests::
 
     pytest
 
+
 Code guidelines
 ---------------
-The code tries to follow [PEP 8] more-or-less.
+The code tries to follow `PEP 8`_ more-or-less.
 
  1. Please note that lines are at most 79 characters!  In (occasionally)
     exceeding this limit, imagine yourself fighting through increasingly
@@ -28,4 +29,4 @@ The code tries to follow [PEP 8] more-or-less.
  4. Classes are abstractions.  If a class has no clear *thing* its modelling,
     it is not a class.
 
-[PEP 8]: https://www.python.org/dev/peps/pep-0008/
+.. _`PEP 8`: https://www.python.org/dev/peps/pep-0008/

@@ -19,6 +19,7 @@ rather than loading it from a file.  This has some important consequences:
 In transferring persistent data, please therefore either directly transfer the
 basis coefficients or store the sampling points together with the data.
 
+
 Adapter module
 --------------
 For ease of porting, we provide the `sparse_ir.adapter` module.  This module
@@ -33,7 +34,5 @@ with the following::
 
 and everything should work as expected.
 
-```{eval-rst}
 .. autoclass:: sparse_ir.adapter.Basis
     :members:
-```

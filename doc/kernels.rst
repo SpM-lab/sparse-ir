@@ -1,26 +1,33 @@
 Kernels
 =======
-Defines integral kernels for the analytic continuation problem.  Specifically,
-it defines two kernels:
+The IR basis is nothing but the `singular value expansion`_ of a suitable
+integral kernel `K` mediating the change from real frequencies to imaginary
+times:
 
- - `sparse_ir.KernelFFlat`: continuation of *fermionic* spectral functions.
- - `sparse_ir.KernelFFlat`: continuation of *bosonic* spectral functions.
+    G(τ) = ∫ dω  K(τ, ω) ρ(ω)
 
-These can be fed directly into `sparse_ir.IRBasis` or `sparse_ir.FiniteTempBasis`
-to get the intermediate representation.
+Different kernels yield different IR basis functions.  The `sparse-ir` library
+defines two kernels:
+
+ - :class:`sparse_ir.KernelFFlat`: continuation of *fermionic* spectral functions.
+ - :class:`sparse_ir.KernelBFlat`: continuation of *bosonic* spectral functions.
+
+Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
+:class:`sparse_ir.FiniteTempBasis` to get the intermediate representation.
+
+.. _singular value expansion: https://w.wiki/3poQ
+
 
 Predefined kernels
 ------------------
-
-```{eval-rst}
-.. autoclass:: sparse_ir.kernel.KernelFFlat
+.. autoclass:: sparse_ir.KernelFFlat
     :members:
     :special-members: __call__
 
-.. autoclass:: sparse_ir.kernel.KernelBFlat
+.. autoclass:: sparse_ir.KernelBFlat
     :members:
     :special-members: __call__
-```
+
 
 Custom kernels
 --------------
@@ -33,14 +40,13 @@ expects a kernel `K` to be able to provide two things:
 Let us suppose you simply want to include a Gaussian default model on the real
 axis instead of the default (flat) one.  We create a new kernel by inheriting
 from `irbasis.kernel.KernelBase` and then simply wrap around a fermionic
-kernel, modifying the values as needed:
+kernel, modifying the values as needed::
 
     import sparse_ir
     import sparse_ir.kernel
 
     class KernelFGauss(sparse_ir.kernel.KernelBase):
         def __init__(self, lambda_, std):
-            super().__init__(self)
             self._inner = sparse_ir.KernelFFlat(lambda_)
             self.lambda_ = lambda_
             self.std = std
@@ -55,7 +61,7 @@ kernel, modifying the values as needed:
         def hints(self, eps):
             return self._inner.hints(eps)
 
-You can feed this kernel now directly to `irbasis.IRBasis`:
+You can feed this kernel now directly to `irbasis.IRBasis`::
 
     K = GaussFKernel(10., 1.)
     basis = sparse_ir.IRBasis(K, 'F')
@@ -78,10 +84,9 @@ you should:
     performance boost.  However, check that the symmetrized versions of the
     kernels do not lose precision.
 
+
 Base classes
 ------------
-
-```{eval-rst}
 .. autoclass:: sparse_ir.kernel.KernelBase
     :members:
     :special-members: __call__
@@ -92,4 +97,3 @@ Base classes
 
 .. autoclass:: sparse_ir.kernel.SVEHints
     :members:
-```

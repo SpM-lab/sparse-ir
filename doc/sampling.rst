@@ -32,21 +32,18 @@ different from between platforms and/or between releases.
 Sparse sampling transformers
 ----------------------------
 
-```{eval-rst}
 .. autoclass:: sparse_ir.sampling.TauSampling
     :members: tau, evaluate, fit
 
 .. autoclass:: sparse_ir.sampling.MatsubaraSampling
     :members: wn, evaluate, fit
-```
+
 
 Base classes
 -------------
 
-```{eval-rst}
 .. autoclass:: sparse_ir.sampling.SamplingBase
     :members:
 
 .. autoclass:: sparse_ir.sampling.DecomposedMatrix
     :members:
-```
