@@ -8,11 +8,13 @@ from . import _roots
 from . import gauss
 
 try:
-    import xprec as xprec
-    _xprec_available =  True
-    from xprec import ddouble
+    from xprec import ddouble as _ddouble
 except ImportError:
-    _xprec_available =  False
+    _ddouble = None
+    _xwork_dtype = float
+else:
+    _xwork_dtype = _ddouble
+
 
 class PiecewiseLegendrePoly:
     """Piecewise Legendre polynomial.
@@ -125,10 +127,7 @@ class PiecewiseLegendrePoly:
         if axis is None:
             axis = -1
 
-        work_dtype = np.float64
-        if _xprec_available:
-            work_dtype = ddouble
-        rule = gauss.legendre(_deg, dtype=work_dtype).piecewise(self.knots)
+        rule = gauss.legendre(_deg, dtype=_xwork_dtype).piecewise(self.knots)
         x, w = rule.x.astype(self.data.dtype), rule.w.astype(self.data.dtype)
 
         fval = f(x)
@@ -261,6 +260,7 @@ class PiecewiseLegendreFT:
 
         f = self._func_for_part(part)
         x0 = _roots.discrete_extrema(f, PiecewiseLegendreFT._DEFAULT_GRID)
+        x0 = 2 * x0 + self.zeta
         return self._symmetrize(x0)
 
     def _check_domain(self, n):
@@ -294,7 +294,6 @@ class PiecewiseLegendreFT:
             raise ValueError("part must be either 'real' or 'imag'")
 
     def _symmetrize(self, x0):
-        x0 = 2 * x0 + self.zeta
         if x0[0] == 0:
             x0 = np.hstack([-x0[::-1], x0[1:]])
         else:
