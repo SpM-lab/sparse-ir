@@ -38,7 +38,7 @@ def test_legendre_basis(stat):
             uval[l,:],
             cl[l] * (np.sqrt(2*l+1)/beta) * eval_legendre(l, 2*tau/beta-1)
             )
-    
+
     zeta = {"F":  1, "B": 0}[stat]
     sign = {"F": -1, "B": 1}[stat]
     w = 2*np.arange(-10, 10) + zeta
@@ -59,7 +59,8 @@ def test_legendre_basis(stat):
     giv = 1/(1J*matsu_smpl.sampling_points*np.pi/beta - pole)
     gl_from_matsu = matsu_smpl.fit(giv)
 
-    np.testing.assert_allclose(gl_from_tau, gl_from_matsu, atol=1e-10*np.abs(gl_from_matsu).max(), rtol=0)
+    np.testing.assert_allclose(gl_from_tau, gl_from_matsu,
+                               atol=1e-10*np.abs(gl_from_matsu).max(), rtol=0)
 
 
 @pytest.mark.parametrize("stat", ["F", "B"])
