@@ -17,9 +17,11 @@ class SamplingBase:
             |  coefficients  |<----------------|  sampling points  |
             |________________|      fit        |___________________|
 
-    :var basis: IR Basis instance
-    :var matrix: Evaluation matrix is decomposed form
-    :var sampling_points: Set of sampling points
+
+    Attributes:
+        basis: IR Basis instance
+        matrix: Evaluation matrix is decomposed form
+        sampling_points: Set of sampling points
     """
     def __init__(self, basis, sampling_points):
         self.sampling_points = np.array(sampling_points)
