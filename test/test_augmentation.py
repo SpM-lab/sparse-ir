@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 import sparse_ir
-from sparse_ir import augmentation
+from sparse_ir import augment
 from scipy.special import eval_legendre, spherical_jn
 
 import pytest
@@ -28,7 +28,7 @@ def test_legendre_basis(stat):
     beta = 10.0
     Nl = 100
     cl = np.sqrt(2*np.arange(Nl) + 1)
-    basis = augmentation.LegendreBasis(stat, beta, Nl, cl=cl)
+    basis = augment.LegendreBasis(stat, beta, Nl, cl=cl)
 
     tau = np.array([0, 0.1*beta, 0.4*beta, beta])
     uval = basis.u(tau)
@@ -67,7 +67,7 @@ def test_legendre_basis(stat):
 def test_const_basis(stat):
     beta = 100
     value = 2.001
-    basis = augmentation.MatsubaraConstBasis(stat, beta, value)
+    basis = augment.MatsubaraConstBasis(stat, beta, value)
 
     zeta = {"F":  1, "B": 0}[stat]
     v = 2*np.arange(10)+zeta

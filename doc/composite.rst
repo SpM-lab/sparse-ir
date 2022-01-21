@@ -9,5 +9,5 @@ Composite basis
 
 Augmentated basis
 -----------------
-.. automodule:: sparse_ir.augmentation
+.. automodule:: sparse_ir.augment
     :members:
