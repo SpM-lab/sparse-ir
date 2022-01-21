@@ -27,15 +27,15 @@ except ImportError:
 def compute(a_matrix, n_sv_hint=None, strategy='fast'):
     """Compute thin/truncated singular value decomposition
 
-    Computes the thin/truncated singular value decomposition of a matrix `A`
-    into `U`, `s`, `V`:
+    Computes the thin/truncated singular value decomposition of a matrix ``A``
+    into ``U``, ``s``, ``V``:
 
         A == (U * s) @ V.T
 
-    Depending on the strategy, only as few as `n_sv_hint` most significant
+    Depending on the strategy, only as few as ``n_sv_hint`` most significant
     singular values may be returned, but applications should not rely on this
-    behvaiour.  The `strategy` parameter can be `fast` (RRQR/t-SVD),
-    `default` (full SVD) or `accurate` (Jacobi rotation SVD).
+    behvaiour.  The ``strategy`` parameter can be ``fast`` (RRQR/t-SVD),
+    ``default`` (full SVD) or ``accurate`` (Jacobi rotation SVD).
     """
     a_matrix = np.asarray(a_matrix)
     m, n = a_matrix.shape

@@ -16,14 +16,14 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
     """Perform truncated singular value expansion of a kernel.
 
     Perform a truncated singular value expansion (SVE) of a integral
-    kernel `K : [xmin, xmax] x [ymin, ymax] -> R`:
+    kernel ``K : [xmin, xmax] x [ymin, ymax] -> R``:
 
         K(x, y) == sum(s[l] * u[l](x) * v[l](y) for l in (0, 1, 2, ...)),
 
-    where `s[l]` are the singular values, which are ordered in non-increasing
-    fashion, `u[l](x)` are the left singular functions, which form an
-    orthonormal system on `[xmin, xmax]`, and `v[l](y)` are the right singular
-    functions, which for an orthonormal system on `[ymin, ymax]`
+    where ``s[l]`` are the singular values, which are ordered in non-increasing
+    fashion, ``u[l](x)`` are the left singular functions, which form an
+    orthonormal system on ``[xmin, xmax]``, and ``v[l](y)`` are the right
+    singular functions, which for an orthonormal system on ``[ymin, ymax]``
 
     The SVE is mapped onto the singular value decomposition (SVD) of a matrix
     by expanding the kernel in piecewise Legendre polynomials (by default by
@@ -31,29 +31,29 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
 
     Arguments:
 
-      - `K`: Integral kernel to take SVE from
-      - `eps`:  Relative cutoff for the singular values.  Defaults to double
+      - ``K``: Integral kernel to take SVE from
+      - ``eps``:  Relative cutoff for the singular values.  Defaults to double
         precision (2.2e-16) if the xprec package is available, and 1.5e-8
         otherwise.
-      - `n_sv`: Maximum basis size.  If given, only at most the `n_sv` most
+      - ``n_sv``: Maximum basis size.  If given, only at most the ``n_sv`` most
         significant singular values and associated singular functions are
         returned.
-      - `n_gauss`: Order of Legendre polynomials.  Defaults to hinted value
+      - ``n_gauss``: Order of Legendre polynomials.  Defaults to hinted value
         by the kernel.
-      - `dtype`: Data type of the result.
-      - `work_dtype`: Working data type.  Defaults to a data type with machine
-        epsilon of at least `eps**2`, or otherwise most accurate data type
-        available.
-      - `sve_strat`: SVE to SVD translation strategy.  Defaults to SamplingSVE.
-      - `svd_strat`: SVD solver. Defaults to fast (ID/RRQR) based solution
+      - ``dtype``: Data type of the result.
+      - ``work_dtype``: Working data type.  Defaults to a data type with
+        machine epsilon of at least ``eps**2``, or otherwise most accurate data
+        type available.
+      - ``sve_strat``: SVE to SVD translation strategy.  Defaults to SamplingSVE.
+      - ``svd_strat``: SVD solver. Defaults to fast (ID/RRQR) based solution
          when accuracy goals are moderate, and more accurate Jacobi-based
          algorithm otherwise.
 
-    Return tuple `(u, s, v)`, where:
+    Return tuple ``(u, s, v)``, where:
 
-     - `u` is a `PiecewisePoly` instance holding the left singular functions
-     - `s` is a vector of singular values
-     - `v` is a `PiecewisePoly` instance holding the right singular functions
+     - ``u`` is a ``PiecewisePoly`` instance holding the left singular functions
+     - ``s`` is a vector of singular values
+     - ``v`` is a ``PiecewisePoly`` instance holding the right singular functions
     """
     if eps is None or work_dtype is None or svd_strat is None:
         eps, work_dtype, default_svd_strat = _choose_accuracy(eps, work_dtype)
@@ -71,17 +71,17 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
 class SamplingSVE:
     """SVE to SVD translation by sampling technique [1].
 
-    Maps the singular value expansion (SVE) of a kernel `K` onto the singular
-    value decomposition of a matrix `A`.  This is achieved by chosing two sets
-    of Gauss quadrature rules: `(x, wx)` and `(y, wy)` and approximating the
-    integrals in the SVE equations by finite sums.  This implies that the
-    singular values of the SVE are well-approximated by the singular values of
-    the following matrix:
+    Maps the singular value expansion (SVE) of a kernel ``K`` onto the singular
+    value decomposition of a matrix ``A``.  This is achieved by chosing two
+    sets of Gauss quadrature rules: ``(x, wx)`` and ``(y, wy)`` and
+    approximating the integrals in the SVE equations by finite sums.  This
+    implies that the singular values of the SVE are well-approximated by the
+    singular values of the following matrix:
 
         A[i, j] = sqrt(wx[i]) * K(x[i], y[j]) * sqrt(wy[j])
 
     and the values of the singular functions at the Gauss sampling points can
-    be reconstructed from the singular vectors `u` and `v` as follows:
+    be reconstructed from the singular vectors ``u`` and ``v`` as follows:
 
         u[l,i] ≈ sqrt(wx[i]) u[l](x[i])
         v[l,j] ≈ sqrt(wy[j]) u[l](y[j])
@@ -147,14 +147,14 @@ class SamplingSVE:
 class CentrosymmSVE:
     """SVE of centrosymmetric kernel in block-diagonal (even/odd) basis.
 
-    For a centrosymmetric kernel `K`, i.e., a kernel satisfying:
-    `K(x, y) == K(-x, -y)`, one can make the following ansatz for the
+    For a centrosymmetric kernel ``K``, i.e., a kernel satisfying:
+    ``K(x, y) == K(-x, -y)``, one can make the following ansatz for the
     singular functions:
 
         u[l](x) = ured[l](x) + sign[l] * ured[l](-x)
         v[l](y) = vred[l](y) + sign[l] * ured[l](-y)
 
-    where `sign[l]` is either +1 or -1.  This means that the singular value
+    where ``sign[l]`` is either +1 or -1.  This means that the singular value
     expansion can be block-diagonalized into an even and an odd part by
     (anti-)symmetrizing the kernel:
 
@@ -272,11 +272,11 @@ def truncate(u, s, v, rtol=0, lmax=None):
 
     Arguments:
 
-     - `u`, `s`, `v : Thin singular value expansion
-     - `rtol` : If given, only singular values satisfying `s[l]/s[0] > rtol`
-       are retained.
-     - `lmax` : If given, at most the `lmax` most significant singular values
-       are retained.
+     - ``u``, ``s``, ``v``: Thin singular value expansion
+     - ``rtol`` : If given, only singular values satisfying
+       ``s[l]/s[0] > rtol`` are retained.
+     - ``lmax`` : If given, at most the ``lmax`` most significant singular
+       values are retained.
     """
     if lmax is not None and (lmax < 0 or int(lmax) != lmax):
         raise ValueError("invalid value of maximum number of singular values")

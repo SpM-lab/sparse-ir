@@ -7,8 +7,11 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   kernels
+   basis
    sampling
+   kernels
+   sve
+   composite
    porting
    hacking
 

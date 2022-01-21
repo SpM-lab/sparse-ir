@@ -31,16 +31,16 @@ Predefined kernels
 
 Custom kernels
 --------------
-Adding kernels to `sparse_ir` is simple - at the very basic levle, the library
-expects a kernel `K` to be able to provide two things:
+Adding kernels to ``sparse_ir`` is simple - at the very basic level, the
+library expects a kernel ``K`` to be able to provide two things:
 
- 1. the values through `K(x, y)`
- 2. a set of SVE discretization hints through `K.hints()`
+ 1. the values through ``K(x, y)``
+ 2. a set of SVE discretization hints through ``K.hints()``
 
 Let us suppose you simply want to include a Gaussian default model on the real
 axis instead of the default (flat) one.  We create a new kernel by inheriting
-from `irbasis.kernel.KernelBase` and then simply wrap around a fermionic
-kernel, modifying the values as needed::
+from :class:`sparse_ir.kernel.KernelBase` and then simply wrap around a
+fermionic kernel, modifying the values as needed::
 
     import sparse_ir
     import sparse_ir.kernel
@@ -61,7 +61,7 @@ kernel, modifying the values as needed::
         def hints(self, eps):
             return self._inner.hints(eps)
 
-You can feed this kernel now directly to `irbasis.IRBasis`::
+You can feed this kernel now directly to :class:`sparse_ir.IRBasis`::
 
     K = GaussFKernel(10., 1.)
     basis = sparse_ir.IRBasis(K, 'F')
@@ -70,17 +70,17 @@ You can feed this kernel now directly to `irbasis.IRBasis`::
 This should get you started.  For a fully-fledged and robust implementation,
 you should:
 
- 1. Make sure that your kernel does not lose precision in computing `K(x, y)`,
+ 1. Make sure that your kernel does not lose precision in computing ``K(x, y)``,
     as this directly affects the quality of the basis.  This is also where the
-    arguments `x_plus` and `x_minus` may become useful.
+    arguments ``x_plus`` and ``x_minus`` may become useful.
 
  2. Optimize your discretization hints.  To do so, it is useful to choose the
-    segments in `x` and `y` close to the asymptotic distribution of the roots
+    segments in ``x`` and ``y`` close to the asymptotic distribution of the roots
     of the respective singular functions.  The Gauss order can then be
     determined from a convergence analysis.
 
  3. Check whether your kernel is centrosymmetric, and if so, override the
-    `is_centrosymmetric` property.  This yields a approximately four-times
+    ``is_centrosymmetric`` property.  This yields a approximately four-times
     performance boost.  However, check that the symmetrized versions of the
     kernels do not lose precision.
 

@@ -5,7 +5,7 @@ import sparse_ir
 from sparse_ir import sve
 from sparse_ir import kernel
 from sparse_ir import composite
-from sparse_ir import augmentation
+from sparse_ir import augment
 
 import pytest
 
@@ -60,7 +60,7 @@ def test_augmented_bosonic_basis():
     lambda_ = beta * wmax
     K = sparse_ir.KernelBFlat(lambda_)
     basis = sparse_ir.FiniteTempBasis(K, "B", beta, eps=1e-6)
-    basis_legg = augmentation.LegendreBasis("B", beta, 2)
+    basis_legg = augment.LegendreBasis("B", beta, 2)
     basis_comp = composite.CompositeBasis([basis_legg, basis])
 
     # G(tau) = c - e^{-tau*pole}/(1 - e^{-beta*pole})
@@ -83,7 +83,7 @@ def test_vertex_basis(stat):
     lambda_ = beta * wmax
     K = sparse_ir.KernelBFlat(lambda_)
     basis = sparse_ir.FiniteTempBasis(K, stat, beta, eps=1e-6)
-    basis_const = augmentation.MatsubaraConstBasis(stat, beta)
+    basis_const = augment.MatsubaraConstBasis(stat, beta)
     basis_comp = composite.CompositeBasis([basis_const, basis])
     assert basis_comp.uhat is not None
 
