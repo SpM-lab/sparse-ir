@@ -111,7 +111,6 @@ class PiecewiseLegendrePoly:
                 function that is called with a point ``x`` and returns ``f(x)``
                 at that position.  If the ``axis`` argument is given, ``f``
                 must be vectorized.
-
             axis (int or None):
                 If `None` (the default), `f` is called repeatedly for all
                 quadrature points.  If `axis` is not None, `f`, when called
@@ -132,19 +131,7 @@ class PiecewiseLegendrePoly:
 
         # Multiply weights by polynomial at value
         pw = self(x) * rule.w
-
-        # Get values of function at the Gauss points
-        if axis is None:
-            fx = [f(xi) for xi in x]
-            fx = np.array(fx)
-            if fx.dtype is np.dtype('object'):
-                raise ValueError("incompatible shapes")
-        else:
-            fx = np.asarray(f(x))
-            if fx.shape[axis] != x.size:
-                raise ValueError("inconsistent result shape")
-            if axis != 0:
-                fx = np.moveaxis(fx, axis, 0)
+        fx = _apply_along_axis(f, x, axis)
 
         # Perform the summation and reshape the result
         int_flat = pw.reshape(self.size, x.size) @ fx.reshape(x.size, -1)
@@ -475,3 +462,18 @@ def _vectorize(f, axis=None):
             return result
 
         return f_moved
+
+
+def _apply_along_axis(f, x, axis=None):
+    if axis is None:
+        fx = [f(xi) for xi in x]
+        fx = np.array(fx)
+        if fx.dtype is np.dtype('object'):
+            raise ValueError("incompatible shapes")
+    else:
+        fx = np.asarray(f(x))
+        if fx.shape[axis] != x.size:
+            raise ValueError("inconsistent result shape")
+        if axis != 0:
+            fx = np.moveaxis(fx, axis, 0)
+    return fx
