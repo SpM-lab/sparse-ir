@@ -64,12 +64,12 @@ def test_overlap(lambda_, atol):
     )
 
     np.testing.assert_allclose(
-        u.overlap(u), np.identity(s.size), rtol=0, atol=atol
+        u.overlap(u, axis=-1), np.identity(s.size), rtol=0, atol=atol
     )
 
     u_tensor = poly.PiecewiseLegendrePoly(
                     u.data.reshape(u.data.shape[:2] + (npoly//2, 2)), u.knots)
-    res = u_tensor.overlap(u_tensor)
+    res = u_tensor.overlap(u_tensor, axis=-1)
     assert res.shape == (npoly//2, 2, npoly//2, 2)
     np.testing.assert_allclose(
         res.reshape(npoly, npoly), np.identity(s.size), rtol=0, atol=atol

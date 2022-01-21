@@ -108,12 +108,15 @@ class PiecewiseLegendrePoly:
 
         Arguments:
             f (callable):
-                function that evalues f(x) for a 1D array of x
-                By default (axis=None), the last axis of the result must
-                correspond to x axis.
+                function that is called with a point ``x`` and returns ``f(x)``
+                at that position.  If the ``axis`` argument is given, ``f``
+                must be vectorized.
+
             axis (int or None):
-                Axis of the function f along which the integral is performed.
-                If axis is ``None`` (the default), the last axis is used.
+                If `None` (the default), `f` is called repeatedly for all
+                quadrature points.  If `axis` is not None, `f`, when called
+                for a vector `x` returns `f(x[i])` at the `i`-th position along
+                the given axis.
 
         Return:
             array-like object with shape (poly_dims, f_dims)
@@ -122,27 +125,30 @@ class PiecewiseLegendrePoly:
         """
         if _deg is None:
             _deg = 2*self.polyorder
+
+        # Get Gauss rule
+        rule = gauss.legendre(_deg, self.data.dtype).piecewise(self.knots)
+        x = rule.x
+
+        # Multiply weights by polynomial at value
+        pw = self(x) * rule.w
+
+        # Get values of function at the Gauss points
         if axis is None:
-            axis = -1
+            fx = [f(xi) for xi in x]
+            fx = np.array(fx)
+            if fx.dtype is np.dtype('object'):
+                raise ValueError("incompatible shapes")
+        else:
+            fx = np.asarray(f(x))
+            if fx.shape[axis] != x.size:
+                raise ValueError("inconsistent result shape")
+            if axis != 0:
+                fx = np.moveaxis(fx, axis, 0)
 
-        rule = gauss.legendre(_deg, dtype=_xwork_dtype).piecewise(self.knots)
-        x, w = rule.x.astype(self.data.dtype), rule.w.astype(self.data.dtype)
-
-        fval = f(x)
-        fval = np.moveaxis(fval, axis, -1)
-        f_rest_dims = fval.shape[:-1]
-
-        polyval = self(x)
-        if polyval.ndim == 1:
-            polyval = polyval[None,:]
-        poly_rest_dims = polyval.shape[:-1]
-
-        nquad_points = x.size
-        res = np.einsum('iw,jw,w->ij',
-            polyval.reshape((-1,nquad_points)),
-            fval.reshape((-1,nquad_points)), w, optimize=True)
-
-        return res.reshape(poly_rest_dims + f_rest_dims)
+        # Perform the summation and reshape the result
+        int_flat = pw.reshape(self.size, x.size) @ fx.reshape(x.size, -1)
+        return int_flat.reshape(*self.shape, *fx.shape[1:])
 
     def deriv(self, n=1):
         """Get polynomial for the n'th derivative"""
@@ -447,3 +453,25 @@ def _refine_grid(knots, alpha):
     """Linear refinement of grid"""
     result = np.linspace(knots[:-1], knots[1:], alpha, endpoint=False)
     return np.hstack((result.T.ravel(), knots[-1]))
+
+
+def _vectorize(f, axis=None):
+    if axis is None:
+        def f_vectorized(x):
+            result = [f(xi) for xi in x]
+            result = np.array(result)
+            if result.dtype is np.dtype('object'):
+                raise ValueError("incompatible shapes")
+            return np.array(result)
+
+        return f_vectorized
+    else:
+        def f_moved(x):
+            result = np.asarray(f(x))
+            if f.shape[axis] != x.size:
+                raise ValueError("inconsistent result shape")
+            if axis != 0:
+                result = np.moveaxis(result, axis, 0)
+            return result
+
+        return f_moved
