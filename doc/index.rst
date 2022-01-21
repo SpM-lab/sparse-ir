@@ -8,8 +8,10 @@ Contents
    :maxdepth: 2
 
    basis
-   kernels
    sampling
+   kernels
+   sve
+   composite
    porting
    hacking
 
