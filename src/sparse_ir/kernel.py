@@ -5,28 +5,26 @@ from warnings import warn
 
 
 class KernelBase:
-    """Integral kernel `K(x, y)`.
+    """Integral kernel ``K(x, y)``.
 
     Abstract base class for an integral kernel, i.e., a real binary function
-    `K(x, y)` used in a Fredhold integral equation of the first kind:
+    ``K(x, y)`` used in a Fredhold integral equation of the first kind:
 
-                        u(x) = ∫ K(x, y) * v(y) * dy
+                        u(x) = ∫ K(x, y) v(y) dy
 
-    where `x ∈ [xmin, xmax]` and `y ∈ [ymin, ymax]`.  For its SVE to exist,
+    where ``x ∈ [xmin, xmax]`` and ``y ∈ [ymin, ymax]``.  For its SVE to exist,
     the kernel must be square-integrable, for its singular values to decay
     exponentially, it must be smooth.
-    `ypower` is the power of `y` in the front of the kernel.
-    `conv_radius` is a convergence radius of the high-frequency expansion.
     """
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)
 
-        For given `x, y`, return the value of `K(x, y)`. The arguments may
+        For given ``x, y``, return the value of ``K(x, y)``. The arguments may
         be numpy arrays, in which case the function shall be evaluated over
         the broadcast arrays.
 
-        The parameters `x_plus` and `x_minus`, if given, shall contain the
-        values of `x - xmin` and `xmax - x`, respectively.  This is useful
+        The parameters ``x_plus`` and ``x_minus``, if given, shall contain the
+        values of ``x - xmin`` and ``xmax - x``, respectively.  This is useful
         if either difference is to be formed and cancellation expected.
         """
         raise NotImplementedError()
@@ -36,7 +34,7 @@ class KernelBase:
 
         Advises the SVE routines of discretisation parameters suitable in
         tranforming the (infinite) SVE into an (finite) SVD problem.
-        See also :class:`SVEHints`.
+        See also :class:``SVEHints``.
         """
         raise NotImplementedError()
 
@@ -62,7 +60,7 @@ class KernelBase:
         return False
 
     def get_symmetrized(self, sign):
-        """Return symmetrized kernel `K(x, y) + sign * K(x, -y)`.
+        """Return symmetrized kernel ``K(x, y) + sign * K(x, -y)``.
 
         By default, this returns a simple wrapper over the current instance
         which naively performs the sum.  You may want to override if this
@@ -92,15 +90,15 @@ class SVEHints:
 
     .. py:property:: segments_x
 
-       List of segments on the `x` axis for the associated piecewise
+       List of segments on the ``x`` axis for the associated piecewise
        polynomial.  Should reflect the approximate position of roots of a
-       high-order singular function in `x`.
+       high-order singular function in ``x``.
 
     .. py:property:: segments_y
 
-       List of segments on the `y` axis for the associated piecewise
+       List of segments on the ``y`` axis for the associated piecewise
        polynomial.  Should reflect the approximate position of roots of a
-       high-order singular function in `y`.
+       high-order singular function in ``y``.
 
     .. py:property:: ngauss
 
@@ -120,10 +118,10 @@ class SVEHints:
 class KernelFFlat(KernelBase):
     """Fermionic analytical continuation kernel.
 
-    In dimensionless variables `x = 2*τ/β - 1`, `y = β*ω/Λ`, the fermionic
-    integral kernel is a function on `[-1, 1] x [-1, 1]`:
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
+    integral kernel is a function on ``[-1, 1] x [-1, 1]``::
 
-            K(x, y) = exp(-Λ * y * (x + 1)/2) / (1 + exp(-Λ*y))
+        K(x, y) == exp(-Λ * y * (x + 1)/2) / (1 + exp(-Λ*y))
     """
     def __init__(self, lambda_):
         self.lambda_ = lambda_
@@ -198,12 +196,12 @@ class KernelFFlat(KernelBase):
 class KernelBFlat(KernelBase):
     """Bosonic analytical continuation kernel.
 
-    In dimensionless variables `x = 2*τ/β - 1`, `y = β*ω/Λ`, the fermionic
-    integral kernel is a function on `[-1, 1] x [-1, 1]`:
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
+    integral kernel is a function on ``[-1, 1] x [-1, 1]``::
 
-            K(x, y) = y * exp(-Λ * y * (x + 1)/2) / (exp(-Λ*y) - 1)
+        K(x, y) == y exp(-Λ * y * (x + 1)/2) / (exp(-Λ * y) - 1)
 
-    Care has to be taken in evaluating this expression around `y == 0`.
+    Care has to be taken in evaluating this expression around ``y == 0``.
     """
     def __init__(self, lambda_):
         self.lambda_ = lambda_
@@ -225,8 +223,8 @@ class KernelBFlat(KernelBase):
         enum = np.exp(-abs_v * np.where(v >= 0, u_plus, u_minus))
         dtype = v.dtype
 
-        # The expression `v / (exp(v) - 1)` is tricky to evaluate: firstly, it
-        # has a singularity at v=0, which can be cured by treating that case
+        # The expression ``v / (exp(v) - 1)`` is tricky to evaluate: firstly,
+        # it has a singularity at v=0, which can be cured by treating that case
         # separately.  Secondly, the denominator loses precision around 0 since
         # exp(v) = 1 + v + ..., which can be avoided using expm1(...)
         not_tiny = abs_v >= 1e-200
@@ -289,14 +287,14 @@ class KernelBFlat(KernelBase):
 class ReducedKernel(KernelBase):
     """Restriction of centrosymmetric kernel to positive interval.
 
-    For a kernel `K` on `[-1, 1] x [-1, 1]` that is centrosymmetrix, i.e.,
-    `K(x, y) == K(-x, -y)`, it is straight-forward to show that the left/right
+    For a kernel ``K`` on ``[-1, 1] x [-1, 1]`` that is centrosymmetrix, i.e.,
+    ``K(x, y) == K(-x, -y)``, it is straight-forward to show that the left/right
     singular vectors can be chosen as either odd or even functions.
 
-    Consequentially, they are singular functions of a reduced kernel `K_red`
-    on `[0, 1] x [0, 1]` that is given as either:
+    Consequentially, they are singular functions of a reduced kernel ``K_red``
+    on ``[0, 1] x [0, 1]`` that is given as either::
 
-        K_red(x, y) = K(x, y) + sign * K(x, -y)
+        K_red(x, y) == K(x, y) + sign * K(x, -y)
 
     This kernel is what this class represents.  The full singular functions can
     be reconstructed by (anti-)symmetrically continuing them to the negative
@@ -359,10 +357,10 @@ class ReducedKernel(KernelBase):
 class _KernelFFlatOdd(ReducedKernel):
     """Fermionic analytical continuation kernel, odd.
 
-    In dimensionless variables `x = 2*τ/β - 1`, `y = β*ω/Λ`, the fermionic
-    integral kernel is a function on `[-1, 1] x [-1, 1]`:
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
+    integral kernel is a function on ``[-1, 1] x [-1, 1]``::
 
-            K(x, y) = -sinh(Λ/2 * x * y) / cosh(Λ/2 * y)
+        K(x, y) == -sinh(Λ/2 * x * y) / cosh(Λ/2 * y)
     """
     def __call__(self, x, y, x_plus=None, x_minus=None):
         result = super().__call__(x, y, x_plus, x_minus)
@@ -382,8 +380,8 @@ class _KernelFFlatOdd(ReducedKernel):
 class _KernelBFlatOdd(ReducedKernel):
     """Bosonic analytical continuation kernel, odd.
 
-    In dimensionless variables `x = 2*τ/β - 1`, `y = β*ω/Λ`, the fermionic
-    integral kernel is a function on `[-1, 1] x [-1, 1]`:
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
+    integral kernel is a function on ``[-1, 1] x [-1, 1]``::
 
             K(x, y) = -y * sinh(Λ/2 * x * y) / sinh(Λ/2 * y)
     """
