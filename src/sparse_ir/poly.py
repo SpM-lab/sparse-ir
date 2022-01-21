@@ -19,8 +19,8 @@ else:
 class PiecewiseLegendrePoly:
     """Piecewise Legendre polynomial.
 
-    Models a function on the interval `[-1, 1]` as a set of segments on the
-    intervals `S[i] = [a[i], a[i+1]]`, where on each interval the function
+    Models a function on the interval ``[-1, 1]`` as a set of segments on the
+    intervals ``S[i] = [a[i], a[i+1]]``, where on each interval the function
     is expanded in scaled Legendre polynomials.
     """
     def __init__(self, data, knots, dx=None):
@@ -97,13 +97,13 @@ class PiecewiseLegendrePoly:
         return res
 
     def overlap(self, f, axis=None, _deg=None):
-        r"""Evaluate overlap integral of this polynomial with function `f`.
+        r"""Evaluate overlap integral of this polynomial with function ``f``.
 
-        Given the function `f`, evaluate the integral:
+        Given the function ``f``, evaluate the integral::
 
             ∫ dx * f(x) * self(x)
 
-        using piecewise Gauss-Legendre quadrature, where `self` are the
+        using piecewise Gauss-Legendre quadrature, where ``self`` are the
         polynomials.
 
         Arguments:
@@ -162,7 +162,7 @@ class PiecewiseLegendrePoly:
     def roots(self, alpha=2):
         """Find all roots of the piecewise polynomial
 
-        Assume that between each two knots (pieces) there are at most `alpha`
+        Assume that between each two knots (pieces) there are at most ``alpha``
         roots.
         """
         if self.data.ndim > 2:
@@ -198,14 +198,14 @@ class PiecewiseLegendrePoly:
 class PiecewiseLegendreFT:
     """Fourier transform of a piecewise Legendre polynomial.
 
-    For a given frequency index `n`, the Fourier transform of the Legendre
-    function is defined as:
+    For a given frequency index ``n``, the Fourier transform of the Legendre
+    function is defined as::
 
             phat(n) == ∫ dx exp(1j * pi * n * x / (xmax - xmin)) p(x)
 
-    The polynomial is continued either periodically (`freq='even'`), in which
-    case `n` must be even, or antiperiodically (`freq='odd'`), in which case
-    `n` must be odd.
+    The polynomial is continued either periodically (``freq='even'``), in which
+    case ``n`` must be even, or antiperiodically (``freq='odd'``), in which case
+    ``n`` must be odd.
     """
     _DEFAULT_GRID = np.hstack([np.arange(2**6),
                         (2**np.linspace(6, 25, 16*(25-6)+1)).astype(int)])
@@ -311,9 +311,9 @@ def _imag_power(n):
 
 
 def _get_tnl(l, w):
-    r"""Fourier integral of the l-th Legendre polynomial:
+    r"""Fourier integral of the l-th Legendre polynomial::
 
-        T_l(w) = \int_{-1}^1 dx \exp(iwx) P_l(x)
+        T_l(w) == \int_{-1}^1 dx \exp(iwx) P_l(x)
     """
     # spherical_jn gives NaN for w < 0, but since we know that P_l(x) is real,
     # we simply conjugate the result for w > 0 in these cases.
@@ -323,11 +323,11 @@ def _get_tnl(l, w):
 
 
 def _shift_xmid(knots, dx):
-    r"""Return midpoint relative to the nearest integer plus a shift
+    r"""Return midpoint relative to the nearest integer plus a shift.
 
-    Return the midpoints `xmid` of the segments, as pair `(diff, shift)`,
-    where shift is in `(0,1,-1)` and `diff` is a float such that
-    `xmid == shift + diff` to floating point accuracy.
+    Return the midpoints ``xmid`` of the segments, as pair ``(diff, shift)``,
+    where shift is in ``(0,1,-1)`` and ``diff`` is a float such that
+    ``xmid == shift + diff`` to floating point accuracy.
     """
     dx_half = dx / 2
     xmid_m1 = dx.cumsum() - dx_half
@@ -342,7 +342,8 @@ def _shift_xmid(knots, dx):
 def _phase_stable(poly, wn):
     """Phase factor for the piecewise Legendre to Matsubara transform.
 
-    Compute the following phase factor in a stable way:
+    Compute the following phase factor in a stable way::
+
         np.exp(1j * np.pi/2 * wn[:,None] * poly.dx.cumsum()[None,:])
     """
     # A naive implementation is losing precision close to x=1 and/or x=-1:
@@ -389,12 +390,12 @@ def _compute_unl_inner(poly, wn):
 
 
 class _PowerModel:
-    """Model from a high-frequency series expansion:
+    """Model from a high-frequency series expansion::
 
-        A(iw) = sum(A[n] / (iw)**(n+1) for n in range(1, N))
+        A(iw) == sum(A[n] / (iw)**(n+1) for n in range(1, N))
 
-    where `iw == 1j * pi/2 * wn` is a reduced imaginary frequency, i.e.,
-    `wn` is an odd/even number for fermionic/bosonic frequencies.
+    where ``iw == 1j * pi/2 * wn`` is a reduced imaginary frequency, i.e.,
+    ``wn`` is an odd/even number for fermionic/bosonic frequencies.
     """
     def __init__(self, moments):
         """Initialize model"""

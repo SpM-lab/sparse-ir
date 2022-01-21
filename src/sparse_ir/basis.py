@@ -12,23 +12,16 @@ class IRBasis:
 
     For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
     imaginary time, τ ∈ [0, β], this class stores the truncated singular
-    value expansion or IR basis:
+    value expansion or IR basis::
 
         K(x, y) ≈ sum(u[l](x) * s[l] * v[l](y) for l in range(L))
 
-    The functions are given in reduced variables, `x = 2*τ/β - 1` and
-    `y = ω/ωmax`, which scales both sides to the interval `[-1, 1]`.  The
-    kernel then only depends on a cutoff parameter `Λ = β * ωmax`.
+    The functions are given in reduced variables, ``x = 2*τ/β - 1`` and
+    ``y = ω/ωmax``, which scales both sides to the interval ``[-1, 1]``.  The
+    kernel then only depends on a cutoff parameter ``Λ = β * ωmax``.
 
-    Members:
-    --------
-     - `u`: IR basis functions on the reduced imaginary time (`x`) axis.
-     - `s`: singular values of the continuation kernel
-     - `v`: IR basis functions on the scaled real frequency (`y`) axis.
-     - `uhat`: IR basis functions on the Matsubara frequency axis (`wn`).
+    .. rubric:: Code example:
 
-    Code example:
-    -------------
     The following example code assumes the spectral function is a single pole
     at x = 0.2::
 
@@ -42,9 +35,40 @@ class IRBasis:
         gl = basis.s * basis.v(0.2)
         giw = gl @ basis.uhat([1, 3, 5, 7])
 
-    See also:
-    ---------
-     - `FiniteTempBasis`: for a basis directly in time/frequency.
+    See also: :class:`FiniteTempBasis` for a basis directly in time/frequency.
+
+    .. py:property:: u
+
+       IR basis functions on the reduced imaginary time (`x`) axis.
+       These functions are stored :class:`sparse_ir.poly.PiecewiseLegendrePoly`
+       instances.
+
+       Thus, if ``b`` is a basis, ``b.u[l](x)`` returns the value of the
+       ``l``-th basis function at position ``x``.
+
+    .. py:property:: uhat
+
+       IR basis functions on the Matsubara frequency axis (`wn`).  These
+       objects are stored :class:`sparse_ir.poly.PiecewiseLegendreFT`
+       instances.
+
+       Thus, if ``b`` is a basis, ``b.uhat[l](wn)`` returns the value of the
+       ``l``-th basis function at Matusbara frequency ``wn``.  Note that it
+       expects reduced frequencies, i.e., even/odd integers for
+       bosonic/fermionic Matsubara frequencies.
+
+    .. py:property:: s
+
+       vector of singular values of the continuation kernel
+
+    .. py:property:: v
+
+       IR basis functions on the reduced real frequency (`y`) axis.
+       These functions are stored :class:`sparse_ir.poly.PiecewiseLegendrePoly`
+       instances.
+
+       Thus, if ``b`` is a basis, ``b.v[l](y)`` returns the value of the
+       ``l``-th basis function at position ``y``.
     """
     def __init__(self, kernel, statistics, eps=None, sve_result=None):
         if statistics not in 'BF':
@@ -126,22 +150,15 @@ class FiniteTempBasis:
 
     For a continuation kernel from real frequencies, ω ∈ [-wmax, wmax], to
     imaginary time, τ ∈ [0, beta], this class stores the truncated singular
-    value expansion or IR basis:
+    value expansion or IR basis::
 
         K(τ, ω) ≈ sum(u[l](τ) * s[l] * v[l](ω) for l in range(L))
 
     This basis is inferred from a reduced form by appropriate scaling of
     the variables.
 
-    Members:
-    --------
-     - `u`: IR basis functions on the imaginary time axis.
-     - `s`: singular values of the continuation kernel
-     - `v`: IR basis functions on the real frequency axis.
-     - `uhat`: IR basis functions on the Matsubara frequency axis (`wn`).
+    .. rubric:: Code example:
 
-    Code example:
-    -------------
     The following example code assumes the spectral function is a single pole
     at ω = 2.5::
 
@@ -154,6 +171,39 @@ class FiniteTempBasis:
         # on the first few Matsubara frequencies
         gl = basis.s * basis.v(2.5)
         giw = gl @ basis.uhat([1, 3, 5, 7])
+
+    .. py:property:: u
+
+       IR basis functions on the imaginary time (`tau`) axis.
+       These functions are stored :class:`sparse_ir.poly.PiecewiseLegendrePoly`
+       instances.
+
+       Thus, if ``b`` is a basis, ``b.u[l](tau)`` returns the value of the
+       ``l``-th basis function at imaginary time ``tau``.
+
+    .. py:property:: uhat
+
+       IR basis functions on the Matsubara frequency axis (`wn`).  These
+       objects are stored :class:`sparse_ir.poly.PiecewiseLegendreFT`
+       instances.
+
+       Thus, if ``b`` is a basis, ``b.uhat[l](wn)`` returns the value of the
+       ``l``-th basis function at Matusbara frequency ``wn``.  Note that it
+       expects reduced frequencies, i.e., even/odd integers for
+       bosonic/fermionic Matsubara frequencies.
+
+    .. py:property:: s
+
+       vector of singular values of the continuation kernel
+
+    .. py:property:: v
+
+       IR basis functions on the reduced real frequency (`y`) axis.
+       These functions are stored :class:`sparse_ir.poly.PiecewiseLegendrePoly`
+       instances.
+
+       Thus, if ``b`` is a basis, ``b.v[l](y)`` returns the value of the
+       ``l``-th basis function at position ``y``.
     """
     def __init__(self, kernel, statistics, beta, eps=None, sve_result=None):
         if statistics not in 'BF':
