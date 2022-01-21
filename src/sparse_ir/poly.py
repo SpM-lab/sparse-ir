@@ -107,20 +107,18 @@ class PiecewiseLegendrePoly:
         polynomials.
 
         Arguments:
-        ----------
-         - f: funtion-like object that evalues f(x) for a 1D array of x.
-           By default (axis=None), the last axis of the result must correspond
-           to x axis.
-
-         - axis: None or int, optional
-           Axis of the function f along which the integral is performed.
-           By default (axis=None), the last axis is used.
+            f (callable):
+                function that evalues f(x) for a 1D array of x
+                By default (axis=None), the last axis of the result must
+                correspond to x axis.
+            axis (int or None):
+                Axis of the function f along which the integral is performed.
+                If axis is ``None`` (the default), the last axis is used.
 
         Return:
-        -------
-        array-like object, where the shapres are (poly_dims, f_dims), where
-        poly_dims are the shape of the polynomial and f_dims are those of the
-        function f(x).
+            array-like object with shape (poly_dims, f_dims)
+            poly_dims are the shape of the polynomial and f_dims are those
+            of the function f(x).
         """
         if _deg is None:
             _deg = 2*self.polyorder

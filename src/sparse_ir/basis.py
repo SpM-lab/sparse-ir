@@ -20,55 +20,52 @@ class IRBasis:
     ``y = ω/ωmax``, which scales both sides to the interval ``[-1, 1]``.  The
     kernel then only depends on a cutoff parameter ``Λ = β * ωmax``.
 
-    .. rubric:: Code example:
+    Example:
+        The following example code assumes the spectral function is a single
+        pole at x = 0.2::
 
-    The following example code assumes the spectral function is a single pole
-    at x = 0.2::
+            # Compute IR basis suitable for fermions and β*W <= 42
+            import sparse_ir
+            K = sparse_ir.KernelFFlat(lambda_=42)
+            basis = sparse_ir.IRBasis(K, statistics='F')
 
-        # Compute IR basis suitable for fermions and β*W <= 42
-        import sparse_ir
-        K = sparse_ir.KernelFFlat(lambda_=42)
-        basis = sparse_ir.IRBasis(K, statistics='F')
+            # Assume spectrum is a single pole at x = 0.2, compute G(iw)
+            # on the first few Matsubara frequencies
+            gl = basis.s * basis.v(0.2)
+            giw = gl @ basis.uhat([1, 3, 5, 7])
 
-        # Assume spectrum is a single pole at x = 0.2, compute G(iw)
-        # on the first few Matsubara frequencies
-        gl = basis.s * basis.v(0.2)
-        giw = gl @ basis.uhat([1, 3, 5, 7])
+    See also:
+        :class:`FiniteTempBasis` for a basis directly in time/frequency.
 
-    See also: :class:`FiniteTempBasis` for a basis directly in time/frequency.
+    Attributes:
+        u (sparse_ir.poly.PiecewiseLegendrePoly):
+            Set of IR basis functions on the reduced imaginary time (`x`) axis.
+            These functions are stored as piecewise Legendre polynomials.
 
-    .. py:property:: u
+            To obtain the value of all basis functions at a point or a array of
+            points `x`, you can call the function ``u(x)``.  To obtain a single
+            basis function, a slice or a subset `l`, you can use ``u[l]``.
 
-       IR basis functions on the reduced imaginary time (`x`) axis.
-       These functions are stored :class:`sparse_ir.poly.PiecewiseLegendrePoly`
-       instances.
+        uhat (sparse_ir.poly.PiecewiseLegendreFT):
+            Set of IR basis functions on the Matsubara frequency (`wn`) axis.
+            These objects are stored as a set of Bessel functions.
 
-       Thus, if ``b`` is a basis, ``b.u[l](x)`` returns the value of the
-       ``l``-th basis function at position ``x``.
+            To obtain the value of all basis functions at a Matsubara frequency
+            or a array of points `wn`, you can call the function ``uhat(wn)``.
+            Note that we expect reduced frequencies, which are simply even/odd
+            numbers for bosonic/fermionic objects. To obtain a single basis
+            function, a slice or a subset `l`, you can use ``uhat[l]``.
 
-    .. py:property:: uhat
+        s:
+            vector of singular values of the continuation kernel
 
-       IR basis functions on the Matsubara frequency axis (`wn`).  These
-       objects are stored :class:`sparse_ir.poly.PiecewiseLegendreFT`
-       instances.
+        v (sparse_ir.poly.PiecewiseLegendrePoly):
+            Set of IR basis functions on the reduced real frequency (`y`) axis.
+            These functions are stored as piecewise Legendre polynomials.
 
-       Thus, if ``b`` is a basis, ``b.uhat[l](wn)`` returns the value of the
-       ``l``-th basis function at Matusbara frequency ``wn``.  Note that it
-       expects reduced frequencies, i.e., even/odd integers for
-       bosonic/fermionic Matsubara frequencies.
-
-    .. py:property:: s
-
-       vector of singular values of the continuation kernel
-
-    .. py:property:: v
-
-       IR basis functions on the reduced real frequency (`y`) axis.
-       These functions are stored :class:`sparse_ir.poly.PiecewiseLegendrePoly`
-       instances.
-
-       Thus, if ``b`` is a basis, ``b.v[l](y)`` returns the value of the
-       ``l``-th basis function at position ``y``.
+            To obtain the value of all basis functions at a point or a array of
+            points `y`, you can call the function ``v(y)``.  To obtain a single
+            basis function, a slice or a subset `l`, you can use ``v[l]``.
     """
     def __init__(self, kernel, statistics, eps=None, sve_result=None):
         if statistics not in 'BF':
@@ -157,53 +154,49 @@ class FiniteTempBasis:
     This basis is inferred from a reduced form by appropriate scaling of
     the variables.
 
-    .. rubric:: Code example:
+    Example:
+        The following example code assumes the spectral function is a single
+        pole at ω = 2.5::
 
-    The following example code assumes the spectral function is a single pole
-    at ω = 2.5::
+            # Compute IR basis for fermions and β = 10, W <= 4.2
+            import sparse_ir
+            K = sparse_ir.KernelFFlat(lambda_=42)
+            basis = sparse_ir.FiniteTempBasis(K, statistics='F', beta=10)
 
-        # Compute IR basis for fermions and β = 10, W <= 4.2
-        import sparse_ir
-        K = sparse_ir.KernelFFlat(lambda_=42)
-        basis = sparse_ir.FiniteTempBasis(K, statistics='F', beta=10)
+            # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
+            # on the first few Matsubara frequencies
+            gl = basis.s * basis.v(2.5)
+            giw = gl @ basis.uhat([1, 3, 5, 7])
 
-        # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
-        # on the first few Matsubara frequencies
-        gl = basis.s * basis.v(2.5)
-        giw = gl @ basis.uhat([1, 3, 5, 7])
+    Attributes:
+        u (sparse_ir.poly.PiecewiseLegendrePoly):
+            Set of IR basis functions on the imaginary time (`tau`) axis.
+            These functions are stored as piecewise Legendre polynomials.
 
-    .. py:property:: u
+            To obtain the value of all basis functions at a point or a array of
+            points `x`, you can call the function ``u(x)``.  To obtain a single
+            basis function, a slice or a subset `l`, you can use ``u[l]``.
 
-       IR basis functions on the imaginary time (`tau`) axis.
-       These functions are stored :class:`sparse_ir.poly.PiecewiseLegendrePoly`
-       instances.
+        uhat (sparse_ir.poly.PiecewiseLegendreFT):
+            Set of IR basis functions on the Matsubara frequency (`wn`) axis.
+            These objects are stored as a set of Bessel functions.
 
-       Thus, if ``b`` is a basis, ``b.u[l](tau)`` returns the value of the
-       ``l``-th basis function at imaginary time ``tau``.
+            To obtain the value of all basis functions at a Matsubara frequency
+            or a array of points `wn`, you can call the function ``uhat(wn)``.
+            Note that we expect reduced frequencies, which are simply even/odd
+            numbers for bosonic/fermionic objects. To obtain a single basis
+            function, a slice or a subset `l`, you can use ``uhat[l]``.
 
-    .. py:property:: uhat
+        s:
+            vector of singular values of the continuation kernel
 
-       IR basis functions on the Matsubara frequency axis (`wn`).  These
-       objects are stored :class:`sparse_ir.poly.PiecewiseLegendreFT`
-       instances.
+        v (sparse_ir.poly.PiecewiseLegendrePoly):
+            Set of IR basis functions on the real frequency (`w`) axis.
+            These functions are stored as piecewise Legendre polynomials.
 
-       Thus, if ``b`` is a basis, ``b.uhat[l](wn)`` returns the value of the
-       ``l``-th basis function at Matusbara frequency ``wn``.  Note that it
-       expects reduced frequencies, i.e., even/odd integers for
-       bosonic/fermionic Matsubara frequencies.
-
-    .. py:property:: s
-
-       vector of singular values of the continuation kernel
-
-    .. py:property:: v
-
-       IR basis functions on the reduced real frequency (`y`) axis.
-       These functions are stored :class:`sparse_ir.poly.PiecewiseLegendrePoly`
-       instances.
-
-       Thus, if ``b`` is a basis, ``b.v[l](y)`` returns the value of the
-       ``l``-th basis function at position ``y``.
+            To obtain the value of all basis functions at a point or a array of
+            points `w`, you can call the function ``v(w)``.  To obtain a single
+            basis function, a slice or a subset `l`, you can use ``v[l]``.
     """
     def __init__(self, kernel, statistics, beta, eps=None, sve_result=None):
         if statistics not in 'BF':

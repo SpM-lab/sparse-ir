@@ -88,25 +88,23 @@ class KernelBase:
 class SVEHints:
     """Discretization hints for singular value expansion of a given kernel.
 
-    .. py:property:: segments_x
+    Attributes:
+        segments_x:
+            List of segments on the ``x`` axis for the associated piecewise
+            polynomial.  Should reflect the approximate position of roots of a
+            high-order singular function in ``x``.
 
-       List of segments on the ``x`` axis for the associated piecewise
-       polynomial.  Should reflect the approximate position of roots of a
-       high-order singular function in ``x``.
+        segments_y:
+            List of segments on the ``y`` axis for the associated piecewise
+            polynomial.  Should reflect the approximate position of roots of a
+            high-order singular function in ``y``.
 
-    .. py:property:: segments_y
+        ngauss:
+            Gauss-Legendre order to use to guarantee accuracy
 
-       List of segments on the ``y`` axis for the associated piecewise
-       polynomial.  Should reflect the approximate position of roots of a
-       high-order singular function in ``y``.
-
-    .. py:property:: ngauss
-
-       Gauss-Legendre order to use to guarantee accuracy
-
-    .. py:property:: nsvals
-
-       Upper bound on the number of singular values above the given threshold
+        nsvals:
+            Upper bound on the number of singular values above the given
+            threshold
     """
     def __init__(self, segments_x, segments_y, ngauss, nsvals):
         self.segments_x = segments_x
