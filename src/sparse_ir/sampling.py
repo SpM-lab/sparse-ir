@@ -8,8 +8,8 @@ class SamplingBase:
     """Base class for sparse sampling.
 
     Encodes the "basis transformation" of a propagator from the truncated IR
-    basis coefficients `G_ir[l]` to time/frequency sampled on sparse points
-    `G(x[i])` together with its inverse, a least squares fit::
+    basis coefficients ``G_ir[l]`` to time/frequency sampled on sparse points
+    ``G(x[i])`` together with its inverse, a least squares fit::
 
              ________________                   ___________________
             |                |    evaluate     |                   |
@@ -17,11 +17,9 @@ class SamplingBase:
             |  coefficients  |<----------------|  sampling points  |
             |________________|      fit        |___________________|
 
-    Attributes:
-    -----------
-     - `basis` : IR Basis instance
-     - `matrix` : Evaluation matrix is decomposed form
-     - `sampling_points` : Set of sampling points
+    :var basis: IR Basis instance
+    :var matrix: Evaluation matrix is decomposed form
+    :var sampling_points: Set of sampling points
     """
     def __init__(self, basis, sampling_points):
         self.sampling_points = np.array(sampling_points)
@@ -75,12 +73,6 @@ class MatsubaraSampling(SamplingBase):
 
     Allows the transformation between the IR basis and a set of sampling points
     in (scaled/unscaled) imaginary frequencies.
-
-    Attributes:
-    -----------
-     - `basis` : IR Basis instance
-     - `matrix` : Evaluation matrix is decomposed form
-     - `sampling_points` : Set of sampling points
     """
     def __init__(self, basis, sampling_points=None):
         if sampling_points is None:
@@ -100,8 +92,11 @@ class MatsubaraSampling(SamplingBase):
 class DecomposedMatrix:
     """Matrix in SVD decomposed form for fast and accurate fitting.
 
-    Stores a matrix `A` together with its thin SVD form: `A == (u * s) @ vt`.
-    This allows for fast and accurate least squares fits using `A.lstsq(x)`.
+    Stores a matrix ``A`` together with its thin SVD form::
+
+        A == (u * s) @ vH.
+
+    This allows for fast and accurate least squares fits using ``A.lstsq(x)``.
     """
     @classmethod
     def get_svd_result(cls, a, eps=None):
@@ -118,50 +113,67 @@ class DecomposedMatrix:
         if a.ndim != 2:
             raise ValueError("a must be of matrix form")
         if svd_result is None:
-            u, s, vt = self.__class__.get_svd_result(a)
+            u, s, vH = self.__class__.get_svd_result(a)
         else:
-            u, s, vt = map(np.asarray, svd_result)
+            u, s, vH = map(np.asarray, svd_result)
 
-        self.a = a
-        self.u = u
-        self.s = s
-        self.vt = vt
+        self._a = a
+        self._uH = np.array(u.conj().T)
+        self._s = s
+        self._v = np.array(vH.conj().T)
 
     def __matmul__(self, x):
         """Matrix-matrix multiplication."""
-        return self.a @ x
+        return self._a @ x
 
     def matmul(self, x, axis=None):
-        """Compute `A @ x` (optionally along specified axis of x)"""
-        if axis is None:
-            return self @ x
-
-        x = np.asarray(x)
-        target_axis = max(x.ndim - 2, 0)
-        x = np.moveaxis(x, axis, target_axis)
-        r = self @ x
-        return np.moveaxis(r, target_axis, axis)
+        """Compute ``A @ x`` (optionally along specified axis of x)"""
+        return _matop_along_axis(self._a.__matmul__, x, axis)
 
     def _lstsq(self, x):
-        r = self.u.conj().T @ x
-        r = r / (self.s[:, None] if r.ndim > 1 else self.s)
-        return self.vt.conj().T @ r
+        r = self._uH @ x
+        r = r / (self._s[:, None] if r.ndim > 1 else self._s)
+        return self._v @ r
 
     def lstsq(self, x, axis=None):
-        """Return `y` such that `np.linalg.norm(A @ y - x)` is minimal"""
-        if axis is None:
-            return self._lstsq(x)
+        """Return ``y`` such that ``np.linalg.norm(A @ y - x)`` is minimal"""
+        return _matop_along_axis(self._lstsq, x, axis)
 
-        x = np.asarray(x)
-        target_axis = max(x.ndim - 2, 0)
-        x = np.moveaxis(x, axis, target_axis)
-        r = self._lstsq(x)
-        return np.moveaxis(r, target_axis, axis)
-
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=""):
         """Convert to numpy array."""
-        return self.a.astype(dtype)
+        return self._a if dtype == "" else self._a.astype(dtype)
+
+    @property
+    def a(self):
+        """Full matrix"""
+        return self._a
+
+    @property
+    def u(self):
+        """Left singular vectors, aranged column-wise"""
+        return self._uH.conj().T
+
+    @property
+    def s(self):
+        """Most significant, nonzero singular values"""
+        return self._s
+
+    @property
+    def vH(self):
+        """Right singular vectors, transposed"""
+        return self._v.conj().T
 
 
 class ConditioningWarning(RuntimeWarning):
     pass
+
+
+def _matop_along_axis(op, x, axis=None):
+    if axis is None:
+        return op(x)
+
+    x = np.asarray(x)
+    target_axis = max(x.ndim - 2, 0)
+    x = np.moveaxis(x, axis, target_axis)
+    r = op(x)
+    return np.moveaxis(r, target_axis, axis)
