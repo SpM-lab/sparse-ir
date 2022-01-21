@@ -14,8 +14,8 @@ class Rule:
 
          ∫ f(x) * omega(x) * dx ~ sum(f(xi) * wi for (xi, wi) in zip(x, w))
 
-    where we generally have superexponential convergence for smooth `f(x)` with
-    the number of quadrature points.
+    where we generally have superexponential convergence for smooth ``f(x)``
+    with the number of quadrature points.
     """
     def __init__(self, x, w, x_forward=None, x_backward=None, a=-1, b=1):
         x = np.asarray(x)
@@ -112,14 +112,14 @@ def legendre_collocation(rule, n=None):
 def rule_from_recurrence(alpha, beta, a, b):
     """Make new Gauss scheme based on recurrence coefficients.
 
-    Given a set of polynomials `P[n]` defined by the following three-term
-    recurrence relation:
+    Given a set of polynomials ``P[n]`` defined by the following three-term
+    recurrence relation::
 
         P[0](x)   == 1
         P[1](x)   == x - alpha[0]
         P[n+1](x) == (x - alpha[n]) * P[n] - beta[n] * P[n-1]
 
-    we construct both a set of quadrature points `x` and weights `w` for
+    we construct both a set of quadrature points ``x`` and weights ``w`` for
     Gaussian quadrature.  It is usually a good idea to work in extended
     precision for extra acccuracy in the quadrature rule.
     """
@@ -166,7 +166,7 @@ def rule_from_recurrence(alpha, beta, a, b):
 def _polyvalderiv(x, alpha, beta):
     """Return value and derivative of polynomial.
 
-    Given a set of polynomials `P[n]` defined by a three-term recurrence,
+    Given a set of polynomials ``P[n]`` defined by a three-term recurrence,
     we evaluate both value and derviative for the highest polynomial and
     the second highest one.
     """
