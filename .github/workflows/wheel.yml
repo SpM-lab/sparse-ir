@@ -13,12 +13,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Build sdist
-        run: pipx run build --sdist
+      - name: Build dist
+        run: python setup.py sdist bdist_wheel
 
       - uses: actions/upload-artifact@v2
         with:
-          path: dist/*.tar.gz
+          name: dist
+          path: |
+            dist/sparse_ir-*.tar.gz
+            dist/sparse_ir-*-py3-none-any.whl
+        if-no-files-found: error
 
   upload_pypi:
     needs: [build_sdist]
@@ -26,7 +30,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v2
         with:
-          name: artifact
+          name: dist
           path: dist
 
       - uses: pypa/gh-action-pypi-publish@v1.4.2
