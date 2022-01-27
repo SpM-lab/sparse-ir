@@ -442,33 +442,11 @@ def _refine_grid(knots, alpha):
     return np.hstack((result.T.ravel(), knots[-1]))
 
 
-def _vectorize(f, axis=None):
-    if axis is None:
-        def f_vectorized(x):
-            result = [f(xi) for xi in x]
-            result = np.array(result)
-            if result.dtype is np.dtype('object'):
-                raise ValueError("incompatible shapes")
-            return np.array(result)
-
-        return f_vectorized
-    else:
-        def f_moved(x):
-            result = np.asarray(f(x))
-            if f.shape[axis] != x.size:
-                raise ValueError("inconsistent result shape")
-            if axis != 0:
-                result = np.moveaxis(result, axis, 0)
-            return result
-
-        return f_moved
-
-
 def _apply_along_axis(f, x, axis=None):
     if axis is None:
         fx = [f(xi) for xi in x]
         fx = np.array(fx)
-        if fx.dtype is np.dtype('object'):
+        if fx.dtype is np.dtype(object):
             raise ValueError("incompatible shapes")
     else:
         fx = np.asarray(f(x))
