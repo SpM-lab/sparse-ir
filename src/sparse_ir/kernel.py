@@ -34,7 +34,8 @@ class KernelBase:
 
         Advises the SVE routines of discretisation parameters suitable in
         tranforming the (infinite) SVE into an (finite) SVD problem.
-        See also :class:``SVEHints``.
+
+        See: :class:``SVEHintsBase``.
         """
         raise NotImplementedError()
 
@@ -85,32 +86,41 @@ class KernelBase:
         return None
 
 
-class SVEHints:
-    """Discretization hints for singular value expansion of a given kernel.
+class SVEHintsBase:
+    """Discretization hints for singular value expansion of a given kernel."""
+    @property
+    def segments_x(self):
+        """Segments for piecewise polynomials on the ``x`` axis.
 
-    Attributes:
-        segments_x:
-            List of segments on the ``x`` axis for the associated piecewise
-            polynomial.  Should reflect the approximate position of roots of a
-            high-order singular function in ``x``.
+        List of segments on the ``x`` axis for the associated piecewise
+        polynomial.  Should reflect the approximate position of roots of a
+        high-order singular function in ``x``.
+        """
+        raise NotImplementedError()
 
-        segments_y:
-            List of segments on the ``y`` axis for the associated piecewise
-            polynomial.  Should reflect the approximate position of roots of a
-            high-order singular function in ``y``.
+    @property
+    def segments_y(self):
+        """Segments for piecewise polynomials on the ``x`` axis.
 
-        ngauss:
-            Gauss-Legendre order to use to guarantee accuracy
+        List of segments on the ``y`` axis for the associated piecewise
+        polynomial.  Should reflect the approximate position of roots of a
+        high-order singular function in ``y``.
+        """
+        raise NotImplementedError()
 
-        nsvals:
-            Upper bound on the number of singular values above the given
-            threshold
-    """
-    def __init__(self, segments_x, segments_y, ngauss, nsvals):
-        self.segments_x = segments_x
-        self.segments_y = segments_y
-        self.ngauss = ngauss
-        self.nsvals = nsvals
+    @property
+    def ngauss(self):
+        """Gauss-Legendre order to use to guarantee accuracy"""
+        raise NotImplementedError()
+
+    @property
+    def nsvals(self):
+        """Upper bound for number of singular values
+
+        Upper bound on the number of singular values above the given
+        threshold, i.e., where ``s[l] >= eps * s[0]```
+        """
+        raise NotImplementedError()
 
 
 class KernelFFlat(KernelBase):
@@ -129,6 +139,9 @@ class KernelFFlat(KernelBase):
         u_plus, u_minus, v = _compute_uv(self.lambda_, x, y, x_plus, x_minus)
         return self._compute(u_plus, u_minus, v)
 
+    def hints(self, eps):
+        return _SVEHintsFFlat(self, eps)
+
     def _compute(self, u_plus, u_minus, v):
         # By introducing u_\pm = (1 \pm x)/2 and v = lambda * y, we can write
         # the kernel in the following two ways:
@@ -143,41 +156,6 @@ class KernelFFlat(KernelBase):
         denom = 1 + np.exp(-abs_v)
         return enum / denom
 
-    def hints(self, eps):
-        segments_x = self._segments_x()
-        segments_y = self._segments_y()
-        nsvals = self._nsvals()
-        ngauss = 10 if eps >= 1e-8 else 16
-        return SVEHints(segments_x, segments_y, ngauss, nsvals)
-
-    def _segments_x(self):
-        nzeros = max(int(np.round(15 * np.log10(self.lambda_))), 1)
-        diffs = 1./np.cosh(.143 * np.arange(nzeros))
-        zeros_pos = diffs.cumsum()
-        zeros_pos /= zeros_pos[-1]
-        return np.concatenate((-zeros_pos[::-1], [0], zeros_pos))
-
-    def _segments_y(self):
-        # Zeros around -1 and 1 are distributed asymptotically identical
-        leading_diffs = np.array([
-            0.01523, 0.03314, 0.04848, 0.05987, 0.06703, 0.07028, 0.07030,
-            0.06791, 0.06391, 0.05896, 0.05358, 0.04814, 0.04288, 0.03795,
-            0.03342, 0.02932, 0.02565, 0.02239, 0.01951, 0.01699])
-
-        nzeros = max(int(np.round(20 * np.log10(self.lambda_))), 2)
-        if nzeros < 20:
-            leading_diffs = leading_diffs[:nzeros]
-        diffs = .25 / np.exp(.141 * np.arange(nzeros))
-        diffs[:leading_diffs.size] = leading_diffs
-        zeros = diffs.cumsum()
-        zeros = zeros[:-1] / zeros[-1]
-        zeros -= 1
-        return np.concatenate(([-1], zeros, [0], -zeros[::-1], [1]))
-
-    def _nsvals(self):
-        log10_lambda = max(1, np.log10(self.lambda_))
-        return int(np.round((25 + log10_lambda) * log10_lambda))
-
     @property
     def is_centrosymmetric(self):
         return True
@@ -189,6 +167,46 @@ class KernelFFlat(KernelBase):
 
     @property
     def conv_radius(self): return 40 * self.lambda_
+
+
+class _SVEHintsFFlat(SVEHintsBase):
+    def __init__(self, kernel, eps):
+        self.kernel = kernel
+        self.eps = eps
+
+    @property
+    def ngauss(self): return 10 if self.eps >= 1e-8 else 16
+
+    @property
+    def segments_x(self):
+        nzeros = max(int(np.round(15 * np.log10(self.kernel.lambda_))), 1)
+        diffs = 1./np.cosh(.143 * np.arange(nzeros))
+        zeros_pos = diffs.cumsum()
+        zeros_pos /= zeros_pos[-1]
+        return np.concatenate((-zeros_pos[::-1], [0], zeros_pos))
+
+    @property
+    def segments_y(self):
+        # Zeros around -1 and 1 are distributed asymptotically identical
+        leading_diffs = np.array([
+            0.01523, 0.03314, 0.04848, 0.05987, 0.06703, 0.07028, 0.07030,
+            0.06791, 0.06391, 0.05896, 0.05358, 0.04814, 0.04288, 0.03795,
+            0.03342, 0.02932, 0.02565, 0.02239, 0.01951, 0.01699])
+
+        nzeros = max(int(np.round(20 * np.log10(self.kernel.lambda_))), 2)
+        if nzeros < 20:
+            leading_diffs = leading_diffs[:nzeros]
+        diffs = .25 / np.exp(.141 * np.arange(nzeros))
+        diffs[:leading_diffs.size] = leading_diffs
+        zeros = diffs.cumsum()
+        zeros = zeros[:-1] / zeros[-1]
+        zeros -= 1
+        return np.concatenate(([-1], zeros, [0], -zeros[::-1], [1]))
+
+    @property
+    def nsvals(self):
+        log10_lambda = max(1, np.log10(self.kernel.lambda_))
+        return int(np.round((25 + log10_lambda) * log10_lambda))
 
 
 class KernelBFlat(KernelBase):
@@ -232,39 +250,7 @@ class KernelBFlat(KernelBase):
         return -1/dtype.type(self.lambda_) * enum * denom
 
     def hints(self, eps):
-        segments_x = self._segments_x()
-        segments_y = self._segments_y()
-        nsvals = self._nsvals()
-        ngauss = 10 if eps >= 1e-8 else 16
-        return SVEHints(segments_x, segments_y, ngauss, nsvals)
-
-    def _segments_x(self):
-        # Somewhat less accurate ...
-        nzeros = 15 * np.log10(self.lambda_)
-        diffs = 1./np.cosh(.18 * np.arange(nzeros))
-        zeros_pos = diffs.cumsum()
-        zeros_pos /= zeros_pos[-1]
-        return np.concatenate((-zeros_pos[::-1], [0], zeros_pos))
-
-    def _segments_y(self):
-        # Zeros around -1 and 1 are distributed asymptotically identical
-        leading_diffs = np.array([
-            0.01363, 0.02984, 0.04408, 0.05514, 0.06268, 0.06679, 0.06793,
-            0.06669, 0.06373, 0.05963, 0.05488, 0.04987, 0.04487, 0.04005,
-            0.03553, 0.03137, 0.02758, 0.02418, 0.02115, 0.01846])
-
-        nzeros = max(int(np.round(20 * np.log10(self.lambda_))), 20)
-        i = np.arange(nzeros)
-        diffs = .12/np.exp(.0337 * i * np.log(i+1))
-        #diffs[:leading_diffs.size] = leading_diffs
-        zeros = diffs.cumsum()
-        zeros = zeros[:-1] / zeros[-1]
-        zeros -= 1
-        return np.concatenate(([-1], zeros, [0], -zeros[::-1], [1]))
-
-    def _nsvals(self):
-        log10_lambda = max(1, np.log10(self.lambda_))
-        return int(28 * log10_lambda)
+        return _SVEHintsBFlat(self, eps)
 
     @property
     def is_centrosymmetric(self):
@@ -280,6 +266,46 @@ class KernelBFlat(KernelBase):
 
     @property
     def conv_radius(self): return 40 * self.lambda_
+
+
+class _SVEHintsBFlat(SVEHintsBase):
+    def __init__(self, kernel, eps):
+        self.kernel = kernel
+        self.eps = eps
+
+    @property
+    def ngauss(self): return 10 if self.eps >= 1e-8 else 16
+
+    @property
+    def segments_x(self):
+        # Somewhat less accurate ...
+        nzeros = 15 * np.log10(self.kernel.lambda_)
+        diffs = 1./np.cosh(.18 * np.arange(nzeros))
+        zeros_pos = diffs.cumsum()
+        zeros_pos /= zeros_pos[-1]
+        return np.concatenate((-zeros_pos[::-1], [0], zeros_pos))
+
+    @property
+    def segments_y(self):
+        # Zeros around -1 and 1 are distributed asymptotically identical
+        leading_diffs = np.array([
+            0.01363, 0.02984, 0.04408, 0.05514, 0.06268, 0.06679, 0.06793,
+            0.06669, 0.06373, 0.05963, 0.05488, 0.04987, 0.04487, 0.04005,
+            0.03553, 0.03137, 0.02758, 0.02418, 0.02115, 0.01846])
+
+        nzeros = max(int(np.round(20 * np.log10(self.kernel.lambda_))), 20)
+        i = np.arange(nzeros)
+        diffs = .12/np.exp(.0337 * i * np.log(i+1))
+        #diffs[:leading_diffs.size] = leading_diffs
+        zeros = diffs.cumsum()
+        zeros = zeros[:-1] / zeros[-1]
+        zeros -= 1
+        return np.concatenate(([-1], zeros, [0], -zeros[::-1], [1]))
+
+    @property
+    def nsvals(self):
+        log10_lambda = max(1, np.log10(self.kernel.lambda_))
+        return int(28 * log10_lambda)
 
 
 class ReducedKernel(KernelBase):
@@ -330,12 +356,7 @@ class ReducedKernel(KernelBase):
         return 0, ymax
 
     def hints(self, eps):
-        inner_hints = self.inner.hints(eps)
-        segments_x = _symm_segments(inner_hints.segments_x)
-        segments_y = _symm_segments(inner_hints.segments_y)
-        ngauss = inner_hints.ngauss
-        nsvals = (inner_hints.nsvals + 1) // 2
-        return SVEHints(segments_x, segments_y, ngauss, nsvals)
+        return _SVEHintsReduced(self.inner.hints(eps))
 
     @property
     def is_centrosymmetric(self):
@@ -350,6 +371,23 @@ class ReducedKernel(KernelBase):
 
     @property
     def conv_radius(self): return self.inner.conv_radius
+
+
+class _SVEHintsReduced(SVEHintsBase):
+    def __init__(self, inner_hints):
+        self.inner_hints = inner_hints
+
+    @property
+    def ngauss(self): return self.inner_hints.ngauss
+
+    @property
+    def segments_x(self): return _symm_segments(self.inner_hints.segments_x)
+
+    @property
+    def segments_y(self): return _symm_segments(self.inner_hints.segments_y)
+
+    @property
+    def nsvals(self): return (self.inner_hints.nsvals + 1) // 2
 
 
 class _KernelFFlatOdd(ReducedKernel):

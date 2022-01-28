@@ -95,5 +95,5 @@ Base classes
     :members:
     :special-members: __call__
 
-.. autoclass:: sparse_ir.kernel.SVEHints
+.. autoclass:: sparse_ir.kernel.SVEHintsBase
     :members:
