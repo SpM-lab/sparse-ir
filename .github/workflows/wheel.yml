@@ -22,7 +22,7 @@ jobs:
           path: |
             dist/sparse_ir-*.tar.gz
             dist/sparse_ir-*-py3-none-any.whl
-        if-no-files-found: error
+          if-no-files-found: error
 
   upload_pypi:
     needs: [build_sdist]
