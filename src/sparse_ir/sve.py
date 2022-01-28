@@ -90,7 +90,7 @@ class SamplingSVE:
     """
     def __init__(self, K, eps, *, n_gauss=None, dtype=float):
         self.K = K
-        sve_hints = K.hints(eps)
+        sve_hints = K.sve_hints(eps)
         if n_gauss is None:
             n_gauss = sve_hints.ngauss
 
@@ -219,7 +219,7 @@ class CentrosymmSVE:
         v_data = np.concatenate([v_neg, v_data], axis=1)
 
         # TODO: this relies on specific symmetrization behaviour ...
-        full_hints = self.K.hints(self.eps)
+        full_hints = self.K.sve_hints(self.eps)
         u = poly.PiecewiseLegendrePoly(u_data, full_hints.segments_x)
         v = poly.PiecewiseLegendrePoly(v_data, full_hints.segments_y)
         return u, s, v

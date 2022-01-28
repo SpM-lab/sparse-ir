@@ -22,7 +22,7 @@ def test_accuracy(K):
     dtype_x = np.float64
 
     rule = gauss.legendre(10, dtype)
-    hints = K.hints(1e-16)
+    hints = K.sve_hints(2.2e-16)
     gauss_x = rule.piecewise(hints.segments_x)
     gauss_y = rule.piecewise(hints.segments_y)
     eps = np.finfo(dtype).eps

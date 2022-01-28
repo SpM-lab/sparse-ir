@@ -29,7 +29,7 @@ class KernelBase:
         """
         raise NotImplementedError()
 
-    def hints(self, eps):
+    def sve_hints(self, eps):
         """Provide discretisation hints for the SVE routines.
 
         Advises the SVE routines of discretisation parameters suitable in
@@ -139,7 +139,7 @@ class KernelFFlat(KernelBase):
         u_plus, u_minus, v = _compute_uv(self.lambda_, x, y, x_plus, x_minus)
         return self._compute(u_plus, u_minus, v)
 
-    def hints(self, eps):
+    def sve_hints(self, eps):
         return _SVEHintsFFlat(self, eps)
 
     def _compute(self, u_plus, u_minus, v):
@@ -249,7 +249,7 @@ class KernelBFlat(KernelBase):
                   out=denom, where=not_tiny)
         return -1/dtype.type(self.lambda_) * enum * denom
 
-    def hints(self, eps):
+    def sve_hints(self, eps):
         return _SVEHintsBFlat(self, eps)
 
     @property
@@ -355,8 +355,8 @@ class ReducedKernel(KernelBase):
         _, ymax = self.inner.yrange
         return 0, ymax
 
-    def hints(self, eps):
-        return _SVEHintsReduced(self.inner.hints(eps))
+    def sve_hints(self, eps):
+        return _SVEHintsReduced(self.inner.sve_hints(eps))
 
     @property
     def is_centrosymmetric(self):
