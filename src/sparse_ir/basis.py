@@ -26,8 +26,7 @@ class IRBasis:
 
             # Compute IR basis suitable for fermions and β*W <= 42
             import sparse_ir
-            K = sparse_ir.KernelFFlat(lambda_=42)
-            basis = sparse_ir.IRBasis(K, statistics='F')
+            basis = sparse_ir.IRBasis(statistics='F', lambda_=42)
 
             # Assume spectrum is a single pole at x = 0.2, compute G(iw)
             # on the first few Matsubara frequencies
@@ -67,14 +66,14 @@ class IRBasis:
             points `y`, you can call the function ``v(y)``.  To obtain a single
             basis function, a slice or a subset `l`, you can use ``v[l]``.
     """
-    def __init__(self, kernel, statistics, eps=None, sve_result=None):
-        if statistics not in 'BF':
-            raise ValueError("Statistics must be either 'B' for bosonic"
-                             "or 'F' for fermionic")
+    def __init__(self, statistics, lambda_, eps=None, *, kernel=None,
+                 sve_result=None):
+        if not (lambda_ >= 0):
+            raise ValueError("kernel cutoff lambda must be non-negative")
 
-        self.kernel = kernel
+        self.kernel = _get_kernel(statistics, lambda_, kernel)
         if sve_result is None:
-            u, s, v = sve.compute(kernel, eps)
+            u, s, v = sve.compute(self.kernel, eps)
         else:
             u, s, v = sve_result
             if u.shape != s.shape or s.shape != v.shape:
@@ -90,7 +89,7 @@ class IRBasis:
         # since it has lower relative error.
         _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
         self.u = u
-        self.uhat = u.hat(_even_odd, n_asymp=kernel.conv_radius)
+        self.uhat = u.hat(_even_odd, n_asymp=self.kernel.conv_radius)
         self.s = s
         self.v = v
         self.statistics = statistics
@@ -160,8 +159,7 @@ class FiniteTempBasis:
 
             # Compute IR basis for fermions and β = 10, W <= 4.2
             import sparse_ir
-            K = sparse_ir.KernelFFlat(lambda_=42)
-            basis = sparse_ir.FiniteTempBasis(K, statistics='F', beta=10)
+            basis = sparse_ir.FiniteTempBasis(statistics='F', beta=10, wmax=4.2)
 
             # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
             # on the first few Matsubara frequencies
@@ -198,22 +196,21 @@ class FiniteTempBasis:
             points `w`, you can call the function ``v(w)``.  To obtain a single
             basis function, a slice or a subset `l`, you can use ``v[l]``.
     """
-    def __init__(self, kernel, statistics, beta, eps=None, sve_result=None):
-        if statistics not in 'BF':
-            raise ValueError("Statistics must be either 'B' for bosonic"
-                             "or 'F' for fermionic")
+    def __init__(self, statistics, beta, wmax, eps=None, *, kernel=None,
+                 sve_result=None):
         if not (beta > 0):
             raise ValueError("inverse temperature beta must be positive")
+        if not (wmax >= 0):
+            raise ValueError("frequency cutoff must be non-negative")
 
-        self.kernel = kernel
+        self.kernel = _get_kernel(statistics, beta * wmax, kernel)
         if sve_result is None:
-            u, s, v = sve.compute(kernel, eps)
+            u, s, v = sve.compute(self.kernel, eps)
         else:
             u, s, v = sve_result
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
 
-        self.kernel = kernel
         self.statistics = statistics
         self.beta = beta
 
@@ -232,7 +229,7 @@ class FiniteTempBasis:
         # The singular values are scaled to match the change of variables, with
         # the additional complexity that the kernel may have an additional
         # power of w.
-        self.s = np.sqrt(beta/2 * wmax) * (wmax**(-kernel.ypower)) * s
+        self.s = np.sqrt(beta/2 * wmax) * (wmax**(-self.kernel.ypower)) * s
 
         # HACK: as we don't yet support Fourier transforms on anything but the
         # unit interval, we need to scale the underlying data.  This breaks
@@ -313,3 +310,23 @@ def _default_matsubara_sampling_points(uhat, mitigate=True):
         wn = np.unique(np.hstack((0, wn)))
 
     return wn
+
+
+def _get_kernel(statistics, lambda_, kernel):
+    if statistics not in 'BF':
+        raise ValueError("statistics must either be 'B' (for bosonic basis) "
+                         "or 'F' (for fermionic basis)")
+    if kernel is None:
+        if statistics == 'F':
+            kernel = _kernel.KernelFFlat(lambda_)
+        else:
+            kernel = _kernel.KernelBFlat(lambda_)
+    else:
+        try:
+            lambda_kernel = kernel.lambda_
+        except AttributeError:
+            pass
+        else:
+            if not np.allclose(lambda_kernel, lambda_, atol=0, rtol=4e-16):
+                raise ValueError("lambda of kernel and basis mismatch")
+    return kernel

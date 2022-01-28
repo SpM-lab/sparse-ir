@@ -11,29 +11,25 @@ eps = None
 if importlib.util.find_spec("xprec") is not None:
     eps = 1.0e-15
 
-all_basis_sets = [(stat, kernel, lambda_)
-                  for stat, kernel in [('F', KernelFFlat), ('B', KernelBFlat)]
-                  for lambda_ in [1E+1, 1E+3]
-                  ]
+all_basis_sets = [(stat, lambda_)
+                  for stat in 'FB' for lambda_ in [1E+1, 1E+3]]
 
 """
 A pole at omega=pole. Compare analytic results of G(iwn) and numerical
 results computed by using unl.
 """
-@pytest.mark.parametrize("stat, K, lambda_", all_basis_sets)
-def test_single_pole(stat, K, lambda_):
+@pytest.mark.parametrize("stat, lambda_", all_basis_sets)
+def test_single_pole(stat, lambda_):
     wmax = 1.0
     pole = 0.1 * wmax
     beta = lambda_/wmax
-
-    kernel = K(lambda_)
-    basis = FiniteTempBasis(kernel, stat, beta, eps)
+    basis = FiniteTempBasis(stat, beta, wmax, eps)
 
     if stat == 'F':
         stat_shift = 1
     else:
         stat_shift = 0
-    rho_l = basis.v(pole/wmax) * pole**(-kernel.ypower)
+    rho_l = basis.v(pole/wmax) * pole**(-basis.kernel.ypower)
     gl = - basis.s * rho_l
 
     func_G = lambda n: 1/(1J * (2*n+stat_shift)*np.pi/beta - pole)

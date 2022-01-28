@@ -31,8 +31,7 @@ Here is some python code illustrating the API::
 
     # Compute IR basis for fermions and β = 10, W <= 4.2
     import sparse_ir, numpy
-    K = sparse_ir.KernelFFlat(lambda_=42)
-    basis = sparse_ir.FiniteTempBasis(K, statistics='F', beta=10)
+    basis = sparse_ir.FiniteTempBasis(statistics='F', beta=10, wmax=4.2)
 
     # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
     # on the first few Matsubara frequencies. (Fermionic/bosonic Matsubara
