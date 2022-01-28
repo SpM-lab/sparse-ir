@@ -61,8 +61,7 @@ def test_axis0():
 
 
 def test_tau_noise():
-    K = sparse_ir.KernelFFlat(100)
-    basis = sparse_ir.IRBasis(K, 'F')
+    basis = sparse_ir.IRBasis('F', 100)
     smpl = sparse_ir.TauSampling(basis)
     rng = np.random.RandomState(4711)
 
@@ -79,8 +78,7 @@ def test_tau_noise():
 
 
 def test_wn_noise():
-    K = sparse_ir.KernelBFlat(99)
-    basis = sparse_ir.IRBasis(K, 'B')
+    basis = sparse_ir.IRBasis('B', 99)
     smpl = sparse_ir.MatsubaraSampling(basis)
     rng = np.random.RandomState(4711)
 

@@ -12,32 +12,30 @@ Note however that on-the-fly computation typically has lower accuracy.  Thus,
 by default we only populate the basis down to singular values of 1.5e-8.
 You can change this by setting the `ACCURACY` parameter.
 """
+from os import stat
 import numpy as _np
 from warnings import warn
 
-from . import kernel as _kernel
+from . import basis as _basis
 from . import poly as _poly
-from . import sve as _sve
 
 try:
     import xprec as _xprec
 except ImportError:
-    warn("xprec package is not found - expect degraded accuracy!")
     ACCURACY = 1.0e-9
+    WARN_ACCURACY = True
 else:
     ACCURACY = 1.0e-15
+    WARN_ACCURACY = False
 
 
 def load(statistics, Lambda, h5file=None):
-    if statistics == "F":
-        K = _kernel.KernelFFlat(Lambda)
-    elif statistics == "B":
-        K = _kernel.KernelBFlat(Lambda)
-    else:
-        raise ValueError("Unknown statistics")
+    if WARN_ACCURACY:
+        warn("xprec package is not found - expect degraded accuracy!\n"
+             "To squelch this warning, set WARN_ACCURACY to False.")
 
-    u, s, v = _sve.compute(K, eps=ACCURACY)
-    return Basis(statistics, Lambda, u, s, v)
+    basis = _basis.IRBasis(statistics, float(Lambda))
+    return Basis(statistics, Lambda, basis.u, basis.s, basis.v)
 
 
 class Basis:

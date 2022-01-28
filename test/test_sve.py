@@ -13,11 +13,8 @@ BASES = [
 
 @pytest.fixture(scope="module")
 def bases():
-    def _make_basis(stat, lambda_):
-        K = {'F': sparse_ir.KernelFFlat, 'B': sparse_ir.KernelBFlat}[stat](lambda_)
-        return sparse_ir.IRBasis(K, stat)
-
-    return {p: _make_basis(*p) for p in BASES}
+    return {(stat, lambda_): sparse_ir.IRBasis(stat, lambda_)
+            for (stat, lambda_) in BASES}
 
 
 def _check_smooth(u, s, uscale, fudge_factor):

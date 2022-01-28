@@ -38,12 +38,10 @@ def test_composite_poly(basis):
 
 
 def test_composite_basis():
-    lambda_ = 99
     beta = 10
-    wmax = lambda_/beta
-    K = sparse_ir.KernelFFlat(lambda_)
-    basis = sparse_ir.FiniteTempBasis(K, "F", beta, eps=1e-6)
-    basis2 = sparse_ir.FiniteTempBasis(K, "F", beta, eps=1e-3)
+    wmax = 9.9
+    basis = sparse_ir.FiniteTempBasis("F", beta, wmax, eps=1e-6)
+    basis2 = sparse_ir.FiniteTempBasis("F", beta, wmax, eps=1e-3)
     basis_comp = composite.CompositeBasis([basis, basis2])
     _check_composite_poly(basis_comp.u, [basis.u, basis2.u],
                           np.linspace(0, beta, 10))
@@ -57,9 +55,7 @@ def test_augmented_bosonic_basis():
     """Augmented bosonic basis"""
     wmax = 2
     beta = 1000
-    lambda_ = beta * wmax
-    K = sparse_ir.KernelBFlat(lambda_)
-    basis = sparse_ir.FiniteTempBasis(K, "B", beta, eps=1e-6)
+    basis = sparse_ir.FiniteTempBasis("B", beta, wmax, eps=1e-6)
     basis_legg = augment.LegendreBasis("B", beta, 2)
     basis_comp = composite.CompositeBasis([basis_legg, basis])
 
@@ -80,9 +76,7 @@ def test_vertex_basis(stat):
     """Vertex basis"""
     wmax = 2
     beta = 1000
-    lambda_ = beta * wmax
-    K = sparse_ir.KernelBFlat(lambda_)
-    basis = sparse_ir.FiniteTempBasis(K, stat, beta, eps=1e-6)
+    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax, eps=1e-6)
     basis_const = augment.MatsubaraConstBasis(stat, beta)
     basis_comp = composite.CompositeBasis([basis_const, basis])
     assert basis_comp.uhat is not None
@@ -97,4 +91,4 @@ def test_vertex_basis(stat):
     giv_reconst = matsu_smpl.evaluate(gl)
 
     np.testing.assert_allclose(giv, giv_reconst,
-                               atol=np.abs(giv).max()*1e-8, rtol=0)
+                               atol=np.abs(giv).max() * 1e-7, rtol=0)

@@ -1,34 +1,42 @@
-name: sparse_ir python package
+name: Build/test suite
 
-on: [push]
+on:
+  push:
+    branches:
+      mainline
+  pull_request:
+    branches:
+      mainline
 
 jobs:
   build:
+    name: |
+      ${{ matrix.os }}, numpy==${{ matrix.numpy }}, scipy==${{ matrix.scipy }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
-            numpy-version: 1.16
-            scipy-version: 1.4
-            python-version: 3.6
+            numpy: 1.16
+            scipy: 1.4
+            python: 3.6
           - os: ubuntu-latest
-            numpy-version: auto
-            scipy-version: auto
-            python-version: 3.9
+            numpy: auto
+            scipy: auto
+            python: 3.9
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up python ${{ matrix.python-version }}
+      - name: Set up python ${{ matrix.python }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python }}
 
-      - name: Install numpy ${{ matrix.numpy-version }}, scipy ${{ matrix.scipy-version }}
-        if: ${{ matrix.numpy-version != 'auto' }}
+      - name: Install numpy ${{ matrix.numpy }}, scipy ${{ matrix.scipy }}
+        if: ${{ matrix.numpy != 'auto' }}
         run: |
-          pip install numpy==${{ matrix.numpy-version}} scipy==${{ matrix.scipy-version }}
+          pip install numpy==${{ matrix.numpy}} scipy==${{ matrix.scipy }}
 
       - name: Install package with testing dependencies
         run: |
