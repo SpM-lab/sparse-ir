@@ -51,6 +51,8 @@ def test_overlap(lambda_, atol):
     u, s, v = u[:2*(s.size//2)], s[:2*(s.size//2)], v[:2*(s.size//2)]
     npoly = s.size
 
+    np.testing.assert_allclose(u[0].overlap(u[0]), 1, rtol=0, atol=atol)
+
     ref = np.ones(s.size)
     ref[0] = 0
     np.testing.assert_allclose(

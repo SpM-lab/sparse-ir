@@ -135,7 +135,13 @@ class PiecewiseLegendrePoly:
 
         # Perform the summation and reshape the result
         int_flat = pw.reshape(self.size, x.size) @ fx.reshape(x.size, -1)
-        return int_flat.reshape(*self.shape, *fx.shape[1:])
+        return_shape = self.shape + fx.shape[1:]
+        if return_shape == ():
+            int_flat = int_flat.ravel()
+            assert len(int_flat) == 1
+            return int_flat[0]
+        else:
+            return int_flat.reshape(*return_shape)
 
     def deriv(self, n=1):
         """Get polynomial for the n'th derivative"""
