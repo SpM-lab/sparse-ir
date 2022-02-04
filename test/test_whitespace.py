@@ -3,7 +3,7 @@ import os
 HEREPATH = os.path.abspath(os.path.dirname(__file__))
 ROOTDIR = os.path.abspath(os.path.join(HEREPATH, os.path.pardir))
 SRCDIR = os.path.join(ROOTDIR, "src", "sparse_ir")
-
+DOCDIR = os.path.join(ROOTDIR, "doc")
 
 def check_whitespace(files):
     errors = []
@@ -43,19 +43,23 @@ def check_whitespace(files):
         raise ValueError("Whitespace errors\n" + msg)
 
 
-def python_files(path):
+def all_files(path, ext):
     for entry in os.scandir(path):
-        if entry.is_file() and entry.name.endswith(".py"):
+        if entry.is_file() and entry.name.endswith(ext):
             yield entry
 
 
 def test_ws_testdir():
-    check_whitespace(python_files(HEREPATH))
+    check_whitespace(all_files(HEREPATH, ".py"))
 
 
 def test_ws_srcdir():
-    check_whitespace(python_files(SRCDIR))
+    check_whitespace(all_files(SRCDIR, ".py"))
 
 
 def test_ws_setup():
-    check_whitespace(python_files(ROOTDIR))
+    check_whitespace(all_files(ROOTDIR, ".py"))
+
+
+def test_ws_doc():
+    check_whitespace(all_files(DOCDIR, ".rst"))

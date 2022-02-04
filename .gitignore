@@ -10,7 +10,7 @@ build/
 
 doc/*build*/
 
-notebooks/*.ipynb
+*.ipynb
 
 !/.gitignore
 !/.github/
