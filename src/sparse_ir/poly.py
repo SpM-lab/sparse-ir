@@ -135,13 +135,7 @@ class PiecewiseLegendrePoly:
 
         # Perform the summation and reshape the result
         int_flat = pw.reshape(self.size, x.size) @ fx.reshape(x.size, -1)
-        return_shape = self.shape + fx.shape[1:]
-        if return_shape == ():
-            int_flat = int_flat.ravel()
-            assert len(int_flat) == 1
-            return int_flat[0]
-        else:
-            return int_flat.reshape(*return_shape)
+        return np.asarray(int_flat).reshape(self.shape + fx.shape[1:])
 
     def deriv(self, n=1):
         """Get polynomial for the n'th derivative"""
@@ -236,17 +230,16 @@ class PiecewiseLegendreFT:
         """Obtain Fourier transform of polynomial for given frequencies"""
         n = self._check_domain(n)
         n_flat = n.ravel()
-        result_inner = _compute_unl_inner(self.poly, n_flat)
-
-        cond_inner = np.abs(n_flat[None, :]) < self.n_asymp
-        if cond_inner.all():
-            return result_inner
+        result_flat = _compute_unl_inner(self.poly, n_flat)
 
         # We use use the asymptotics at frequencies larger than conv_radius
         # since it has lower relative error.
-        result_asymp = self._model.giw(n_flat).T
-        result_flat = np.where(cond_inner, result_inner, result_asymp)
-        return result_flat.reshape(result_flat.shape[:-1] + n.shape)
+        cond_outer = np.abs(n_flat) >= self.n_asymp
+        if cond_outer.any():
+            n_outer = n_flat[cond_outer]
+            result_flat[..., cond_outer] = self._model.giw(n_outer).T
+
+        return result_flat.reshape(self.poly.shape + n.shape)
 
     def extrema(self, part=None, grid=None):
         """Obtain extrema of fourier-transformed polynomial."""

@@ -43,6 +43,18 @@ def test_broadcast(basis):
     np.testing.assert_array_almost_equal_nulp(
             u.value(l, x), [u[ll](xx) for (ll, xx) in zip(l, x)])
 
+
+def test_matrix_hat(basis):
+    u, s, v = basis
+    uhat = u.hat('odd')
+
+    n = np.array([1, 3, 5, -1, -3, 5])
+    result = uhat(n.reshape(3, 2))
+    result_iter = uhat(n).reshape(-1, 3, 2)
+    assert result.shape == result_iter.shape
+    np.testing.assert_array_almost_equal_nulp(result, result_iter)
+
+
 @pytest.mark.parametrize("lambda_, atol", [(42,1e-14), (1E+5,5e-12)])
 def test_overlap(lambda_, atol):
     u, s, v = sve.compute(kernel.KernelFFlat(lambda_))
@@ -84,11 +96,10 @@ for shape in shapes_axis:
     for axis in range(len(shape)):
         param_axis.append((shape, axis))
 
-@pytest.mark.parametrize("shape, axis", param_axis)
-def test_overlap_axis(shape, axis):
-    lambda_ = 42
-    u, s, v = sve.compute(kernel.KernelFFlat(lambda_))
 
+@pytest.mark.parametrize("shape, axis", param_axis)
+def test_overlap_axis(basis, shape, axis):
+    u, s, v = basis
     def f(x):
         res = np.zeros((x.size, np.prod(shape)))
         for i in range(res.shape[1]):
