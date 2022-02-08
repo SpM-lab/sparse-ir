@@ -101,4 +101,4 @@ class _ConstTerm:
 
     def __call__(self, n):
         """Return value for given frequencies"""
-        return (self.value * np.ones_like(n))[:,None]
+        return (self.value * np.ones_like(n))[None,:]
