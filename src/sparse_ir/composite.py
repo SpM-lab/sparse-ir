@@ -84,8 +84,6 @@ class CompositeBasisFunctionFT(_CompositeBasisFunctionBase):
 
     def __call__(self, n):
         """Obtain Fourier transform of basis function for given frequencies"""
-        for p in self._polys:
-            print(p(n).shape)
         return np.vstack([p(n) for p in self._polys])
 
 
