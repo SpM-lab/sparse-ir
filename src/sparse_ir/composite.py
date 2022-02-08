@@ -100,6 +100,7 @@ class CompositeBasis:
         if not all(b.beta == bases[0].beta for b in bases):
             raise ValueError("All bases must have the same beta!")
 
+        self._beta = bases[0].beta
         self._size = np.sum([b.size for b in bases])
         self.bases = bases
         self.u = CompositeBasisFunction([b.u for b in bases]) \
@@ -108,6 +109,9 @@ class CompositeBasis:
                     if all(b.v is not None for b in bases) else None
         self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases]) \
                     if all(b.uhat is not None for b in bases) else None
+
+    @property
+    def beta(self): return self._beta
 
     @property
     def size(self): return self._size

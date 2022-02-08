@@ -25,7 +25,7 @@ class LegendreBasis(object):
     def __init__(self, statistics, beta, size, cl=None):
         if statistics not in 'BF':
             raise ValueError("Statistics must be either 'B' for bosonic"
-                             "or 'F' for fermionic")
+                            "or 'F' for fermionic")
         if not (beta > 0):
             raise ValueError("inverse temperature beta must be positive")
         if not (size > 0):
@@ -48,7 +48,7 @@ class LegendreBasis(object):
         # self.uhat
         # Hack: See basis.py
         uhat_base = PiecewiseLegendrePoly(np.sqrt(beta) * self.u.data,
-                                          np.array([-1,1]))
+                                        np.array([-1,1]))
         self.uhat = uhat_base.hat({'F': 'odd', 'B': 'even'}[statistics])
 
         # self.v
@@ -101,4 +101,4 @@ class _ConstTerm:
 
     def __call__(self, n):
         """Return value for given frequencies"""
-        return self.value * np.ones_like(n)
+        return (self.value * np.ones_like(n))[:,None]

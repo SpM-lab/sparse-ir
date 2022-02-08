@@ -71,4 +71,6 @@ def test_const_basis(stat):
 
     zeta = {"F":  1, "B": 0}[stat]
     v = 2*np.arange(10)+zeta
-    np.testing.assert_array_equal(basis.uhat(v), np.ones_like(v) * value)
+    uhat_ = basis.uhat(v)
+    assert uhat_.shape == (v.size, 1)
+    np.testing.assert_array_equal(uhat_.ravel(), np.ones_like(v) * value)

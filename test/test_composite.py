@@ -49,6 +49,7 @@ def test_composite_basis():
                           np.array([1,3]))
     _check_composite_poly(basis_comp.v, [basis.v, basis2.v],
                           np.linspace(-wmax, -wmax, 10))
+    assert basis_comp.beta == beta
 
 
 def test_augmented_bosonic_basis():
