@@ -179,10 +179,20 @@ class KernelFFlat(KernelBase):
     def conv_radius(self): return 40 * self.lambda_
 
     def weight_func(self, statistics: str):
-        """ Return the weight function for given statistics """
+        """
+        Return the weight function for given statistics
+
+        This kernel `KFFlat` can be used to represent τ dependence of
+        a bosonic correlation function as follows:
+            ∫ KBFlat(x, y) ρ(y) dy
+            = ∫ exp(-Λ * y * (x + 1)/2) / (1 - exp(-Λ*y)) ρ(y) dy
+            = ∫ KFFlat ρ'(y) dy,
+        where
+            ρ'(y) = (1/tanh(Λ*y/2)) * ρ(y).
+        """
         if statistics not in "FB":
             raise ValueError("invalid value of statistics argument")
-        if statistics=="F":
+        if statistics == "F":
             return lambda y: np.ones_like(y)
         else:
             return lambda y: 1/np.tanh(0.5*y)
@@ -291,6 +301,7 @@ class KernelBFlat(KernelBase):
         if statistics != "B":
             raise ValueError("Kernel is designed for bosonic functions")
         return lambda y: 1/y
+
 
 class _SVEHintsBFlat(SVEHintsBase):
     def __init__(self, kernel, eps):
