@@ -288,7 +288,8 @@ class KernelBFlat(KernelBase):
 
     def weight_func(self, statistics: str):
         """ Return the weight function for given statistics """
-        assert statistics == "B"
+        if statistics != "B":
+            raise ValueError("Kernel is designed for bosonic functions")
         return lambda y: 1/y
 
 class _SVEHintsBFlat(SVEHintsBase):
