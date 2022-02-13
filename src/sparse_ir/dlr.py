@@ -10,7 +10,8 @@ class DLR:
     def __init__(self, basis: FiniteTempBasis) -> None:
         self._basis = basis
         roots_ = basis.v[-1].roots()
-        self._poles = np.hstack((basis.v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), basis.v.xmax))
+        self._poles = np.hstack(
+            (basis.v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), basis.v.xmax))
         assert np.abs(self._poles).max() <= basis.wmax
 
     @property
@@ -26,7 +27,8 @@ class DLR:
             It is assumed that KFFlat is used for both of fermion and boson.
         """
         basis = self._basis
-        weight = basis.kernel.weight_func(basis.statistics)(basis.beta*basis.sampling_points_v/basis.wmax)
+        weight = basis.kernel.weight_func(basis.statistics)(
+            basis.beta*basis.sampling_points_v/basis.wmax)
         fit_mat = np.einsum(
             'l,lp,p->lp',
             -basis.s,

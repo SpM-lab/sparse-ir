@@ -14,7 +14,7 @@ def _to_IR(basis, poles, coeffs):
     )
     return -basis.s * rhol
 
-@pytest.mark.parametrize("stat", ["B"])
+@pytest.mark.parametrize("stat", ["F", "B"])
 def test_compression(stat):
     beta = 1e+4
     wmax = 1
