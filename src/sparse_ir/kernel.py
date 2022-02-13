@@ -90,8 +90,10 @@ class KernelBase:
         return None
 
     def weight_func(self, statistics: str):
-        """ Return the weight function for given statistics """
-        pass
+        """Return the weight function for given statistics"""
+        if statistics not in 'FB':
+            raise ValueError("statistics must be 'F' for fermions or 'B' for bosons")
+        return lambda x: np.ones_like(x)
 
 
 class SVEHintsBase:
@@ -178,7 +180,8 @@ class KernelFFlat(KernelBase):
 
     def weight_func(self, statistics: str):
         """ Return the weight function for given statistics """
-        assert statistics in "FB"
+        if statistics not in "FB":
+            raise ValueError("invalid value of statistics argument")
         if statistics=="F":
             return lambda y: np.ones_like(y)
         else:
@@ -262,7 +265,7 @@ class KernelBFlat(KernelBase):
         not_tiny = abs_v >= 1e-200
         denom = np.ones_like(abs_v)
         np.divide(abs_v, np.expm1(-abs_v, where=not_tiny),
-                out=denom, where=not_tiny)
+                  out=denom, where=not_tiny)
         return -1/dtype.type(self.lambda_) * enum * denom
 
     def sve_hints(self, eps):
@@ -285,7 +288,8 @@ class KernelBFlat(KernelBase):
 
     def weight_func(self, statistics: str):
         """ Return the weight function for given statistics """
-        assert statistics == "B"
+        if statistics != "B":
+            raise ValueError("Kernel is designed for bosonic functions")
         return lambda y: 1/y
 
 class _SVEHintsBFlat(SVEHintsBase):
