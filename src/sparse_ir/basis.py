@@ -92,6 +92,8 @@ class IRBasis:
         self.uhat = u.hat(_even_odd, n_asymp=self.kernel.conv_radius)
         self.s = s
         self.v = v
+        roots_ = v[-1].roots()
+        self.sampling_points_v = np.hstack((v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), v.xmax))
         self.statistics = statistics
 
     def __getitem__(self, index):
@@ -225,6 +227,8 @@ class FiniteTempBasis:
         wmax = self.kernel.lambda_ / self.beta
         self.u = u.__class__(u.data, beta/2 * (u.knots + 1))
         self.v = v.__class__(v.data, wmax * v.knots)
+        roots_ = v[-1].roots()
+        self.sampling_points_v = np.hstack((-wmax, 0.5 * (roots_[0:-1] + roots_[1:]), wmax))
 
         # The singular values are scaled to match the change of variables, with
         # the additional complexity that the kernel may have an additional
