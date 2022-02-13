@@ -4,17 +4,13 @@ from sparse_ir.sampling import MatsubaraSampling
 import numpy as np
 import pytest
 
-scale_func = {
-        "F": lambda beta_omega: np.ones_like(beta_omega),
-        "B": lambda beta_omega: 1/np.tanh(0.5*beta_omega)
-    }
-
 def _to_IR(basis, poles, coeffs):
+    weight_func = basis.kernel.weight_func(basis.statistics)
     rhol = np.einsum(
         'lp,p,p->l',
         basis.v(poles),
         coeffs,
-        scale_func[basis.statistics](basis.beta * poles)
+        weight_func(basis.beta * poles/basis.wmax)
     )
     return -basis.s * rhol
 

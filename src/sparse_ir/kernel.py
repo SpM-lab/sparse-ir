@@ -15,6 +15,10 @@ class KernelBase:
     where ``x ∈ [xmin, xmax]`` and ``y ∈ [ymin, ymax]``.  For its SVE to exist,
     the kernel must be square-integrable, for its singular values to decay
     exponentially, it must be smooth.
+
+    In general, the kernel is applied to a scaled spectral function rho'(y) as
+        ∫ K(x, y) rho'(y) dy,
+    where rho'(y) = w(y) rho(y).
     """
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)
@@ -84,6 +88,10 @@ class KernelBase:
         ``None``, then the asymptotics are unused (the default).
         """
         return None
+
+    def weight_func(self, statistics: str):
+        """ Return the weight function for given statistics """
+        pass
 
 
 class SVEHintsBase:
@@ -168,6 +176,14 @@ class KernelFFlat(KernelBase):
     @property
     def conv_radius(self): return 40 * self.lambda_
 
+    def weight_func(self, statistics: str):
+        """ Return the weight function for given statistics """
+        assert statistics in "FB"
+        if statistics=="F":
+            return lambda y: np.ones_like(y)
+        else:
+            return lambda y: 1/np.tanh(0.5*y)
+
 
 class _SVEHintsFFlat(SVEHintsBase):
     def __init__(self, kernel, eps):
@@ -246,7 +262,7 @@ class KernelBFlat(KernelBase):
         not_tiny = abs_v >= 1e-200
         denom = np.ones_like(abs_v)
         np.divide(abs_v, np.expm1(-abs_v, where=not_tiny),
-                  out=denom, where=not_tiny)
+                out=denom, where=not_tiny)
         return -1/dtype.type(self.lambda_) * enum * denom
 
     def sve_hints(self, eps):
@@ -267,6 +283,10 @@ class KernelBFlat(KernelBase):
     @property
     def conv_radius(self): return 40 * self.lambda_
 
+    def weight_func(self, statistics: str):
+        """ Return the weight function for given statistics """
+        assert statistics == "B"
+        return lambda y: 1/y
 
 class _SVEHintsBFlat(SVEHintsBase):
     def __init__(self, kernel, eps):

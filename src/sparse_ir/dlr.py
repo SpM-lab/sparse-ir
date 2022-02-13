@@ -3,11 +3,6 @@
 import numpy as np
 from .basis import FiniteTempBasis
 
-scaling_func = {
-        "F": lambda beta_omega: np.ones_like(beta_omega),
-        "B": lambda beta_omega: 1/np.tanh(0.5*beta_omega)
-    }
-
 class DLR:
     """
     Discrete Lehmann representation (DLR)
@@ -31,12 +26,12 @@ class DLR:
             It is assumed that KFFlat is used for both of fermion and boson.
         """
         basis = self._basis
-        scale = scaling_func[basis.statistics](basis.beta*basis.sampling_points_v)
+        weight = basis.kernel.weight_func(basis.statistics)(basis.beta*basis.sampling_points_v/basis.wmax)
         fit_mat = np.einsum(
             'l,lp,p->lp',
             -basis.s,
             basis.v(basis.sampling_points_v),
-            scale,
+            weight,
             optimize=True
         )
         gl = np.moveaxis(gl, source=axis, destination=0)
