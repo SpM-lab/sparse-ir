@@ -28,13 +28,15 @@ class DLR:
 
         gl:
             Expansion coefficients in IR
+            It is assumed that KFFlat is used for both of fermion and boson.
         """
         basis = self._basis
+        scale = scaling_func[basis.statistics](basis.beta*basis.sampling_points_v)
         fit_mat = np.einsum(
             'l,lp,p->lp',
             -basis.s,
             basis.v(basis.sampling_points_v),
-            scaling_func[basis.statistics](basis.beta*basis.sampling_points_v),
+            scale,
             optimize=True
         )
         gl = np.moveaxis(gl, source=axis, destination=0)
