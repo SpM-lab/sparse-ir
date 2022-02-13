@@ -90,8 +90,10 @@ class KernelBase:
         return None
 
     def weight_func(self, statistics: str):
-        """ Return the weight function for given statistics """
-        pass
+        """Return the weight function for given statistics"""
+        if statistics not in 'FB':
+            raise ValueError("statistics must be 'F' for fermions or 'B' for bosons")
+        return lambda x: np.ones_like(x)
 
 
 class SVEHintsBase:
