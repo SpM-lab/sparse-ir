@@ -4,6 +4,8 @@ import numpy as np
 
 import sparse_ir
 from sparse_ir import sampling
+from sparse_ir.basis import FiniteTempBasis
+from sparse_ir.kernel import KernelFFlat
 
 
 def test_decomp():
@@ -79,6 +81,24 @@ def test_tau_noise():
 
 def test_wn_noise():
     basis = sparse_ir.IRBasis('B', 99)
+    smpl = sparse_ir.MatsubaraSampling(basis)
+    rng = np.random.RandomState(4711)
+
+    rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
+    Gl = basis.s * rhol
+    Gl_magn = np.linalg.norm(Gl)
+    Giw = smpl.evaluate(Gl)
+
+    noise = 1e-5
+    Giw_n = Giw +  noise * np.linalg.norm(Giw) * rng.randn(*Giw.shape)
+    Gl_n = smpl.fit(Giw_n)
+    np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
+
+
+def test_boson_with_KFFlat():
+    beta = 100.0
+    wmax = 1.0
+    basis = FiniteTempBasis("B", beta, wmax, kernel=KernelFFlat(beta*wmax))
     smpl = sparse_ir.MatsubaraSampling(basis)
     rng = np.random.RandomState(4711)
 
