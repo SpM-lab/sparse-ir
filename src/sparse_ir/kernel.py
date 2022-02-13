@@ -178,7 +178,8 @@ class KernelFFlat(KernelBase):
 
     def weight_func(self, statistics: str):
         """ Return the weight function for given statistics """
-        assert statistics in "FB"
+        if statistics not in "FB":
+            raise ValueError("invalid value of statistics argument")
         if statistics=="F":
             return lambda y: np.ones_like(y)
         else:
