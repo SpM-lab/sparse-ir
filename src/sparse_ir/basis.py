@@ -228,9 +228,6 @@ class FiniteTempBasis:
         wmax = self.kernel.lambda_ / self.beta
         self.u = u.__class__(u.data, beta/2 * (u.knots + 1))
         self.v = v.__class__(v.data, wmax * v.knots)
-        roots_ = v[-1].roots()
-        self.sampling_points_v = np.hstack(
-            (-wmax, 0.5 * (roots_[0:-1] + roots_[1:]), wmax))
 
         # The singular values are scaled to match the change of variables, with
         # the additional complexity that the kernel may have an additional
@@ -279,6 +276,10 @@ class FiniteTempBasis:
         """Default sampling points on the imaginary frequency axis"""
         return _default_matsubara_sampling_points(self.uhat, mitigate)
 
+    def default_omega_sampling_points(self):
+        """Default sampling points on the real frequency axis"""
+        return _default_omega_sampling_points(self.v)
+
 
 def _default_tau_sampling_points(u):
     poly = u[-1]
@@ -316,6 +317,11 @@ def _default_matsubara_sampling_points(uhat, mitigate=True):
         wn = np.unique(np.hstack((0, wn)))
 
     return wn
+
+
+def _default_omega_sampling_points(v):
+    roots_ = v[-1].roots()
+    return np.hstack((v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), v.xmax))
 
 
 def _get_kernel(statistics, lambda_, kernel):

@@ -1,8 +1,9 @@
 import sparse_ir
-from sparse_ir.dlr import DLR
+from sparse_ir.dlr_like import DLRLike
 from sparse_ir.sampling import MatsubaraSampling
 import numpy as np
 import pytest
+
 
 def _to_IR(basis, poles, coeffs):
     weight_func = basis.kernel.weight_func(basis.statistics)
@@ -14,6 +15,7 @@ def _to_IR(basis, poles, coeffs):
     )
     return -basis.s * rhol
 
+
 @pytest.mark.parametrize("stat", ["F", "B"])
 def test_compression(stat):
     beta = 1e+4
@@ -21,7 +23,7 @@ def test_compression(stat):
     eps = 1e-12
     basis = sparse_ir.FiniteTempBasis(
         stat, beta, wmax, eps=eps, kernel=sparse_ir.KernelFFlat(beta*wmax))
-    dlr = DLR(basis)
+    dlr = DLRLike(basis)
 
     np.random.seed(4711)
 
