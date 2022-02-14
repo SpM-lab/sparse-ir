@@ -1,0 +1,45 @@
+{% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
+{% set name = "xprec" %}
+{% set version = data.get("version") %}
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  git_url: ../
+
+build:
+  number: 0
+  noarch: python
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - numpy
+    - pip
+    - python
+    - scipy
+    - setuptools
+  run:
+    - numpy
+    - python
+    - scipy
+    - setuptools
+
+#test:
+#  imports:
+#    - sparse_ir
+
+about:
+  home: "https://github.com/SpM-lab/sparse-ir"
+  license: MIT
+  license_family: MIT
+  license_file: 
+  summary: "intermediate representation (IR) basis for electronic propagator"
+  doc_url: 
+  dev_url: 
+
+extra:
+  recipe-maintainers:
+    - shinaoka
