@@ -92,6 +92,9 @@ class IRBasis:
         self.uhat = u.hat(_even_odd, n_asymp=self.kernel.conv_radius)
         self.s = s
         self.v = v
+        roots_ = v[-1].roots()
+        self.sampling_points_v = np.hstack(
+            (v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), v.xmax))
         self.statistics = statistics
 
     def __getitem__(self, index):
@@ -273,6 +276,10 @@ class FiniteTempBasis:
         """Default sampling points on the imaginary frequency axis"""
         return _default_matsubara_sampling_points(self.uhat, mitigate)
 
+    def default_omega_sampling_points(self):
+        """Default sampling points on the real frequency axis"""
+        return _default_omega_sampling_points(self.v)
+
 
 def _default_tau_sampling_points(u):
     poly = u[-1]
@@ -310,6 +317,11 @@ def _default_matsubara_sampling_points(uhat, mitigate=True):
         wn = np.unique(np.hstack((0, wn)))
 
     return wn
+
+
+def _default_omega_sampling_points(v):
+    roots_ = v[-1].roots()
+    return np.hstack((v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), v.xmax))
 
 
 def _get_kernel(statistics, lambda_, kernel):

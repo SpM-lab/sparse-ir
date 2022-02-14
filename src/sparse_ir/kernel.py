@@ -15,6 +15,10 @@ class KernelBase:
     where ``x ∈ [xmin, xmax]`` and ``y ∈ [ymin, ymax]``.  For its SVE to exist,
     the kernel must be square-integrable, for its singular values to decay
     exponentially, it must be smooth.
+
+    In general, the kernel is applied to a scaled spectral function rho'(y) as
+        ∫ K(x, y) rho'(y) dy,
+    where rho'(y) = w(y) rho(y).
     """
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)
@@ -84,6 +88,12 @@ class KernelBase:
         ``None``, then the asymptotics are unused (the default).
         """
         return None
+
+    def weight_func(self, statistics: str):
+        """Return the weight function for given statistics"""
+        if statistics not in 'FB':
+            raise ValueError("statistics must be 'F' for fermions or 'B' for bosons")
+        return lambda x: np.ones_like(x)
 
 
 class SVEHintsBase:
@@ -167,6 +177,25 @@ class KernelFFlat(KernelBase):
 
     @property
     def conv_radius(self): return 40 * self.lambda_
+
+    def weight_func(self, statistics: str):
+        """
+        Return the weight function for given statistics
+
+        This kernel `KFFlat` can be used to represent τ dependence of
+        a bosonic correlation function as follows:
+            ∫ KBFlat(x, y) ρ(y) dy
+            = ∫ exp(-Λ * y * (x + 1)/2) / (1 - exp(-Λ*y)) ρ(y) dy
+            = ∫ KFFlat ρ'(y) dy,
+        where
+            ρ'(y) = (1/tanh(Λ*y/2)) * ρ(y).
+        """
+        if statistics not in "FB":
+            raise ValueError("invalid value of statistics argument")
+        if statistics == "F":
+            return lambda y: np.ones_like(y)
+        else:
+            return lambda y: 1/np.tanh(0.5*y)
 
 
 class _SVEHintsFFlat(SVEHintsBase):
@@ -266,6 +295,12 @@ class KernelBFlat(KernelBase):
 
     @property
     def conv_radius(self): return 40 * self.lambda_
+
+    def weight_func(self, statistics: str):
+        """ Return the weight function for given statistics """
+        if statistics != "B":
+            raise ValueError("Kernel is designed for bosonic functions")
+        return lambda y: 1/y
 
 
 class _SVEHintsBFlat(SVEHintsBase):
