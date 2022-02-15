@@ -5,9 +5,9 @@ from .basis import FiniteTempBasis
 from .sampling import DecomposedMatrix
 
 
-class DLRLike:
+class SparsePoleRepresentation:
     """
-    Representation like Discrete Lehmann representation (DLR)
+    Sparse pole representation (SPR)
     Use a set of poles selected according to the roots of Vl(ω)
     """
     def __init__(self, basis: FiniteTempBasis) -> None:
@@ -36,7 +36,7 @@ class DLRLike:
 
     def from_IR(self, gl: np.ndarray, axis=0) -> np.ndarray:
         """
-        From IR to DLRLike
+        From IR to SPR
 
         gl:
             Expansion coefficients in IR
@@ -46,7 +46,7 @@ class DLRLike:
 
     def evaluate_matsubara(
             self,
-            g_dlr: np.ndarray,
+            g_spr: np.ndarray,
             vsample: np.ndarray,
             axis=0) -> np.ndarray:
         """
@@ -55,10 +55,10 @@ class DLRLike:
         vsample:
             Imaginary frequencies
 
-        g_dlr:
-            DLRLike coefficients
+        g_spr:
+            SPR coefficients
         """
-        coeffs = np.moveaxis(g_dlr, source=axis, destination=0)
+        coeffs = np.moveaxis(g_spr, source=axis, destination=0)
         iv = 1j*vsample * np.pi/self._basis.beta
         giv = np.einsum(
             'wp, p...->w...', 1/(iv[:, None] - self._poles[None, :]), coeffs)
