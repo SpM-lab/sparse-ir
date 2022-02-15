@@ -1,5 +1,5 @@
 import sparse_ir
-from sparse_ir.dlr_like import DLRLike
+from sparse_ir.spr import SparsePoleRepresentation
 from sparse_ir.sampling import MatsubaraSampling
 import numpy as np
 import pytest
@@ -23,7 +23,7 @@ def test_compression(stat):
     eps = 1e-12
     basis = sparse_ir.FiniteTempBasis(
         stat, beta, wmax, eps=eps, kernel=sparse_ir.KernelFFlat(beta*wmax))
-    dlr = DLRLike(basis)
+    spr = SparsePoleRepresentation(basis)
 
     np.random.seed(4711)
 
@@ -34,10 +34,10 @@ def test_compression(stat):
 
     Gl = _to_IR(basis, poles, coeffs)
 
-    g_dlr = dlr.from_IR(Gl)
+    g_spr = spr.from_IR(Gl)
 
     smpl = MatsubaraSampling(basis)
-    giv = dlr.evaluate_matsubara(g_dlr, smpl.sampling_points)
+    giv = spr.evaluate_matsubara(g_spr, smpl.sampling_points)
 
     giv_ref = smpl.evaluate(Gl, axis=0)
 
