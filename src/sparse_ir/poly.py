@@ -228,7 +228,7 @@ class PiecewiseLegendreFT:
 
     def __call__(self, n):
         """Obtain Fourier transform of polynomial for given frequencies"""
-        n = self._check_domain(n)
+        n = check_reduced_matsubara(n, self.zeta)
         n_flat = n.ravel()
         result_flat = _compute_unl_inner(self.poly, n_flat)
 
@@ -251,21 +251,7 @@ class PiecewiseLegendreFT:
         f = self._func_for_part(part)
         x0 = _roots.discrete_extrema(f, PiecewiseLegendreFT._DEFAULT_GRID)
         x0 = 2 * x0 + self.zeta
-        return self._symmetrize(x0)
-
-    def _check_domain(self, n):
-        n = np.asarray(n)
-        if self.freq == 'any':
-            return n
-        if np.issubdtype(n.dtype, np.integer):
-            nint = n
-        else:
-            nint = n.astype(int)
-            if not (n == nint).all():
-                raise ValueError("n must be integers")
-        if not (nint % 2 == self.zeta).all():
-            raise ValueError("n have wrong parity")
-        return nint
+        return _symmetrize_matsubara(x0)
 
     def _func_for_part(self, part=None):
         if part is None:
@@ -283,12 +269,29 @@ class PiecewiseLegendreFT:
         else:
             raise ValueError("part must be either 'real' or 'imag'")
 
-    def _symmetrize(self, x0):
-        if x0[0] == 0:
-            x0 = np.hstack([-x0[::-1], x0[1:]])
-        else:
-            x0 = np.hstack([-x0[::-1], x0])
-        return x0
+
+def check_reduced_matsubara(n, zeta=None):
+    """Checks that ``n`` is a reduced Matsubara frequency.
+
+    Check that the argument is a reduced Matsubara frequency, which is an
+    integer obtained by scaling the freqency `w[n]` as follows::
+
+        beta / np.pi * w[n] == 2 * n + zeta
+
+    Note that this means that instead of a fermionic frequency (``zeta == 1``),
+    we expect an odd integer, while for a bosonic frequency (``zeta == 0``),
+    we expect an even one.  If ``zeta`` is omitted, any one is fine.
+    """
+    n = np.asarray(n)
+    if not np.issubdtype(n.dtype, np.integer):
+        nfloat = n
+        n = nfloat.astype(int)
+        if not (n == nfloat).all():
+            raise ValueError("reduced frequency n must be integer")
+    if zeta is not None:
+        if not (n & 1 == zeta).all():
+            raise ValueError("n have wrong parity")
+    return n
 
 
 def _imag_power(n):
@@ -405,7 +408,7 @@ class _PowerModel:
 
     def giw(self, wn):
         """Return model Green's function for reduced frequencies"""
-        wn = np.array(wn)
+        wn = check_reduced_matsubara(wn)
         return self._giw_ravel(wn.ravel()).reshape(wn.shape + (self.nl,))
 
 
@@ -454,3 +457,15 @@ def _apply_along_axis(f, x, axis=None):
         if axis != 0:
             fx = np.moveaxis(fx, axis, 0)
     return fx
+
+
+def _symmetrize_matsubara(x0):
+    if not (x0[1:] >= x0[:-1]).all():
+        raise ValueError("set of Matsubara points not ordered")
+    if not (x0[0] >= 0):
+        raise ValueError("points must be non-negative")
+    if x0[0] == 0:
+        x0 = np.hstack([-x0[::-1], x0[1:]])
+    else:
+        x0 = np.hstack([-x0[::-1], x0])
+    return x0
