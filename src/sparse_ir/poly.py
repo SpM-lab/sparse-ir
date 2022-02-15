@@ -460,7 +460,7 @@ def _apply_along_axis(f, x, axis=None):
 
 
 def _symmetrize_matsubara(x0):
-    if not (x0[1:] < x0[:-1]).all():
+    if not (x0[1:] >= x0[:-1]).all():
         raise ValueError("set of Matsubara points not ordered")
     if not (x0[0] >= 0):
         raise ValueError("points must be non-negative")
