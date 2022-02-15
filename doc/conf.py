@@ -1,11 +1,28 @@
 # Configuration file for the Sphinx documentation builder.
 # Run build as:
 #   sphinx-build -M html . build
+import io
+import os
+import re
+
+
+def extract_varval(*varnames):
+    """Return contents of file with path relative to script directory"""
+    herepath = os.path.abspath(os.path.dirname(__file__))
+    fullpath = os.path.join(herepath, '..', 'src', 'sparse_ir', '__init__.py')
+    with io.open(fullpath, 'r') as f:
+        contents = f.read()
+    for varname in varnames:
+        var_re = re.compile(rf"(?m)^{varname}\s*=\s*['\"]([^'\"]*)['\"]")
+        match = var_re.search(contents)
+        yield match.group(1)
+
 
 # === Project information
 
 project = 'sparse-ir'
-copyright = '2021, Markus Wallerberger and others'
+copyright, version = extract_varval('__copyright__', '__version__')
+release = version
 author = ', '.join([
     'Markus Wallerberger',
     'Hiroshi Shinaoka',
@@ -13,9 +30,6 @@ author = ', '.join([
     'Junya Otsuki',
     'Chikano Naoya',
     ])
-
-release = '0.2'
-version = '0.2'
 
 # === General configuration
 

@@ -16,8 +16,10 @@ class KernelBase:
     the kernel must be square-integrable, for its singular values to decay
     exponentially, it must be smooth.
 
-    In general, the kernel is applied to a scaled spectral function rho'(y) as
-        ∫ K(x, y) rho'(y) dy,
+    In general, the kernel is applied to a scaled spectral function rho'(y) as:
+
+                        ∫ K(x, y) rho'(y) dy,
+
     where rho'(y) = w(y) rho(y).
     """
     def __call__(self, x, y, x_plus=None, x_minus=None):
@@ -180,15 +182,18 @@ class KernelFFlat(KernelBase):
 
     def weight_func(self, statistics: str):
         """
-        Return the weight function for given statistics
+        Return the weight function for given statistics.
 
         This kernel `KFFlat` can be used to represent τ dependence of
         a bosonic correlation function as follows:
+
             ∫ KBFlat(x, y) ρ(y) dy
-            = ∫ exp(-Λ * y * (x + 1)/2) / (1 - exp(-Λ*y)) ρ(y) dy
-            = ∫ KFFlat ρ'(y) dy,
-        where
-            ρ'(y) = (1/tanh(Λ*y/2)) * ρ(y).
+                == ∫ exp(-Λ * y * (x + 1)/2) / (1 - exp(-Λ*y)) ρ(y) dy
+                == ∫ KFFlat ρ'(y) dy,
+
+        where:
+
+            ρ'(y) == (1/tanh(Λ*y/2)) * ρ(y).
         """
         if statistics not in "FB":
             raise ValueError("invalid value of statistics argument")
