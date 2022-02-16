@@ -4,14 +4,18 @@ The IR basis is nothing but the `singular value expansion`_ of a suitable
 integral kernel `K` mediating the change from real frequencies to imaginary
 times:
 
-    G(τ) = ∫ dω  K(τ, ω) ρ(ω)
+    G(τ) = ∫ dω  K(τ, ω) w(ω) ρ(ω),
+
+where ρ(ω) = - (1/π) Im G(ω+iδ) and w(ω) is a weight function.
 
 Different kernels yield different IR basis functions.  The `sparse-ir` library
-defines two kernels:
+defines three kernels:
 
- - :class:`sparse_ir.LaplaceKernel`: continuation of *fermionic* spectral functions.
- - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions.
+ - :class:`sparse_ir.LaplaceKernel`: continuation of *fermionic* spectral functions with w(ω)=1 [default].
+ - :class:`sparse_ir.LogisticKernel`: continuation of *bosonic* spectral functions with w(ω)=1/tanh(ω/ωmax) [default].
+ - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions w(ω)=1/ω.
 
+Here ωmax is a frequency cutoff for the Lehmann representation.
 Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
 :class:`sparse_ir.FiniteTempBasis` to get the intermediate representation.
 
@@ -21,6 +25,10 @@ Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
 Predefined kernels
 ------------------
 .. autoclass:: sparse_ir.LaplaceKernel
+    :members:
+    :special-members: __call__
+
+.. autoclass:: sparse_ir.LogisticKernel
     :members:
     :special-members: __call__
 
