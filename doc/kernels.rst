@@ -11,9 +11,12 @@ where ρ(ω) = - (1/π) Im G(ω+iδ) and w(ω) is a weight function.
 Different kernels yield different IR basis functions.  The `sparse-ir` library
 defines three kernels:
 
- - :class:`sparse_ir.LaplaceKernel`: continuation of *fermionic* spectral functions with w(ω)=1 [default].
- - :class:`sparse_ir.LogisticKernel`: continuation of *bosonic* spectral functions with w(ω)=1/tanh(ω/ωmax) [default].
- - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions w(ω)=1/ω.
+ - :class:`sparse_ir.LaplaceKernel`: continuation of *fermionic* spectral functions
+   with w(ω)=1 [default].
+ - :class:`sparse_ir.LogisticKernel`: continuation of *bosonic* spectral functions
+   with w(ω)=1/tanh(ω/ωmax) [default].
+ - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions
+   with w(ω)=1/ω.
 
 Here ωmax is a frequency cutoff for the Lehmann representation.
 Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
