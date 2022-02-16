@@ -5,7 +5,7 @@ import numpy as np
 import sparse_ir
 from sparse_ir import sampling
 from sparse_ir.basis import FiniteTempBasis
-from sparse_ir.kernel import KernelFFlat
+from sparse_ir.kernel import LaplaceKernel
 
 
 def test_decomp():
@@ -98,7 +98,7 @@ def test_wn_noise():
 def test_boson_with_KFFlat():
     beta = 100.0
     wmax = 1.0
-    basis = FiniteTempBasis("B", beta, wmax, kernel=KernelFFlat(beta*wmax))
+    basis = FiniteTempBasis("B", beta, wmax)
     smpl = sparse_ir.MatsubaraSampling(basis)
     rng = np.random.RandomState(4711)
 

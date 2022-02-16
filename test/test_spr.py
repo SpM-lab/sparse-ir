@@ -6,12 +6,11 @@ import pytest
 
 
 def _to_IR(basis, poles, coeffs):
-    weight_func = basis.kernel.weight_func(basis.statistics)
     rhol = np.einsum(
         'lp,p,p->l',
         basis.v(poles),
         coeffs,
-        weight_func(basis.beta * poles/basis.wmax)
+        basis.kernel.weight_func(basis.beta * poles/basis.wmax)
     )
     return -basis.s * rhol
 
@@ -21,8 +20,7 @@ def test_compression(stat):
     beta = 1e+4
     wmax = 1
     eps = 1e-12
-    basis = sparse_ir.FiniteTempBasis(
-        stat, beta, wmax, eps=eps, kernel=sparse_ir.KernelFFlat(beta*wmax))
+    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax, eps=eps)
     spr = SparsePoleRepresentation(basis)
 
     np.random.seed(4711)
@@ -32,7 +30,7 @@ def test_compression(stat):
     coeffs = 2*np.random.rand(num_poles) - 1
     assert np.abs(poles).max() <= wmax
 
-    Gl = _to_IR(basis, poles, coeffs)
+    Gl = spr.to_IR(coeffs)
 
     g_spr = spr.from_IR(Gl)
 
@@ -41,4 +39,4 @@ def test_compression(stat):
 
     giv_ref = smpl.evaluate(Gl, axis=0)
 
-    np.testing.assert_allclose(giv, giv_ref, atol=0, rtol=1e+4*eps)
+    np.testing.assert_allclose(giv, giv_ref, atol=300*eps, rtol=0)

@@ -72,6 +72,8 @@ class IRBasis:
             raise ValueError("kernel cutoff lambda must be non-negative")
 
         self.kernel = _get_kernel(statistics, lambda_, kernel)
+        if self.kernel.statistics != statistics:
+            raise RuntimeError("kernel has a wrong statistics!")
         if sve_result is None:
             u, s, v = sve.compute(self.kernel, eps)
         else:
@@ -207,6 +209,8 @@ class FiniteTempBasis:
             raise ValueError("frequency cutoff must be non-negative")
 
         self.kernel = _get_kernel(statistics, beta * wmax, kernel)
+        if self.kernel.statistics != statistics:
+            raise RuntimeError("kernel has a wrong statistics!")
         if sve_result is None:
             u, s, v = sve.compute(self.kernel, eps)
         else:
@@ -330,9 +334,9 @@ def _get_kernel(statistics, lambda_, kernel):
                          "or 'F' (for fermionic basis)")
     if kernel is None:
         if statistics == 'F':
-            kernel = _kernel.KernelFFlat(lambda_)
+            kernel = _kernel.LaplaceKernel(lambda_)
         else:
-            kernel = _kernel.KernelBFlat(lambda_)
+            kernel = _kernel.LogisticKernel(lambda_)
     else:
         try:
             lambda_kernel = kernel.lambda_

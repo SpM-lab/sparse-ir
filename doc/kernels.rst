@@ -9,8 +9,8 @@ times:
 Different kernels yield different IR basis functions.  The `sparse-ir` library
 defines two kernels:
 
- - :class:`sparse_ir.KernelFFlat`: continuation of *fermionic* spectral functions.
- - :class:`sparse_ir.KernelBFlat`: continuation of *bosonic* spectral functions.
+ - :class:`sparse_ir.LaplaceKernel`: continuation of *fermionic* spectral functions.
+ - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions.
 
 Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
 :class:`sparse_ir.FiniteTempBasis` to get the intermediate representation.
@@ -20,11 +20,11 @@ Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
 
 Predefined kernels
 ------------------
-.. autoclass:: sparse_ir.KernelFFlat
+.. autoclass:: sparse_ir.LaplaceKernel
     :members:
     :special-members: __call__
 
-.. autoclass:: sparse_ir.KernelBFlat
+.. autoclass:: sparse_ir.RegularizedBoseKernel
     :members:
     :special-members: __call__
 
@@ -47,7 +47,7 @@ fermionic kernel, modifying the values as needed::
 
     class KernelFGauss(sparse_ir.kernel.KernelBase):
         def __init__(self, lambda_, std):
-            self._inner = sparse_ir.KernelFFlat(lambda_)
+            self._inner = sparse_ir.LaplaceKernel(lambda_)
             self.lambda_ = lambda_
             self.std = std
 
