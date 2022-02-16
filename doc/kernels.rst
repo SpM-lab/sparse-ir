@@ -4,9 +4,11 @@ The IR basis is nothing but the `singular value expansion`_ of a suitable
 integral kernel `K` mediating the change from real frequencies to imaginary
 times:
 
-    G(τ) = ∫ dω  K(τ, ω) w(ω) ρ(ω),
+    G(τ) = - ∫ dω  K(τ, ω) w(ω) ρ(ω),
 
 where ρ(ω) = - (1/π) Im G(ω+iδ) and w(ω) is a weight function.
+The integral ∫ is defined on the interval [-ωmax, ωmax], where
+ωmax (=Λ/β) is a frequency cutoff.
 
 Different kernels yield different IR basis functions.  The `sparse-ir` library
 defines three kernels:
@@ -18,7 +20,6 @@ defines three kernels:
  - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions
    with w(ω)=1/ω.
 
-Here ωmax is a frequency cutoff for the Lehmann representation.
 Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
 :class:`sparse_ir.FiniteTempBasis` to get the intermediate representation.
 
