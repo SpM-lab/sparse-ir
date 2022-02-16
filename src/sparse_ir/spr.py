@@ -133,19 +133,3 @@ class SparsePoleRepresentation:
     def default_matsubara_sampling_points(self, *, mitigate=True):
         """Default sampling points on the imaginary frequency axis"""
         return self.basis.default_matsubara_sampling_points(mitigate= mitigate)
-
-    def evaluate_matsubara(
-            self,
-            g_spr: np.ndarray,
-            vsample: np.ndarray,
-            axis=0) -> np.ndarray:
-        """
-        Evaluate on Matsubara frequencies
-
-        vsample:
-            Imaginary frequencies
-
-        g_spr:
-            SPR coefficients
-        """
-        return MatsubaraSampling(self, vsample).evaluate(g_spr, axis)

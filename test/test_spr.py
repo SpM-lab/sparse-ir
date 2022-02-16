@@ -30,12 +30,10 @@ def test_compression(stat):
     smpl_for_spr = MatsubaraSampling(spr, smpl.sampling_points)
 
     giv = smpl_for_spr.evaluate(g_spr)
-    giv2 = spr.evaluate_matsubara(g_spr, smpl.sampling_points)
 
     giv_ref = smpl.evaluate(Gl, axis=0)
 
     np.testing.assert_allclose(giv, giv_ref, atol=300*eps, rtol=0)
-    np.testing.assert_allclose(giv2, giv_ref, atol=300*eps, rtol=0)
 
     # Comparison on tau
     smpl_tau = TauSampling(basis)
