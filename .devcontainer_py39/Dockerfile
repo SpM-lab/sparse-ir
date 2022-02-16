@@ -42,4 +42,4 @@ ENV PYTHONPATH "/home/${NB_USER}/work/src:${PYTONPATH}"
 RUN mkdir /home/${NB_USER}/work
 
 RUN pip3 install -U pip && \
-    pip3 install scipy h5py toml tomli matplotlib pytest mypy xprec
+    pip3 install scipy h5py toml tomli matplotlib pytest mypy xprec irbasis
