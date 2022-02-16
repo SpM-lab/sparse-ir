@@ -7,11 +7,11 @@ from sparse_ir import kernel
 from sparse_ir import gauss
 
 KERNELS = [
-    kernel.LaplaceKernel(9),
+    kernel.LogisticKernel(9),
     kernel.RegularizedBoseKernel(8),
-    kernel.LaplaceKernel(120_000),
+    kernel.LogisticKernel(120_000),
     kernel.RegularizedBoseKernel(127_500),
-    kernel.LaplaceKernel(40_000).get_symmetrized(-1),
+    kernel.LogisticKernel(40_000).get_symmetrized(-1),
     kernel.RegularizedBoseKernel(35_000).get_symmetrized(-1),
     ]
 

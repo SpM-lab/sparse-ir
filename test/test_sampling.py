@@ -5,8 +5,6 @@ import numpy as np
 import sparse_ir
 from sparse_ir import sampling
 from sparse_ir.basis import FiniteTempBasis
-from sparse_ir.kernel import LaplaceKernel
-
 
 def test_decomp():
     rng = np.random.RandomState(4711)

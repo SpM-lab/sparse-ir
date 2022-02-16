@@ -11,15 +11,15 @@ The integral ∫ is defined on the interval [-ωmax, ωmax], where
 ωmax (=Λ/β) is a frequency cutoff.
 
 Different kernels yield different IR basis functions.  The `sparse-ir` library
-defines three kernels:
+defines two kernels:
 
- - :class:`sparse_ir.LaplaceKernel`: continuation of *fermionic* spectral functions
-   with w(ω)=1 [default].
- - :class:`sparse_ir.LogisticKernel`: continuation of *bosonic* spectral functions
-   with w(ω)=1/tanh(ω/ωmax) [default].
+ - :class:`sparse_ir.LogisticKernel`: continuation of *fermionic/bosonic*
+   spectral functions with w(ω)=1 for fermions
+   and w(ω)=1/tanh(ω/ωmax) for bosons.
  - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions
    with w(ω)=1/ω.
 
+By default, :class:`sparse_ir.LogisticKernel` is used.
 Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
 :class:`sparse_ir.FiniteTempBasis` to get the intermediate representation.
 

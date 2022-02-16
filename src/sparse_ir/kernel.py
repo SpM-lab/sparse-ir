@@ -91,14 +91,12 @@ class KernelBase:
         """
         return None
 
-    @property
-    def weight_func(self):
-        """Return the weight function"""
+    def weight_func(self, statistics: str):
+        """Return the weight function for given statistics"""
+        if statistics not in 'FB':
+            raise ValueError("statistics must be 'F' for fermions or 'B' for bosons")
         return lambda x: np.ones_like(x)
 
-    @property
-    def statistics(self) -> str:
-        return "F"
 
 class SVEHintsBase:
     """Discretization hints for singular value expansion of a given kernel."""
@@ -137,9 +135,7 @@ class SVEHintsBase:
         raise NotImplementedError()
 
 
-
-
-class _KernelFlat(KernelBase):
+class LogisticKernel(KernelBase):
     """Fermionic/bosonic analytical continuation kernel.
 
     In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
@@ -156,7 +152,7 @@ class _KernelFlat(KernelBase):
         return self._compute(u_plus, u_minus, v)
 
     def sve_hints(self, eps):
-        return _SVEHintsFFlat(self, eps)
+        return _SVEHintsLogistic(self, eps)
 
     def _compute(self, u_plus, u_minus, v):
         # By introducing u_\pm = (1 \pm x)/2 and v = lambda * y, we can write
@@ -178,67 +174,28 @@ class _KernelFlat(KernelBase):
 
     def get_symmetrized(self, sign):
         if sign == -1:
-            return _KernelFlatOdd(self, sign)
+            return _LogisticKernelOdd(self, sign)
         return super().get_symmetrized(sign)
 
     @property
     def conv_radius(self): return 40 * self.lambda_
 
-
-class LaplaceKernel(_KernelFlat):
-    """Fermionic analytical continuation kernel.
-
-    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
-    integral kernel is a function on ``[-1, 1] x [-1, 1]``::
-
-        K(x, y) == exp(-Λ * y * (x + 1)/2) / (1 + exp(-Λ*y))
-    """
-
-    @property
-    def weight_func(self):
+    def weight_func(self, statistics: str):
         """
-        Return the weight function for spectral representation
+        Return the weight function for given statistics.
+
+        Fermion: w(x) = 1
+        Boson: w(y) = tanh(Λ*y/2)
         """
-        return lambda y: np.ones_like(y)
-
-    @property
-    def statistics(self) -> str:
-        return "F"
-
-
-class LogisticKernel(_KernelFlat):
-    """Bosonic analytical continuation kernel.
-
-    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
-    integral kernel is a function on ``[-1, 1] x [-1, 1]``::
-
-        K(x, y) == exp(-Λ * y * (x + 1)/2) / (1 + exp(-Λ*y))
-    """
-
-    @property
-    def weight_func(self):
-        """
-        Return the weight function for spectral representation
-
-        This kernel can be used to represent τ dependence of
-        a bosonic correlation function as follows:
-
-            ∫ KBFlat(x, y) ρ(y) dy
-                == ∫ exp(-Λ * y * (x + 1)/2) / (1 - exp(-Λ*y)) ρ(y) dy
-                == ∫ KFFlat ρ'(y) dy,
-
-        where:
-
-            ρ'(y) == (1/tanh(Λ*y/2)) * ρ(y).
-        """
-        return lambda y: 1/np.tanh(0.5*y)
-
-    @property
-    def statistics(self) -> str:
-        return "B"
+        if statistics not in "FB":
+            raise ValueError("invalid value of statistics argument")
+        if statistics == "F":
+            return lambda y: np.ones_like(y)
+        else:
+            return lambda y: 1/np.tanh(0.5*y)
 
 
-class _SVEHintsFFlat(SVEHintsBase):
+class _SVEHintsLogistic(SVEHintsBase):
     def __init__(self, kernel, eps):
         self.kernel = kernel
         self.eps = eps
@@ -279,7 +236,7 @@ class _SVEHintsFFlat(SVEHintsBase):
 
 
 class RegularizedBoseKernel(KernelBase):
-    """Bosonic analytical continuation kernel.
+    """Regularized bosonic analytical continuation kernel.
 
     In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
     integral kernel is a function on ``[-1, 1] x [-1, 1]``::
@@ -319,7 +276,7 @@ class RegularizedBoseKernel(KernelBase):
         return -1/dtype.type(self.lambda_) * enum * denom
 
     def sve_hints(self, eps):
-        return _SVEHintsRegBFlat(self, eps)
+        return _SVEHintsRegularizedBose(self, eps)
 
     @property
     def is_centrosymmetric(self):
@@ -336,17 +293,14 @@ class RegularizedBoseKernel(KernelBase):
     @property
     def conv_radius(self): return 40 * self.lambda_
 
-    @property
-    def weight_func(self):
-        """ Return the weight function """
+    def weight_func(self, statistics: str):
+        """ Return the weight function for given statistics """
+        if statistics != "B":
+            raise ValueError("Kernel is designed for bosonic functions")
         return lambda y: 1/y
 
-    @property
-    def statistics(self) -> str:
-        return "B"
 
-
-class _SVEHintsRegBFlat(SVEHintsBase):
+class _SVEHintsRegularizedBose(SVEHintsBase):
     def __init__(self, kernel, eps):
         self.kernel = kernel
         self.eps = eps
@@ -468,7 +422,7 @@ class _SVEHintsReduced(SVEHintsBase):
     def nsvals(self): return (self.inner_hints.nsvals + 1) // 2
 
 
-class _KernelFlatOdd(ReducedKernel):
+class _LogisticKernelOdd(ReducedKernel):
     """Fermionic analytical continuation kernel, odd.
 
     In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic

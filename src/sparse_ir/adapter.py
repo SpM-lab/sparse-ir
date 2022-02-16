@@ -17,7 +17,7 @@ from warnings import warn
 
 from . import basis as _basis
 from . import poly as _poly
-from .kernel import LaplaceKernel, RegularizedBoseKernel
+from .kernel import LogisticKernel, RegularizedBoseKernel
 
 try:
     import xprec as _xprec
@@ -34,7 +34,7 @@ def load(statistics, Lambda, h5file=None):
         warn("xprec package is not found - expect degraded accuracy!\n"
              "To squelch this warning, set WARN_ACCURACY to False.")
 
-    kernel_type = {"F": LaplaceKernel, "B": RegularizedBoseKernel}[statistics]
+    kernel_type = {"F": LogisticKernel, "B": RegularizedBoseKernel}[statistics]
     basis = _basis.IRBasis(statistics, float(Lambda), kernel=kernel_type(Lambda))
     return Basis(statistics, Lambda, basis.u, basis.s, basis.v)
 

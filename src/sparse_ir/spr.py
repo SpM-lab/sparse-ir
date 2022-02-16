@@ -1,7 +1,7 @@
 # Copyright (C) 2020-2021 Markus Wallerberger and others
 # SPDX-License-Identifier: MIT
 import numpy as np
-from .kernel import LaplaceKernel, RegularizedBoseKernel
+from .kernel import LogisticKernel, RegularizedBoseKernel
 from .basis import FiniteTempBasis
 from .sampling import MatsubaraSampling, TauSampling, DecomposedMatrix
 from typing import Optional
@@ -39,7 +39,7 @@ class TauPoleBasis:
         lambda_ = self._beta * self._wmax
 
         if self._statistics == "F":
-            res = -LaplaceKernel(lambda_)(x[:,None], y[None,:])
+            res = -LogisticKernel(lambda_)(x[:,None], y[None,:])
         else:
             K = RegularizedBoseKernel(lambda_)
             res = -K(x[:,None], y[None,:])/y[None,:]
@@ -64,7 +64,7 @@ class SparsePoleRepresentation:
         self.uhat = MatsubaraPoleBasis(basis.beta, self._poles)
 
         # Fitting matrix from IR
-        weight = basis.kernel.weight_func(self._y_sampling_points)
+        weight = basis.kernel.weight_func(self.statistics)(self._y_sampling_points)
         fit_mat = np.einsum(
             'l,lp,p->lp',
             -basis.s,
@@ -121,7 +121,7 @@ class SparsePoleRepresentation:
         y = self._basis.beta * self.sampling_points/self._basis.wmax
         return np.einsum('l,p,lp,p...->l...',
             -self._basis.s,
-            self._basis.kernel.weight_func(y),
+            self._basis.kernel.weight_func(self.statistics)(y),
             self._basis.v(self.sampling_points),
             g_spr
         )
