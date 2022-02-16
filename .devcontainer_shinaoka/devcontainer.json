@@ -32,9 +32,7 @@
       "christian-kohler.path-intellisense",
     "ms-python.python",
     ],
-   "remoteUser": "root",
-   //"workspaceFolder": "/home/vscode/work",
-   //"workspaceMount": "src=${localWorkspaceFolder},dst=/home/vscode/work,type=bind",
-   //"workspaceFolder": "/vscode",
-   //"workspaceMount": "src=${localWorkspaceFolder},dst=/vscode,type=bind",
+    "remoteUser": "vscode",
+    "workspaceFolder": "/home/vscode/work",
+    "workspaceMount": "src=${localWorkspaceFolder},dst=/home/vscode/work,type=bind",
   }
