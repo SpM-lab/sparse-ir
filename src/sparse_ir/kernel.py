@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 from warnings import warn
+from typing import Callable
 
 
 class KernelBase:
@@ -91,7 +92,7 @@ class KernelBase:
         """
         return None
 
-    def weight_func(self, statistics: str):
+    def weight_func(self, statistics: str) -> Callable[[np.ndarray], np.ndarray]:
         """Return the weight function for given statistics"""
         if statistics not in 'FB':
             raise ValueError("statistics must be 'F' for fermions or 'B' for bosons")
@@ -138,8 +139,8 @@ class SVEHintsBase:
 class LogisticKernel(KernelBase):
     """Fermionic/bosonic analytical continuation kernel.
 
-    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
-    integral kernel is a function on ``[-1, 1] x [-1, 1]``::
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``,
+    the integral kernel is a function on ``[-1, 1] x [-1, 1]``::
 
         K(x, y) == exp(-Λ * y * (x + 1)/2) / (1 + exp(-Λ*y))
     """
@@ -180,12 +181,12 @@ class LogisticKernel(KernelBase):
     @property
     def conv_radius(self): return 40 * self.lambda_
 
-    def weight_func(self, statistics: str):
+    def weight_func(self, statistics: str) -> Callable[[np.ndarray], np.ndarray]:
         """
         Return the weight function for given statistics.
 
         Fermion: w(x) = 1
-        Boson: w(y) = tanh(Λ*y/2)
+        Boson: w(y) = 1/tanh(Λ*y/2)
         """
         if statistics not in "FB":
             raise ValueError("invalid value of statistics argument")
@@ -293,7 +294,7 @@ class RegularizedBoseKernel(KernelBase):
     @property
     def conv_radius(self): return 40 * self.lambda_
 
-    def weight_func(self, statistics: str):
+    def weight_func(self, statistics: str) -> Callable[[np.ndarray], np.ndarray]:
         """ Return the weight function for given statistics """
         if statistics != "B":
             raise ValueError("Kernel is designed for bosonic functions")
