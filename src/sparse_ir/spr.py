@@ -29,8 +29,9 @@ class TauPoleBasis:
         self._poles = poles
         self._wmax = np.abs(poles).max()
 
-    def __call__(self, tau: np.ndarray) -> np.ndarray:
+    def __call__(self, tau) -> np.ndarray:
         """ Evaluate basis functions at tau """
+        tau = np.asarray(tau)   
         if (tau < 0).any() or (tau > self._beta).any():
             raise RuntimeError("tau must be in [0, beta]!")
 
