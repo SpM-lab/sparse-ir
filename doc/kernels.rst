@@ -4,14 +4,22 @@ The IR basis is nothing but the `singular value expansion`_ of a suitable
 integral kernel `K` mediating the change from real frequencies to imaginary
 times:
 
-    G(τ) = ∫ dω  K(τ, ω) ρ(ω)
+    G(τ) = - ∫ dω  K(τ, ω) w(ω) ρ(ω),
+
+where ρ(ω) = - (1/π) Im G(ω+iδ) and w(ω) is a weight function.
+The integral ∫ is defined on the interval [-ωmax, ωmax], where
+ωmax (=Λ/β) is a frequency cutoff.
 
 Different kernels yield different IR basis functions.  The `sparse-ir` library
 defines two kernels:
 
- - :class:`sparse_ir.KernelFFlat`: continuation of *fermionic* spectral functions.
- - :class:`sparse_ir.KernelBFlat`: continuation of *bosonic* spectral functions.
+ - :class:`sparse_ir.LogisticKernel`: continuation of *fermionic/bosonic*
+   spectral functions with w(ω)=1 for fermions
+   and w(ω)=1/tanh(ω/ωmax) for bosons.
+ - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions
+   with w(ω)=1/ω.
 
+By default, :class:`sparse_ir.LogisticKernel` is used.
 Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
 :class:`sparse_ir.FiniteTempBasis` to get the intermediate representation.
 
@@ -20,11 +28,15 @@ Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
 
 Predefined kernels
 ------------------
-.. autoclass:: sparse_ir.KernelFFlat
+.. autoclass:: sparse_ir.LaplaceKernel
     :members:
     :special-members: __call__
 
-.. autoclass:: sparse_ir.KernelBFlat
+.. autoclass:: sparse_ir.LogisticKernel
+    :members:
+    :special-members: __call__
+
+.. autoclass:: sparse_ir.RegularizedBoseKernel
     :members:
     :special-members: __call__
 
@@ -47,7 +59,7 @@ fermionic kernel, modifying the values as needed::
 
     class KernelFGauss(sparse_ir.kernel.KernelBase):
         def __init__(self, lambda_, std):
-            self._inner = sparse_ir.KernelFFlat(lambda_)
+            self._inner = sparse_ir.LaplaceKernel(lambda_)
             self.lambda_ = lambda_
             self.std = std
 

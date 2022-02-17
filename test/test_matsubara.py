@@ -5,7 +5,7 @@ import pytest
 import importlib
 
 from sparse_ir.basis import FiniteTempBasis
-from sparse_ir.kernel import KernelFFlat, KernelBFlat
+from sparse_ir.spr import SparsePoleRepresentation
 
 eps = None
 if importlib.util.find_spec("xprec") is not None:
@@ -29,8 +29,8 @@ def test_single_pole(stat, lambda_):
         stat_shift = 1
     else:
         stat_shift = 0
-    rho_l = basis.v(pole/wmax) * pole**(-basis.kernel.ypower)
-    gl = - basis.s * rho_l
+    spr = SparsePoleRepresentation(basis, np.asarray([pole]))
+    gl = spr.to_IR(np.asarray([1.0]))
 
     func_G = lambda n: 1/(1J * (2*n+stat_shift)*np.pi/beta - pole)
 

@@ -17,7 +17,7 @@ try:
 except ImportError:
     pass
 
-from .kernel import KernelFFlat, KernelBFlat
+from .kernel import RegularizedBoseKernel, LogisticKernel
 from .sve import compute as compute_sve
 from .basis import IRBasis, FiniteTempBasis
 from .sampling import TauSampling, MatsubaraSampling

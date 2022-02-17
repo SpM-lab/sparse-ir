@@ -12,12 +12,12 @@ Note however that on-the-fly computation typically has lower accuracy.  Thus,
 by default we only populate the basis down to singular values of 1.5e-8.
 You can change this by setting the `ACCURACY` parameter.
 """
-from os import stat
 import numpy as _np
 from warnings import warn
 
 from . import basis as _basis
 from . import poly as _poly
+from .kernel import LogisticKernel, RegularizedBoseKernel
 
 try:
     import xprec as _xprec
@@ -34,7 +34,8 @@ def load(statistics, Lambda, h5file=None):
         warn("xprec package is not found - expect degraded accuracy!\n"
              "To squelch this warning, set WARN_ACCURACY to False.")
 
-    basis = _basis.IRBasis(statistics, float(Lambda))
+    kernel_type = {"F": LogisticKernel, "B": RegularizedBoseKernel}[statistics]
+    basis = _basis.IRBasis(statistics, float(Lambda), kernel=kernel_type(Lambda))
     return Basis(statistics, Lambda, basis.u, basis.s, basis.v)
 
 

@@ -11,7 +11,7 @@ import pytest
 
 @pytest.fixture(scope="module")
 def basis():
-    return sve.compute(kernel.KernelFFlat(42))
+    return sve.compute(kernel.LogisticKernel(42))
 
 def _check_composite_poly(u_comp, u_list, test_points):
     assert u_comp.size == np.sum([u.size for u in u_list])

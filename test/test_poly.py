@@ -11,7 +11,7 @@ import pytest
 
 @pytest.fixture(scope="module")
 def basis():
-    return sve.compute(kernel.KernelFFlat(42))
+    return sve.compute(kernel.LogisticKernel(42))
 
 
 def test_shape(basis):
@@ -57,7 +57,7 @@ def test_matrix_hat(basis):
 
 @pytest.mark.parametrize("lambda_, atol", [(42,1e-14), (1E+5,5e-12)])
 def test_overlap(lambda_, atol):
-    u, s, v = sve.compute(kernel.KernelFFlat(lambda_))
+    u, s, v = sve.compute(kernel.LogisticKernel(lambda_))
 
     # Keep only even number of polynomials
     u, s, v = u[:2*(s.size//2)], s[:2*(s.size//2)], v[:2*(s.size//2)]
