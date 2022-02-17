@@ -27,7 +27,7 @@ class TauPoleBasis:
 
     def __call__(self, tau) -> np.ndarray:
         """ Evaluate basis functions at tau """
-        tau = np.asarray(tau)   
+        tau = np.asarray(tau)
         if (tau < 0).any() or (tau > self._beta).any():
             raise RuntimeError("tau must be in [0, beta]!")
 
@@ -115,13 +115,7 @@ class SparsePoleRepresentation:
         g_spr:
             Expansion coefficients in SPR
         """
-        y = self._basis.beta * self.sampling_points/self._basis.wmax
-        return np.einsum('l,p,lp,p...->l...',
-            -self._basis.s,
-            self._basis.kernel.weight_func(self.statistics)(y),
-            self._basis.v(self.sampling_points),
-            g_spr
-        )
+        return self.matrix.matmul(g_spr, axis)
 
     def default_tau_sampling_points(self):
         """Default sampling points on the imaginary time/x axis"""

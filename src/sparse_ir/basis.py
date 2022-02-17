@@ -1,5 +1,6 @@
 # Copyright (C) 2020-2021 Markus Wallerberger and others
 # SPDX-License-Identifier: MIT
+from typing import Tuple
 import numpy as np
 from warnings import warn
 
@@ -279,6 +280,21 @@ class FiniteTempBasis:
     def default_omega_sampling_points(self):
         """Default sampling points on the real frequency axis"""
         return _default_omega_sampling_points(self.v)
+
+
+def finite_temp_bases(
+            beta: float, wmax: float, eps: float = None
+        )-> Tuple[FiniteTempBasis, FiniteTempBasis]:
+    """Construct FiniteTempBasis objects for fermion and bosons
+
+    Construct FiniteTempBasis objects for fermion and bosons using
+    the same LogisticKernel instance.
+    """
+    sve_result = sve.compute(_kernel.LogisticKernel(beta*wmax), eps)
+    basis_f = FiniteTempBasis("F", beta, wmax, eps, sve_result=sve_result)
+    basis_b = FiniteTempBasis("B", beta, wmax, eps, sve_result=sve_result)
+    return basis_f, basis_b
+
 
 
 def _default_tau_sampling_points(u):

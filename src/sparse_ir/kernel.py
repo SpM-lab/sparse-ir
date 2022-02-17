@@ -143,6 +143,16 @@ class LogisticKernel(KernelBase):
     the integral kernel is a function on ``[-1, 1] x [-1, 1]``::
 
         K(x, y) == exp(-Λ * y * (x + 1)/2) / (1 + exp(-Λ*y))
+
+    LogisticKernel is a fermionic analytic continuation kernel.
+    Nevertheless, one can model the τ dependence of
+    a bosonic correlation function as follows:
+        ∫ exp(-Λ * y * (x + 1)/2) / (1 - exp(-Λ*y)) ρ(y) dy
+        = ∫ K(x, y) ρ'(y) dy,
+    with
+        ρ'(y) == w(y) * ρ(y),
+    where the weight function is given by
+        w(y) = 1/tanh(Λ*y/2).
     """
     def __init__(self, lambda_):
         self.lambda_ = lambda_
