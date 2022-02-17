@@ -35,10 +35,10 @@ about:
   home: "https://github.com/SpM-lab/sparse-ir"
   license: MIT
   license_family: MIT
-  license_file: 
+  license_file:
   summary: "intermediate representation (IR) basis for electronic propagator"
-  doc_url: 
-  dev_url: 
+  doc_url:
+  dev_url:
 
 extra:
   recipe-maintainers:

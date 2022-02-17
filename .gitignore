@@ -14,4 +14,5 @@ doc/*build*/
 
 !/.gitignore
 !/.github/
+!/.conda/
 !/.editorconfig
