@@ -8,9 +8,9 @@ from typing import Optional
 
 
 class MatsubaraPoleBasis:
-    def __init__(self, beta: float, poles: np.ndarray) -> None:
+    def __init__(self, beta: float, poles: np.ndarray):
         self._beta = beta
-        self._poles = poles
+        self._poles = np.array(poles)
 
     def __call__(self, n: np.ndarray) -> np.ndarray:
         """Evaluate basis functions at given frequency n"""
@@ -19,18 +19,15 @@ class MatsubaraPoleBasis:
 
 
 class TauPoleBasis:
-    def __init__(
-            self,
-            beta: float,
-            statistics: str,
-            poles: np.ndarray) -> None:
+    def __init__(self, beta: float, statistics: str, poles: np.ndarray):
         self._beta = beta
         self._statistics = statistics
-        self._poles = poles
+        self._poles = np.array(poles)
         self._wmax = np.abs(poles).max()
 
-    def __call__(self, tau: np.ndarray) -> np.ndarray:
+    def __call__(self, tau) -> np.ndarray:
         """ Evaluate basis functions at tau """
+        tau = np.asarray(tau)   
         if (tau < 0).any() or (tau > self._beta).any():
             raise RuntimeError("tau must be in [0, beta]!")
 
