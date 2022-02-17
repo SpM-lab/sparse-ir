@@ -8,9 +8,9 @@ from typing import Optional
 
 
 class MatsubaraPoleBasis:
-    def __init__(self, beta: float, poles: np.ndarray) -> None:
+    def __init__(self, beta: float, poles: np.ndarray):
         self._beta = beta
-        self._poles = poles
+        self._poles = np.array(poles)
 
     def __call__(self, n: np.ndarray) -> np.ndarray:
         """Evaluate basis functions at given frequency n"""
