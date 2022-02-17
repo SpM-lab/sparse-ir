@@ -50,7 +50,7 @@ class SparsePoleRepresentation:
     """
     def __init__(
             self, basis: FiniteTempBasis,
-            sampling_points: Optional[np.ndarray]=None) -> None:
+            sampling_points: Optional[np.ndarray]=None):
         self._basis = basis
 
         self._poles = basis.default_omega_sampling_points() if sampling_points is None\
