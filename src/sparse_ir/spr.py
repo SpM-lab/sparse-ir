@@ -19,14 +19,10 @@ class MatsubaraPoleBasis:
 
 
 class TauPoleBasis:
-    def __init__(
-            self,
-            beta: float,
-            statistics: str,
-            poles: np.ndarray) -> None:
+    def __init__(self, beta: float, statistics: str, poles: np.ndarray):
         self._beta = beta
         self._statistics = statistics
-        self._poles = poles
+        self._poles = np.array(poles)
         self._wmax = np.abs(poles).max()
 
     def __call__(self, tau) -> np.ndarray:
