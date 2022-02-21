@@ -2,7 +2,7 @@ import numpy as np
 import numpy.polynomial.legendre as np_legendre
 
 from .poly import PiecewiseLegendrePoly
-from .basis import _default_matsubara_sampling_points, _default_tau_sampling_points
+from .basis import _default_matsubara_sampling_points
 
 
 class LegendreBasis(object):

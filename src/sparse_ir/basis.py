@@ -138,7 +138,11 @@ class IRBasis:
 
     def default_tau_sampling_points(self):
         """Default sampling points on the imaginary time/x axis"""
-        return _default_tau_sampling_points(self.u)
+        return _default_sampling_points(self.u)
+
+    def default_omega_sampling_points(self):
+        """Default sampling points on the real frequency axis"""
+        return _default_sampling_points(self.v)
 
     def default_matsubara_sampling_points(self, *, mitigate=True):
         """Default sampling points on the imaginary frequency axis"""
@@ -271,7 +275,7 @@ class FiniteTempBasis:
 
     def default_tau_sampling_points(self):
         """Default sampling points on the imaginary time/x axis"""
-        return _default_tau_sampling_points(self.u)
+        return _default_sampling_points(self.u)
 
     def default_matsubara_sampling_points(self, *, mitigate=True):
         """Default sampling points on the imaginary frequency axis"""
@@ -279,7 +283,7 @@ class FiniteTempBasis:
 
     def default_omega_sampling_points(self):
         """Default sampling points on the real frequency axis"""
-        return _default_omega_sampling_points(self.v)
+        return _default_sampling_points(self.v)
 
 
 def finite_temp_bases(
@@ -297,7 +301,7 @@ def finite_temp_bases(
 
 
 
-def _default_tau_sampling_points(u):
+def _default_sampling_points(u):
     poly = u[-1]
     maxima = poly.deriv().roots()
     left = .5 * (maxima[:1] + poly.xmin)
@@ -333,11 +337,6 @@ def _default_matsubara_sampling_points(uhat, mitigate=True):
         wn = np.unique(np.hstack((0, wn)))
 
     return wn
-
-
-def _default_omega_sampling_points(v):
-    roots_ = v[-1].roots()
-    return np.hstack((v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), v.xmax))
 
 
 def _get_kernel(statistics, lambda_, kernel):
