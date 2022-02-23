@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 from .kernel import LogisticKernel, RegularizedBoseKernel
+from .sampling import DecomposedMatrix
 from .basis import FiniteTempBasis
-from .sampling import MatsubaraSampling, TauSampling, DecomposedMatrix
 from typing import Optional
 
 
@@ -15,7 +15,7 @@ class MatsubaraPoleBasis:
     def __call__(self, n: np.ndarray) -> np.ndarray:
         """Evaluate basis functions at given frequency n"""
         iv = 1j*n * np.pi/self._beta
-        return 1/(iv[None,:] - self._poles[:,None])
+        return 1/(iv[None, :] - self._poles[:, None])
 
 
 class TauPoleBasis:
@@ -36,32 +36,33 @@ class TauPoleBasis:
         lambda_ = self._beta * self._wmax
 
         if self._statistics == "F":
-            res = -LogisticKernel(lambda_)(x[:,None], y[None,:])
+            res = -LogisticKernel(lambda_)(x[:, None], y[None, :])
         else:
             K = RegularizedBoseKernel(lambda_)
-            res = -K(x[:,None], y[None,:])/y[None,:]
+            res = -K(x[:, None], y[None, :])/y[None, :]
         return res.T
 
 
 class SparsePoleRepresentation:
     """
     Sparse pole representation (SPR)
-    Use a set of poles selected according to the roots of Vl(ω)
+    The poles are the extrema of V'_{L-1}(ω) and +/- wmax.
     """
     def __init__(
             self, basis: FiniteTempBasis,
-            sampling_points: Optional[np.ndarray]=None):
+            sampling_points: Optional[np.ndarray] = None):
         self._basis = basis
 
-        self._poles = basis.default_omega_sampling_points() if sampling_points is None\
-            else np.asarray(sampling_points)
+        self._poles = basis.default_omega_sampling_points() \
+            if sampling_points is None else np.asarray(sampling_points)
         self._y_sampling_points = basis.beta*self._poles/basis.wmax
 
         self.u = TauPoleBasis(basis.beta, basis.statistics, self._poles)
         self.uhat = MatsubaraPoleBasis(basis.beta, self._poles)
 
         # Fitting matrix from IR
-        weight = basis.kernel.weight_func(self.statistics)(self._y_sampling_points)
+        weight = \
+            basis.kernel.weight_func(self.statistics)(self._y_sampling_points)
         fit_mat = np.einsum(
             'l,lp,p->lp',
             -basis.s,
