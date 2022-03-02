@@ -22,6 +22,11 @@ with greater accuracy.  If you do not want to do this, simply remove the string
 .. _xprec: https://github.com/tuwien-cms/xprec
 
 
+Install via `conda <https://anaconda.org/spm-lab/sparse-ir>`_::
+
+    conda install -c spm-lab sparse-ir xprec
+
+
 Quick start
 -----------
 Please refer to the `online documentation <https://sparse-ir.readthedocs.io>`_
