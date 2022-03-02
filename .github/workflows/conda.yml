@@ -35,4 +35,4 @@ jobs:
         ANACONDA_API_TOKEN: ${{secrets.ANACONDA_TOKEN}}
       run: |
         conda config --set anaconda_upload yes
-        conda build .conda
+        conda build .conda --user SpM-lab
