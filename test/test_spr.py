@@ -43,3 +43,21 @@ def test_compression(stat):
     gtau2 = smpl_tau_for_spr.evaluate(g_spr)
 
     np.testing.assert_allclose(gtau, gtau2, atol=300*eps, rtol=0)
+
+
+def test_boson():
+    beta = 2
+    wmax = 10
+    eps = 1e-7
+    basis_b = sparse_ir.FiniteTempBasis("B", beta, wmax, eps=eps)
+
+    coeff = np.array([1.1, 2.0])
+    omega_p = np.array([2.2, -1.0])
+
+    rhol_pole = np.einsum('lp,p->l', basis_b.v(omega_p), coeff/np.tanh(0.5*beta*omega_p))
+    gl_pole = - basis_b.s * rhol_pole
+
+    sp = SparsePoleRepresentation(basis_b, omega_p)
+    gl_pole2 = sp.to_IR(coeff)
+
+    np.testing.assert_allclose(gl_pole, gl_pole2, atol=300*eps, rtol=0)

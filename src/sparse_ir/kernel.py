@@ -203,7 +203,7 @@ class LogisticKernel(KernelBase):
         if statistics == "F":
             return lambda y: np.ones_like(y)
         else:
-            return lambda y: 1/np.tanh(0.5*y)
+            return lambda y: 1/np.tanh(0.5*self.lambda_*y)
 
 
 class _SVEHintsLogistic(SVEHintsBase):

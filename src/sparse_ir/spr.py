@@ -55,7 +55,7 @@ class SparsePoleRepresentation:
 
         self._poles = basis.default_omega_sampling_points() \
             if sampling_points is None else np.asarray(sampling_points)
-        self._y_sampling_points = basis.beta*self._poles/basis.wmax
+        self._y_sampling_points = self._poles/basis.wmax
 
         self.u = TauPoleBasis(basis.beta, basis.statistics, self._poles)
         self.uhat = MatsubaraPoleBasis(basis.beta, self._poles)
