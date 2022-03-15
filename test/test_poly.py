@@ -55,64 +55,12 @@ def test_matrix_hat(basis):
     np.testing.assert_array_almost_equal_nulp(result, result_iter)
 
 
-@pytest.mark.parametrize("lambda_, atol", [(42,1e-14), (1E+5,5e-12)])
-def test_overlap(lambda_, atol):
-    u, s, v = sve.compute(kernel.LogisticKernel(lambda_))
+def test_overlap(basis):
+    u, s, v = basis
+    atol = max(s[-1] / s[0], 2.2e-16 * s.size)
 
     # Keep only even number of polynomials
-    u, s, v = u[:2*(s.size//2)], s[:2*(s.size//2)], v[:2*(s.size//2)]
-    npoly = s.size
-
     np.testing.assert_allclose(u[0].overlap(u[0]), 1, rtol=0, atol=atol)
 
-    ref = np.ones(s.size)
-    ref[0] = 0
-    np.testing.assert_allclose(
-       np.abs(u.overlap(u[0])-1), ref, rtol=0, atol=atol
-    )
-
-    # Axis
-    trans_f = lambda x: u[0](x).T
-    np.testing.assert_allclose(
-       np.abs(u.overlap(trans_f, axis=0)-1), ref, rtol=0, atol=atol
-    )
-
-    np.testing.assert_allclose(
-        u.overlap(u, axis=-1), np.identity(s.size), rtol=0, atol=atol
-    )
-
-    u_tensor = poly.PiecewiseLegendrePoly(
-                    u.data.reshape(u.data.shape[:2] + (npoly//2, 2)), u.knots)
-    res = u_tensor.overlap(u_tensor, axis=-1)
-    assert res.shape == (npoly//2, 2, npoly//2, 2)
-    np.testing.assert_allclose(
-        res.reshape(npoly, npoly), np.identity(s.size), rtol=0, atol=atol
-    )
-
-
-param_axis = []
-shapes_axis = [(1,), (1,1), (1,2), (1,2,3)]
-for shape in shapes_axis:
-    for axis in range(len(shape)):
-        param_axis.append((shape, axis))
-
-
-@pytest.mark.parametrize("shape, axis", param_axis)
-def test_overlap_axis(basis, shape, axis):
-    u, s, v = basis
-    def f(x):
-        res = np.zeros((x.size, np.prod(shape)))
-        for i in range(res.shape[1]):
-            res[:,i] = i * x
-        res = res.reshape((x.size,) + shape)
-        return np.moveaxis(res, 0, axis)
-
-    overlap = u.overlap(f, axis=axis)
-
-    overlap_ref = np.empty((u.size, np.prod(shape)), dtype=overlap.dtype)
-    for i in range(overlap_ref.shape[1]):
-        overlap_ref[:,i] = u.overlap(lambda x: i*x)
-    overlap_ref = overlap_ref.reshape((u.size,) + shape)
-
-    np.testing.assert_allclose(overlap, overlap_ref, rtol=0,
-                               atol=1e-10*np.abs(overlap_ref).max())
+    ref = (np.arange(s.size) == 0).astype(int)
+    np.testing.assert_allclose(u.overlap(u[0]), ref, rtol=0, atol=atol)

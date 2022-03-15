@@ -97,7 +97,7 @@ class PiecewiseLegendrePoly:
         res *= self._norm[i]
         return res
 
-    def overlap(self, f, axis=None, _deg=None):
+    def overlap(self, f, *, rtol=2.3e-16):
         r"""Evaluate overlap integral of this polynomial with function ``f``.
 
         Given the function ``f``, evaluate the integral::
@@ -112,31 +112,19 @@ class PiecewiseLegendrePoly:
                 function that is called with a point ``x`` and returns ``f(x)``
                 at that position.  If the ``axis`` argument is given, ``f``
                 must be vectorized.
-            axis (int or None):
-                If `None` (the default), `f` is called repeatedly for all
-                quadrature points.  If `axis` is not None, `f`, when called
-                for a vector `x` returns `f(x[i])` at the `i`-th position along
-                the given axis.
 
         Return:
             array-like object with shape (poly_dims, f_dims)
             poly_dims are the shape of the polynomial and f_dims are those
             of the function f(x).
         """
-        if _deg is None:
-            _deg = 2*self.polyorder
-
-        # Get Gauss rule
-        rule = gauss.legendre(_deg, self.data.dtype).piecewise(self.knots)
-        x = rule.x
-
-        # Multiply weights by polynomial at value
-        pw = self(x) * rule.w
-        fx = _VectorizeWrapper(f, axis)(x)
-
-        # Perform the summation and reshape the result
-        int_flat = pw.reshape(self.size, x.size) @ fx.reshape(x.size, -1)
-        return np.asarray(int_flat).reshape(self.shape + fx.shape[1:])
+        f = _OverlapWrapper(self, f)
+        rflat, rerr = sp_integrate.quad_vec(
+                f, self.xmin, self.xmax, epsrel=rtol,
+                points=self.knots, limit=20 * self.knots.size)
+        print(rerr)
+        r = rflat.reshape(self.shape + f.f_shape)
+        return r
 
     def deriv(self, n=1):
         """Get polynomial for the n'th derivative"""
@@ -457,27 +445,21 @@ def _symmetrize_matsubara(x0):
     return x0
 
 
-class _VectorizeWrapper:
-    def __init__(self, f, axis=None, shape=None):
+class _OverlapWrapper:
+    def __init__(self, p, f, f_shape=None):
+        self.p = p
         self.f = f
-        self.axis = axis
-        self.shape = shape
+        self.f_shape = f_shape
 
     def __call__(self, x):
-        if self.axis is None:
-            fx = list(map(self.f, x))
-            fx = np.array(fx)
-            if fx.dtype is np.dtype(object):
-                raise ValueError("incompatible shapes")
-        else:
-            fx = np.asarray(self.f(x))
-            if fx.shape[self.axis] != x.size:
-                raise ValueError("inconsistent result shape")
-            if self.axis != 0:
-                fx = np.moveaxis(fx, self.axis, 0)
-        if fx.shape[1:] != self.shape:
-            if self.shape is None:
-                self.shape = fx.shape[1:]
+        px = self.p(x)
+        fx = np.asarray(self.f(x))
+        if fx.shape != self.f_shape:
+            if self.f_shape is None:
+                self.f_shape = fx.shape
             else:
-                raise ValueError("inconsistent result shape")
-        return fx
+                raise ValueError("shape mismatch")
+
+        px_flat = px.ravel()
+        fx_flat = fx.ravel()
+        return (px_flat[:, None] * fx_flat[None, :]).ravel()
