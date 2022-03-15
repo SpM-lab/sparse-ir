@@ -3,6 +3,7 @@
 import numpy as np
 import numpy.polynomial.legendre as np_legendre
 import scipy.special as sp_special
+import scipy.integrate as sp_integrate
 
 from . import _roots
 from . import gauss
@@ -131,7 +132,7 @@ class PiecewiseLegendrePoly:
 
         # Multiply weights by polynomial at value
         pw = self(x) * rule.w
-        fx = _apply_along_axis(f, x, axis)
+        fx = _VectorizeWrapper(f, axis)(x)
 
         # Perform the summation and reshape the result
         int_flat = pw.reshape(self.size, x.size) @ fx.reshape(x.size, -1)
@@ -444,21 +445,6 @@ def _refine_grid(knots, alpha):
     return np.hstack((result.T.ravel(), knots[-1]))
 
 
-def _apply_along_axis(f, x, axis=None):
-    if axis is None:
-        fx = [f(xi) for xi in x]
-        fx = np.array(fx)
-        if fx.dtype is np.dtype(object):
-            raise ValueError("incompatible shapes")
-    else:
-        fx = np.asarray(f(x))
-        if fx.shape[axis] != x.size:
-            raise ValueError("inconsistent result shape")
-        if axis != 0:
-            fx = np.moveaxis(fx, axis, 0)
-    return fx
-
-
 def _symmetrize_matsubara(x0):
     if not (x0[1:] >= x0[:-1]).all():
         raise ValueError("set of Matsubara points not ordered")
@@ -469,3 +455,29 @@ def _symmetrize_matsubara(x0):
     else:
         x0 = np.hstack([-x0[::-1], x0])
     return x0
+
+
+class _VectorizeWrapper:
+    def __init__(self, f, axis=None, shape=None):
+        self.f = f
+        self.axis = axis
+        self.shape = shape
+
+    def __call__(self, x):
+        if self.axis is None:
+            fx = list(map(self.f, x))
+            fx = np.array(fx)
+            if fx.dtype is np.dtype(object):
+                raise ValueError("incompatible shapes")
+        else:
+            fx = np.asarray(self.f(x))
+            if fx.shape[self.axis] != x.size:
+                raise ValueError("inconsistent result shape")
+            if self.axis != 0:
+                fx = np.moveaxis(fx, self.axis, 0)
+        if fx.shape[1:] != self.shape:
+            if self.shape is None:
+                self.shape = fx.shape[1:]
+            else:
+                raise ValueError("inconsistent result shape")
+        return fx
