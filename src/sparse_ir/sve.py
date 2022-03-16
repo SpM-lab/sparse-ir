@@ -220,8 +220,8 @@ class CentrosymmSVE:
 
         # TODO: this relies on specific symmetrization behaviour ...
         full_hints = self.K.sve_hints(self.eps)
-        u = poly.PiecewiseLegendrePoly(u_data, full_hints.segments_x)
-        v = poly.PiecewiseLegendrePoly(v_data, full_hints.segments_y)
+        u = poly.PiecewiseLegendrePoly(u_data, full_hints.segments_x, symm=signs)
+        v = poly.PiecewiseLegendrePoly(v_data, full_hints.segments_y, symm=signs)
         return u, s, v
 
 
