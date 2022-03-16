@@ -105,7 +105,8 @@ class IRBasis:
         singular values: `basis[:3]`.
         """
         sve_result = self.u[index], self.s[index], self.v[index]
-        return self.__class__(self.kernel, self.statistics, sve_result=sve_result)
+        return self.__class__(self.statistics, self.lambda_,
+                              kernel=self.kernel, sve_result=sve_result)
 
     @property
     def lambda_(self):
@@ -219,6 +220,7 @@ class FiniteTempBasis:
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
 
+        self.sve_result = u, s, v
         self.statistics = statistics
         self.beta = beta
 
@@ -243,6 +245,7 @@ class FiniteTempBasis:
         # unit interval, we need to scale the underlying data.  This breaks
         # the correspondence between U.hat and Uhat though.
         uhat_base = u.__class__(np.sqrt(beta) * u.data, u.knots)
+        print(u.knots)
 
         conv_radius = 40 * self.kernel.lambda_
         _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
@@ -254,9 +257,10 @@ class FiniteTempBasis:
         This can be used to truncate the basis to the n most significant
         singular values: `basis[:3]`.
         """
-        sve_result = self.u[index], self.s[index], self.v[index]
-        return self.__class__(self.kernel, self.statistics, self.beta,
-                              sve_result=sve_result)
+        u, s, v = self.sve_result
+        sve_result = u[index], s[index], v[index]
+        return self.__class__(self.statistics, self.beta, self.wmax,
+                              kernel=self.kernel, sve_result=sve_result)
 
     @property
     def wmax(self):
