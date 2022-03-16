@@ -157,7 +157,7 @@ class PiecewiseLegendrePoly:
         _scale_shape = (1, -1) + (1,) * (self.data.ndim - 2)
         scale = self._inv_xs ** n
         ddata *= scale.reshape(_scale_shape)
-        return self.__class__(ddata, self, symm=self.symm)
+        return self.__class__(ddata, self, symm=(-1)**n * self.symm)
 
     def hat(self, freq, n_asymp=None):
         """Get Fourier transformed object"""
@@ -172,8 +172,29 @@ class PiecewiseLegendrePoly:
         if self.data.ndim > 2:
             raise ValueError("select single polynomial before calling roots()")
 
-        grid = _refine_grid(self.knots, alpha)
-        return _roots.find_all(self, grid)
+        grid = self.knots
+        xmid = (self.xmax + self.xmin) / 2
+        if self.symm:
+            if grid[self.nsegments // 2] == xmid:
+                grid = grid[self.nsegments//2:]
+            else:
+                grid = np.hstack((xmid, grid[grid > xmid]))
+
+        grid = _refine_grid(grid, alpha)
+        roots = _roots.find_all(self, grid)
+
+        if self.symm == 1:
+            revroots = (self.xmax + self.xmin) - roots[::-1]
+            roots = np.hstack((revroots, roots))
+        elif self.symm == -1:
+            # There must be a zero at exactly the midpoint, but we may either
+            # slightly miss it or have a spurious zero
+            if roots[0] == xmid or self(xmid) * self.deriv()(xmid) < 0:
+                roots = roots[1:]
+            revroots = (self.xmax + self.xmin) - roots[::-1]
+            roots = np.hstack((revroots, xmid, roots))
+
+        return roots
 
     @property
     def shape(self): return self.data.shape[2:]
