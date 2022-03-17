@@ -7,6 +7,34 @@ class FiniteTempBasisSet:
 
     An object of this class holds IR bases for fermion and bosons
     and associated sparse-sampling objects
+
+    Attributes:
+        basis_f (FiniteTempBasis):
+            Fermion basis
+        basis_b (FiniteTempBasis):
+            Boson basis
+        beta (float):
+            Inverse temperature
+        wmax (float):
+            Cut-off frequency
+        eps (float):
+            Cut-off value for singular values
+        tau (1D ndarray of float):
+            Sampling points in the imaginary-time domain
+        wn_f (1D ndarray of int):
+            Sampling fermionic frequencies
+        wn_b (1D ndarray of int):
+            Sampling bosonic frequencies
+        smpl_tau_f (TauSampling):
+            Sparse sampling for tau & fermion
+        smpl_tau_b (TauSampling):
+            Sparse sampling for tau & boson
+        smpl_wn_f (MatsubaraSampling):
+            Sparse sampling for Matsubara frequency & fermion
+        smpl_wn_b (MatsubaraSampling):
+            Sparse sampling for Matsubara frequency & boson
+        sve_result (tuple of three ndarray objects):
+            Results of SVE
     """
     def __init__(self, beta, wmax, eps, sve_result=None):
         """
@@ -34,10 +62,10 @@ class FiniteTempBasisSet:
 
     @property
     def beta(self): return self.basis_f.beta
-    
+
     @property
     def wmax(self): return self.basis_f.wmax
-    
+
     @property
     def sve_result(self): return self.basis_f.sve_result
 
