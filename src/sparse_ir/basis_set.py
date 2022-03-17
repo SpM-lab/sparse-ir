@@ -22,19 +22,30 @@ class FiniteTempBasisSet:
             self.basis_f = FiniteTempBasis("F", beta, wmax, eps, sve_result=sve_result)
             self.basis_b = FiniteTempBasis("B", beta, wmax, eps, sve_result=sve_result)
 
-        self.beta = beta
-        self.wmax = wmax
         self.eps = eps
 
         # Tau sampling
         self.smpl_tau_f = TauSampling(self.basis_f)
         self.smpl_tau_b = TauSampling(self.basis_b)
-        self.tau = self.smpl_tau_f.sampling_points
 
         # Matsubara sampling
         self.smpl_wn_f = MatsubaraSampling(self.basis_f)
         self.smpl_wn_b = MatsubaraSampling(self.basis_b)
-        self.wn_f = self.smpl_wn_f.sampling_points
-        self.wn_b = self.smpl_wn_b.sampling_points
 
-        self.sve_result = self.basis_f.sve_result
+    @property
+    def beta(self): return self.basis_f.beta
+    
+    @property
+    def wmax(self): return self.basis_f.wmax
+    
+    @property
+    def sve_result(self): return self.basis_f.sve_result
+
+    @property
+    def tau(self): return self.smpl_tau_f.sampling_points
+
+    @property
+    def wn_f(self): return self.smpl_wn_f.sampling_points
+
+    @property
+    def wn_b(self): return self.smpl_wn_b.sampling_points
