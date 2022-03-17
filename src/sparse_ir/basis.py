@@ -149,6 +149,11 @@ class IRBasis:
         """Default sampling points on the imaginary frequency axis"""
         return _default_matsubara_sampling_points(self.uhat, mitigate)
 
+    @property
+    def is_well_conditioned(self):
+        """Returns True if the sampling is expected to be well-conditioned"""
+        return True
+
 
 class FiniteTempBasis:
     """Intermediate representation (IR) basis for given temperature.
@@ -287,6 +292,11 @@ class FiniteTempBasis:
     def default_omega_sampling_points(self):
         """Default sampling points on the real frequency axis"""
         return _default_sampling_points(self.v)
+
+    @property
+    def is_well_conditioned(self):
+        """Returns True if the sampling is expected to be well-conditioned"""
+        return True
 
 
 def finite_temp_bases(

@@ -61,6 +61,10 @@ class LegendreBasis(object):
     def default_matsubara_sampling_points(self, *, mitigate=True):
         return _default_matsubara_sampling_points(self.uhat, mitigate)
 
+    @property
+    def is_well_conditioned(self):
+        return True
+
 
 class MatsubaraConstBasis(object):
     """Constant term in matsubara-frequency domain
@@ -93,6 +97,10 @@ class MatsubaraConstBasis(object):
 
     def default_matsubara_sampling_points(self, *, mitigate=True):
         return np.array([])
+
+    @property
+    def is_well_conditioned(self):
+        return True
 
 
 class _ConstTerm:

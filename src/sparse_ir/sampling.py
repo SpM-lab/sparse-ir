@@ -30,8 +30,7 @@ class SamplingBase:
                         self.__class__.eval_matrix(basis, self.sampling_points))
 
         # Check conditioning
-        self.cond = self.matrix.s[0] / self.matrix.s[-1]
-        if self.cond > 1e8:
+        if self.basis.is_well_conditioned and self.cond > 1e8:
             warn("Sampling matrix is poorly conditioned (cond = %.2g)"
                  % self.cond, ConditioningWarning)
 
@@ -42,6 +41,11 @@ class SamplingBase:
     def fit(self, ax, axis=None):
         """Fit basis coefficients from the sparse sampling points"""
         return self.matrix.lstsq(ax, axis)
+
+    @property
+    def cond(self):
+        """Condition number of the fitting problem"""
+        return self.matrix.s[0] / self.matrix.s[-1]
 
     @classmethod
     def eval_matrix(cls, basis, x):

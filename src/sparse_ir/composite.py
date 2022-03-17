@@ -127,3 +127,8 @@ class CompositeBasis:
         return np.unique(np.hstack(
                     [b.default_matsubara_sampling_points(mitigate=mitigate)
                      for b in self.bases]))
+
+    @property
+    def is_well_conditioned(self):
+        """Returns True if the sampling is expected to be well-conditioned"""
+        return False
