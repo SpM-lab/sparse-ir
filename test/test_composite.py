@@ -9,9 +9,6 @@ from sparse_ir import augment
 
 import pytest
 
-@pytest.fixture(scope="module")
-def basis():
-    return sve.compute(kernel.LogisticKernel(42))
 
 def _check_composite_poly(u_comp, u_list, test_points):
     assert u_comp.size == np.sum([u.size for u in u_list])
@@ -25,8 +22,9 @@ def _check_composite_poly(u_comp, u_list, test_points):
                                        u_list[isub][ip](test_points))
             idx += 1
 
-def test_composite_poly(basis):
-    u, s, v = basis
+
+def test_composite_poly(sve_logistic):
+    u, s, v = sve_logistic[42]
     l = s.size
 
     u_comp = composite.CompositeBasisFunction([u, u])
@@ -37,11 +35,13 @@ def test_composite_poly(basis):
     _check_composite_poly(uhat_comp, [uhat, uhat], np.array([-3, 1, 5]))
 
 
-def test_composite_basis():
-    beta = 10
-    wmax = 9.9
-    basis = sparse_ir.FiniteTempBasis("F", beta, wmax, eps=1e-6)
-    basis2 = sparse_ir.FiniteTempBasis("F", beta, wmax, eps=1e-3)
+def test_composite_basis(sve_logistic):
+    beta = 7
+    wmax = 6
+    basis = sparse_ir.FiniteTempBasis("F", beta, wmax, eps=1e-6,
+                                      sve_result=sve_logistic[beta * wmax])
+    basis2 = sparse_ir.FiniteTempBasis("F", beta, wmax, eps=1e-3,
+                                       sve_result=sve_logistic[beta * wmax])
     basis_comp = composite.CompositeBasis([basis, basis2])
     _check_composite_poly(basis_comp.u, [basis.u, basis2.u],
                           np.linspace(0, beta, 10))

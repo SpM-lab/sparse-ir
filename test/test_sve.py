@@ -5,16 +5,7 @@ import sparse_ir
 
 import pytest
 
-BASES = [
-    ('F', 73),
-    ('B', 37)
-    ]
-
-
-@pytest.fixture(scope="module")
-def bases():
-    return {(stat, lambda_): sparse_ir.IRBasis(stat, lambda_)
-            for (stat, lambda_) in BASES}
+BASES = [('F', 10), ('F', 42, 'F', 10_000)]
 
 
 def _check_smooth(u, s, uscale, fudge_factor):
@@ -34,24 +25,25 @@ def _check_smooth(u, s, uscale, fudge_factor):
         raise
 
 
-@pytest.mark.parametrize("stat,lambda_", BASES)
-def test_smooth(bases, stat, lambda_):
-    basis = bases[stat, lambda_]
+@pytest.mark.parametrize("lambda_", [10, 42, 10_000])
+def test_smooth(sve_logistic, lambda_):
+    basis = sparse_ir.IRBasis('F', lambda_, sve_result=sve_logistic[lambda_])
     _check_smooth(basis.u, basis.s, 2*basis.u(1).max(), 24)
     _check_smooth(basis.v, basis.s, 50, 20)
 
 
-@pytest.mark.parametrize("stat,lambda_", BASES)
-def test_num_roots_u(bases, stat, lambda_):
-    basis = bases[stat, lambda_]
+@pytest.mark.parametrize("lambda_", [10, 42, 10_000])
+def test_num_roots_u(sve_logistic, lambda_):
+    basis = sparse_ir.IRBasis('F', lambda_, sve_result=sve_logistic[lambda_])
     for i in range(basis.u.size):
         ui_roots = basis.u[i].roots()
         assert ui_roots.size == i
 
 
-@pytest.mark.parametrize("stat,lambda_", BASES)
-def test_num_roots_uhat(bases, stat, lambda_):
-    basis = bases[stat, lambda_]
+@pytest.mark.parametrize("stat", ['F', 'B'])
+@pytest.mark.parametrize("lambda_", [10, 42, 10_000])
+def test_num_roots_uhat(sve_logistic, stat, lambda_):
+    basis = sparse_ir.IRBasis(stat, lambda_, sve_result=sve_logistic[lambda_])
     for i in [0, 1, 7, 10]:
         x0 = basis.uhat[i].extrema()
         assert i + 1 <= x0.size <= i + 2

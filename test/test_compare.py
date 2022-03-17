@@ -23,8 +23,10 @@ COMPARE_PARAMS = [
 # ensures that fixtures are cached.
 
 @pytest.fixture(scope="module")
-def adapters():
-    return {params: adapter.load(*params) for params in COMPARE_PARAMS}
+def adapters(sve_logistic, sve_reg_bose):
+    table = {'F': sve_logistic, 'B': sve_reg_bose}
+    return {(stat, lambda_): adapter.Basis(stat, lambda_, table[stat][lambda_])
+            for (stat, lambda_) in COMPARE_PARAMS}
 
 
 @pytest.fixture(scope="module")

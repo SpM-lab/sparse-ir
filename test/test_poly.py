@@ -11,13 +11,8 @@ from sparse_ir import poly
 import pytest
 
 
-@pytest.fixture(scope="module")
-def basis():
-    return sve.compute(kernel.LogisticKernel(42))
-
-
-def test_shape(basis):
-    u, s, v = basis
+def test_shape(sve_logistic):
+    u, s, v = sve_logistic[42]
     l = s.size
     assert u.shape == (l,)
 
@@ -25,8 +20,8 @@ def test_shape(basis):
     assert u[2:5].shape == (3,)
 
 
-def test_slice(basis):
-    sve_result = basis
+def test_slice(sve_logistic):
+    sve_result = sve_logistic[42]
 
     basis = sparse_ir.IRBasis('F', 42, sve_result=sve_result)
     assert basis[:5].size == 5
@@ -35,8 +30,8 @@ def test_slice(basis):
     assert basis[:4].size == 4
 
 
-def test_eval(basis):
-    u, s, v = basis
+def test_eval(sve_logistic):
+    u, s, v = sve_logistic[42]
     l = s.size
 
     # evaluate
@@ -47,8 +42,8 @@ def test_eval(basis):
             [[u[i](x) for x in (0.4, -0.2)] for i in range(l)])
 
 
-def test_broadcast(basis):
-    u, s, v = basis
+def test_broadcast(sve_logistic):
+    u, s, v = sve_logistic[42]
 
     x = [0.3, 0.5]
     l = [2, 7]
@@ -56,8 +51,8 @@ def test_broadcast(basis):
             u.value(l, x), [u[ll](xx) for (ll, xx) in zip(l, x)])
 
 
-def test_matrix_hat(basis):
-    u, s, v = basis
+def test_matrix_hat(sve_logistic):
+    u, s, v = sve_logistic[42]
     uhat = u.hat('odd')
 
     n = np.array([1, 3, 5, -1, -3, 5])
@@ -67,9 +62,9 @@ def test_matrix_hat(basis):
     np.testing.assert_array_almost_equal_nulp(result, result_iter)
 
 
-@pytest.mark.parametrize("lambda_, atol", [(42,1e-14), (1E+5,5e-12)])
-def test_overlap(lambda_, atol):
-    u, s, v = sve.compute(kernel.LogisticKernel(lambda_))
+@pytest.mark.parametrize("lambda_, atol", [(42,1e-14), (1E+4,5e-13)])
+def test_overlap(sve_logistic, lambda_, atol):
+    u, s, v = sve_logistic[lambda_]
 
     # Keep only even number of polynomials
     u, s, v = u[:2*(s.size//2)], s[:2*(s.size//2)], v[:2*(s.size//2)]
@@ -92,32 +87,3 @@ def test_overlap(lambda_, atol):
     np.testing.assert_allclose(
         u.overlap(u, axis=-1), np.identity(s.size), rtol=0, atol=atol
     )
-
-
-
-param_axis = []
-shapes_axis = [(1,), (1,1), (1,2), (1,2,3)]
-for shape in shapes_axis:
-    for axis in range(len(shape)):
-        param_axis.append((shape, axis))
-
-
-@pytest.mark.parametrize("shape, axis", param_axis)
-def test_overlap_axis(basis, shape, axis):
-    u, s, v = basis
-    def f(x):
-        res = np.zeros((x.size, np.prod(shape)))
-        for i in range(res.shape[1]):
-            res[:,i] = i * x
-        res = res.reshape((x.size,) + shape)
-        return np.moveaxis(res, 0, axis)
-
-    overlap = u.overlap(f, axis=axis)
-
-    overlap_ref = np.empty((u.size, np.prod(shape)), dtype=overlap.dtype)
-    for i in range(overlap_ref.shape[1]):
-        overlap_ref[:,i] = u.overlap(lambda x: i*x)
-    overlap_ref = overlap_ref.reshape((u.size,) + shape)
-
-    np.testing.assert_allclose(overlap, overlap_ref, rtol=0,
-                               atol=1e-10*np.abs(overlap_ref).max())

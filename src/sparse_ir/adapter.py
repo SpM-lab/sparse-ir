@@ -36,11 +36,12 @@ def load(statistics, Lambda, h5file=None):
 
     kernel_type = {"F": LogisticKernel, "B": RegularizedBoseKernel}[statistics]
     basis = _basis.IRBasis(statistics, float(Lambda), kernel=kernel_type(Lambda))
-    return Basis(statistics, Lambda, basis.u, basis.s, basis.v)
+    return Basis(statistics, Lambda, (basis.u, basis.s, basis.v))
 
 
 class Basis:
-    def __init__(self, statistics, Lambda, u, s, v):
+    def __init__(self, statistics, Lambda, sve_result):
+        u, s, v = sve_result
         self._statistics = statistics
         self._Lambda = Lambda
         self._u = u

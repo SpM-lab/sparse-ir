@@ -12,18 +12,19 @@ if importlib.util.find_spec("xprec") is not None:
     eps = 1.0e-15
 
 all_basis_sets = [(stat, lambda_)
-                  for stat in 'FB' for lambda_ in [1E+1, 1E+3]]
+                  for stat in 'FB' for lambda_ in [1E+1, 1E+4]]
 
 """
 A pole at omega=pole. Compare analytic results of G(iwn) and numerical
 results computed by using unl.
 """
 @pytest.mark.parametrize("stat, lambda_", all_basis_sets)
-def test_single_pole(stat, lambda_):
+def test_single_pole(sve_logistic, stat, lambda_):
     wmax = 1.0
     pole = 0.1 * wmax
     beta = lambda_/wmax
-    basis = FiniteTempBasis(stat, beta, wmax, eps)
+    sve_result = sve_logistic[lambda_]
+    basis = FiniteTempBasis(stat, beta, wmax, eps, sve_result=sve_result)
 
     if stat == 'F':
         stat_shift = 1

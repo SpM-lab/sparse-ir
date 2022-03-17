@@ -1,10 +1,12 @@
 # Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
 import numpy as np
+import pytest
 
 import sparse_ir
 from sparse_ir import sampling
 from sparse_ir.basis import FiniteTempBasis
+
 
 def test_decomp():
     rng = np.random.RandomState(4711)
@@ -42,6 +44,7 @@ def test_axis():
             Ad.matmul(x, axis=1), ref,
             atol=1e-13 * norm_A, rtol=0)
 
+
 def test_axis0():
     rng = np.random.RandomState(4712)
     A = rng.randn(17, 21)
@@ -60,8 +63,9 @@ def test_axis0():
             atol=1e-13 * norm_A, rtol=0)
 
 
-def test_tau_noise():
-    basis = sparse_ir.IRBasis('F', 100)
+@pytest.mark.parametrize("stat, lambda_", [('B', 42), ('F', 42)])
+def test_tau_noise(sve_logistic, stat, lambda_):
+    basis = sparse_ir.IRBasis(stat, lambda_, sve_result=sve_logistic[lambda_])
     smpl = sparse_ir.TauSampling(basis)
     rng = np.random.RandomState(4711)
 
@@ -77,26 +81,9 @@ def test_tau_noise():
     np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
 
 
-def test_wn_noise():
-    basis = sparse_ir.IRBasis('B', 99)
-    smpl = sparse_ir.MatsubaraSampling(basis)
-    rng = np.random.RandomState(4711)
-
-    rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
-    Gl = basis.s * rhol
-    Gl_magn = np.linalg.norm(Gl)
-    Giw = smpl.evaluate(Gl)
-
-    noise = 1e-5
-    Giw_n = Giw +  noise * np.linalg.norm(Giw) * rng.randn(*Giw.shape)
-    Gl_n = smpl.fit(Giw_n)
-    np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
-
-
-def test_boson_with_KFFlat():
-    beta = 100.0
-    wmax = 1.0
-    basis = FiniteTempBasis("B", beta, wmax)
+@pytest.mark.parametrize("stat, lambda_", [('B', 42), ('F', 42)])
+def test_wn_noise(sve_logistic, stat, lambda_):
+    basis = sparse_ir.IRBasis(stat, lambda_, sve_result=sve_logistic[lambda_])
     smpl = sparse_ir.MatsubaraSampling(basis)
     rng = np.random.RandomState(4711)
 

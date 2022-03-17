@@ -8,11 +8,12 @@ import pytest
 
 
 @pytest.mark.parametrize("stat", ["F", "B"])
-def test_compression(stat):
-    beta = 1e+4
+def test_compression(sve_logistic, stat):
+    beta = 10_000
     wmax = 1
     eps = 1e-12
-    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax, eps=eps)
+    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax, eps=eps,
+                                      sve_result=sve_logistic[beta*wmax])
     spr = SparsePoleRepresentation(basis)
 
     np.random.seed(4711)
@@ -46,11 +47,12 @@ def test_compression(stat):
     np.testing.assert_allclose(gtau, gtau2, atol=300*eps, rtol=0)
 
 
-def test_boson():
+def test_boson(sve_logistic):
     beta = 2
-    wmax = 10
+    wmax = 21
     eps = 1e-7
-    basis_b = sparse_ir.FiniteTempBasis("B", beta, wmax, eps=eps)
+    basis_b = sparse_ir.FiniteTempBasis("B", beta, wmax, eps=eps,
+                                        sve_result=sve_logistic[beta * wmax])
 
     coeff = np.array([1.1, 2.0])
     omega_p = np.array([2.2, -1.0])

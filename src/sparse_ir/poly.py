@@ -189,8 +189,9 @@ class PiecewiseLegendrePoly:
         elif self.symm == -1:
             # There must be a zero at exactly the midpoint, but we may either
             # slightly miss it or have a spurious zero
-            if roots[0] == xmid or self(xmid) * self.deriv()(xmid) < 0:
-                roots = roots[1:]
+            if roots.size:
+                if roots[0] == xmid or self(xmid) * self.deriv()(xmid) < 0:
+                    roots = roots[1:]
             revroots = (self.xmax + self.xmin) - roots[::-1]
             roots = np.hstack((revroots, xmid, roots))
 
