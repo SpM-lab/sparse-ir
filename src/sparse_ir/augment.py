@@ -1,3 +1,5 @@
+# Copyright (C) 2020-2021 Markus Wallerberger, Hiroshi Shinaoka, and others
+# SPDX-License-Identifier: MIT
 import numpy as np
 import numpy.polynomial.legendre as np_legendre
 

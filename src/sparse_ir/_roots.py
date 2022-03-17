@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2021 Markus Wallerberger and others
+# Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
 """
 Auxiliary module for root finding routines.

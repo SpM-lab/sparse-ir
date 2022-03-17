@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2021 Markus Wallerberger and others
+# Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
 import io, os.path, re
 from setuptools import setup, find_packages
@@ -12,17 +12,17 @@ def readfile(*parts):
         return f.read()
 
 
-def extract_varval(varname):
+def extract_varvals(*varnames):
     """Extract value of __version__ variable by parsing python script"""
     initfile = readfile('src', 'sparse_ir', '__init__.py')
-    var_re = re.compile(rf"(?m)^{varname}\s*=\s*['\"]([^'\"]*)['\"]")
-    match = var_re.search(initfile)
-    return match.group(1)
+    for varname in varnames:
+        var_re = re.compile(rf"(?m)^{varname}\s*=\s*['\"]([^'\"]*)['\"]")
+        match = var_re.search(initfile)
+        yield match.group(1)
 
 
 REPO_URL = "https://github.com/SpM-lab/sparse-ir"
-VERSION = extract_varval('__version__')
-MIN_XPREC_VERSION = extract_varval('min_xprec_version')
+VERSION, MIN_XPREC_VERSION = extract_varvals('__version__', 'min_xprec_version')
 LONG_DESCRIPTION = readfile('README.rst')
 
 setup(
@@ -37,7 +37,7 @@ setup(
         'irbasis'
         ]),
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Physics',

@@ -1,9 +1,10 @@
+# Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
+# SPDX-License-Identifier: MIT
 import sparse_ir
 from sparse_ir.spr import SparsePoleRepresentation
 from sparse_ir.sampling import MatsubaraSampling, TauSampling
 import numpy as np
 import pytest
-
 
 
 @pytest.mark.parametrize("stat", ["F", "B"])

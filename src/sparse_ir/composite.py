@@ -1,3 +1,5 @@
+# Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
+# SPDX-License-Identifier: MIT
 import numpy as np
 
 

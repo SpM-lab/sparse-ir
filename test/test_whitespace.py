@@ -1,9 +1,12 @@
+# Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
+# SPDX-License-Identifier: MIT
 import os
 
 HEREPATH = os.path.abspath(os.path.dirname(__file__))
 ROOTDIR = os.path.abspath(os.path.join(HEREPATH, os.path.pardir))
 SRCDIR = os.path.join(ROOTDIR, "src", "sparse_ir")
 DOCDIR = os.path.join(ROOTDIR, "doc")
+
 
 def check_whitespace(files):
     errors = []
