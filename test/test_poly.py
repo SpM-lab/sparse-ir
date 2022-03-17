@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 from _pytest.mark import param
 import numpy as np
+
+import sparse_ir
 from sparse_ir import sve
 from sparse_ir import kernel
 from sparse_ir import poly
@@ -21,6 +23,16 @@ def test_shape(basis):
 
     assert u[3].shape == ()
     assert u[2:5].shape == (3,)
+
+
+def test_slice(basis):
+    sve_result = basis
+
+    basis = sparse_ir.IRBasis('F', 42, sve_result=sve_result)
+    assert basis[:5].size == 5
+
+    basis = sparse_ir.FiniteTempBasis('F', 4.2, 10, sve_result=sve_result)
+    assert basis[:4].size == 4
 
 
 def test_eval(basis):
