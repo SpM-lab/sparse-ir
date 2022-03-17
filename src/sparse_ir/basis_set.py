@@ -36,3 +36,5 @@ class FiniteTempBasisSet:
         self.smpl_wn_b = MatsubaraSampling(self.basis_b)
         self.wn_f = self.smpl_wn_f.sampling_points
         self.wn_b = self.smpl_wn_b.sampling_points
+
+        self.sve_result = self.basis_f.sve_result
