@@ -18,7 +18,8 @@ def test_consistency(use_sve_result):
     smpl_wn_f = MatsubaraSampling(basis_f)
     smpl_wn_b = MatsubaraSampling(basis_b)
 
-    bs = FiniteTempBasisSet(beta, wmax, eps, sve_result=basis_f.sve_result if use_sve_result else None)
+    sve_result=basis_f.sve_result if use_sve_result else None
+    bs = FiniteTempBasisSet(beta, wmax, eps, sve_result=sve_result)
 
     np.testing.assert_array_equal(smpl_tau_f.sampling_points, smpl_tau_b.sampling_points)
     np.testing.assert_array_equal(bs.smpl_tau_f.matrix.a, smpl_tau_f.matrix.a)
