@@ -233,8 +233,8 @@ class FiniteTempBasis:
         # knots according to: tau = beta/2 * (x + 1), w = wmax * y.  Scaling
         # the data is not necessary as the normalization is inferred.
         wmax = self.kernel.lambda_ / self.beta
-        self.u = u.__class__(u.data, beta/2 * (u.knots + 1))
-        self.v = v.__class__(v.data, wmax * v.knots)
+        self.u = u.__class__(u.data, beta/2 * (u.knots + 1), beta/2 * u.dx, u.symm)
+        self.v = v.__class__(v.data, wmax * v.knots, wmax * v.dx, v.symm)
 
         # The singular values are scaled to match the change of variables, with
         # the additional complexity that the kernel may have an additional
@@ -244,8 +244,7 @@ class FiniteTempBasis:
         # HACK: as we don't yet support Fourier transforms on anything but the
         # unit interval, we need to scale the underlying data.  This breaks
         # the correspondence between U.hat and Uhat though.
-        uhat_base = u.__class__(np.sqrt(beta) * u.data, u.knots)
-        print(u.knots)
+        uhat_base = u.__class__(np.sqrt(beta) * u.data, u, symm=u.symm)
 
         conv_radius = 40 * self.kernel.lambda_
         _even_odd = {'F': 'odd', 'B': 'even'}[statistics]

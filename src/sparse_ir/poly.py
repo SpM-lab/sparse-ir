@@ -24,13 +24,16 @@ class PiecewiseLegendrePoly:
     intervals ``S[i] = [a[i], a[i+1]]``, where on each interval the function
     is expanded in scaled Legendre polynomials.
     """
-    def __init__(self, data, knots, dx=None):
+    def __init__(self, data, knots, dx=None, symm=None):
         """Piecewise Legendre polynomial"""
         if np.isnan(data).any():
             raise ValueError("PiecewiseLegendrePoly: data contains NaN!")
         if isinstance(knots, self.__class__):
+            if dx is not None or symm is None:
+                raise RuntimeError("wrong arguments")
             self.__dict__.update(knots.__dict__)
             self.data = data
+            self.symm = symm
             return
 
         data = np.array(data)
@@ -40,6 +43,13 @@ class PiecewiseLegendrePoly:
             raise ValueError("Invalid knots array")
         if not (knots[1:] >= knots[:-1]).all():
             raise ValueError("Knots must be monotonically increasing")
+        if symm is None:
+            # TODO: infer symmetry from data
+            symm = np.zeros(data.shape[2:])
+        else:
+            symm = np.array(symm)
+            if symm.shape != data.shape[2:]:
+                raise ValueError("shape mismatch")
         if dx is None:
             dx = knots[1:] - knots[:-1]
         else:
@@ -55,17 +65,19 @@ class PiecewiseLegendrePoly:
         self.knots = knots
         self.dx = dx
         self.data = data
+        self.symm = symm
         self._xm = .5 * (knots[1:] + knots[:-1])
         self._inv_xs = 2/dx
         self._norm = np.sqrt(self._inv_xs)
 
     def __getitem__(self, l):
         """Return part of a set of piecewise polynomials"""
+        new_symm = self.symm[l]
         if isinstance(l, tuple):
             new_data = self.data[(slice(None), slice(None), *l)]
         else:
             new_data = self.data[:,:,l]
-        return self.__class__(new_data, self)
+        return self.__class__(new_data, self, symm=new_symm)
 
     def __call__(self, x):
         """Evaluate polynomial at position x"""
@@ -145,7 +157,7 @@ class PiecewiseLegendrePoly:
         _scale_shape = (1, -1) + (1,) * (self.data.ndim - 2)
         scale = self._inv_xs ** n
         ddata *= scale.reshape(_scale_shape)
-        return self.__class__(ddata, self.knots, self.dx)
+        return self.__class__(ddata, self, symm=(-1)**n * self.symm)
 
     def hat(self, freq, n_asymp=None):
         """Get Fourier transformed object"""
@@ -160,8 +172,29 @@ class PiecewiseLegendrePoly:
         if self.data.ndim > 2:
             raise ValueError("select single polynomial before calling roots()")
 
-        grid = _refine_grid(self.knots, alpha)
-        return _roots.find_all(self, grid)
+        grid = self.knots
+        xmid = (self.xmax + self.xmin) / 2
+        if self.symm:
+            if grid[self.nsegments // 2] == xmid:
+                grid = grid[self.nsegments//2:]
+            else:
+                grid = np.hstack((xmid, grid[grid > xmid]))
+
+        grid = _refine_grid(grid, alpha)
+        roots = _roots.find_all(self, grid)
+
+        if self.symm == 1:
+            revroots = (self.xmax + self.xmin) - roots[::-1]
+            roots = np.hstack((revroots, roots))
+        elif self.symm == -1:
+            # There must be a zero at exactly the midpoint, but we may either
+            # slightly miss it or have a spurious zero
+            if roots[0] == xmid or self(xmid) * self.deriv()(xmid) < 0:
+                roots = roots[1:]
+            revroots = (self.xmax + self.xmin) - roots[::-1]
+            roots = np.hstack((revroots, xmid, roots))
+
+        return roots
 
     @property
     def shape(self): return self.data.shape[2:]
@@ -225,7 +258,7 @@ class PiecewiseLegendreFT:
     def ndim(self): return self.poly.ndim
 
     def __getitem__(self, l):
-        return self.__class__(self.poly[l], self.freq)
+        return self.__class__(self.poly[l], self.freq, self.n_asymp)
 
     def __call__(self, n):
         """Obtain Fourier transform of polynomial for given frequencies"""
@@ -256,7 +289,7 @@ class PiecewiseLegendreFT:
 
     def _func_for_part(self, part=None):
         if part is None:
-            parity = self.poly(self.poly.xmax) / self.poly(self.poly.xmin)
+            parity = self.poly.symm
             if np.allclose(parity, 1):
                 part = 'real' if self.zeta == 0 else 'imag'
             elif np.allclose(parity, -1):
@@ -379,7 +412,7 @@ def _compute_unl_inner(poly, wn):
     # Perform the following, but faster:
     #   resulth = einsum('pin,pil->nl', t_pin, data_sc)
     npi = poly.polyorder * poly.nsegments
-    result_flat = t_pin.reshape(npi,-1).T.dot(data_sc.reshape(npi,-1)).T
+    result_flat = (t_pin.reshape(npi,-1).T @ data_sc.reshape(npi,-1)).T
     return result_flat.reshape(*poly.data.shape[2:], wn.size)
 
 

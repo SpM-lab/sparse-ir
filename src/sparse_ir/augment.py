@@ -41,14 +41,15 @@ class LegendreBasis(object):
         # self.u
         knots = np.array([0, beta])
         data = np.zeros((size, knots.size-1, size))
+        symm = (-1)**np.arange(size)
         for l in range(size):
             data[l, 0, l] = np.sqrt((l+0.5)/beta) * cl[l]
-        self.u = PiecewiseLegendrePoly(data, knots)
+        self.u = PiecewiseLegendrePoly(data, knots, symm=symm)
 
         # self.uhat
         # Hack: See basis.py
         uhat_base = PiecewiseLegendrePoly(np.sqrt(beta) * self.u.data,
-                                        np.array([-1,1]))
+                                          np.array([-1,1]), symm=symm)
         self.uhat = uhat_base.hat({'F': 'odd', 'B': 'even'}[statistics])
 
         # self.v
