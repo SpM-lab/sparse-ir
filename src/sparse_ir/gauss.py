@@ -33,7 +33,7 @@ class Rule:
 
     def reseat(self, a, b):
         """Reseat current quadrature rule to new domain"""
-        if self.a != -1 and self.b != 1:
+        if self.a != -1 or self.b != 1:
             raise NotImplementedError("only supporting unscaled for now")
 
         extent = 0.5 * (b - a)
