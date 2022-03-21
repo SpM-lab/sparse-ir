@@ -62,7 +62,7 @@ def test_matrix_hat(sve_logistic):
     np.testing.assert_array_almost_equal_nulp(result, result_iter)
 
 
-@pytest.mark.parametrize("lambda_, atol", [(42,1e-14), (1E+4,5e-13)])
+@pytest.mark.parametrize("lambda_, atol", [(42, 1e-13), (1E+4, 1e-13)])
 def test_overlap(sve_logistic, lambda_, atol):
     u, s, v = sve_logistic[lambda_]
 
@@ -72,18 +72,5 @@ def test_overlap(sve_logistic, lambda_, atol):
 
     np.testing.assert_allclose(u[0].overlap(u[0]), 1, rtol=0, atol=atol)
 
-    ref = np.ones(s.size)
-    ref[0] = 0
-    np.testing.assert_allclose(
-       np.abs(u.overlap(u[0])-1), ref, rtol=0, atol=atol
-    )
-
-    # Axis
-    trans_f = lambda x: u[0](x).T
-    np.testing.assert_allclose(
-       np.abs(u.overlap(trans_f, axis=0)-1), ref, rtol=0, atol=atol
-    )
-
-    np.testing.assert_allclose(
-        u.overlap(u, axis=-1), np.identity(s.size), rtol=0, atol=atol
-    )
+    ref = (np.arange(s.size) == 0).astype(float)
+    np.testing.assert_allclose(u.overlap(u[0]), ref, rtol=0, atol=atol)

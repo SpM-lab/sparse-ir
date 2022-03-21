@@ -43,12 +43,12 @@ class Rule:
         x_forward = extent * self.x_forward
         x_backward = extent * self.x_backward
         w_new = extent * self.w
-        return self.__class__(x_new, w_new, x_forward, x_backward, a, b)
+        return Rule(x_new, w_new, x_forward, x_backward, a, b)
 
     def scale(self, factor):
         """Scale weights by factor"""
-        return self.__class__(self.x, self.w * factor, self.x_forward,
-                              self.x_backward, self.a, self.b)
+        return Rule(self.x, self.w * factor, self.x_forward, self.x_backward,
+                    self.a, self.b)
 
     def piecewise(self, edges):
         """Piecewise quadrature with the same quadrature rule, but scaled"""
@@ -63,16 +63,15 @@ class Rule:
 
     def astype(self, dtype):
         dtype = np.dtype(dtype)
-        return self.__class__(
-            self.x.astype(dtype), self.w.astype(dtype),
-            self.x_forward.astype(dtype), self.x_backward.astype(dtype),
-            dtype.type(self.a), dtype.type(self.b))
+        return Rule(self.x.astype(dtype), self.w.astype(dtype),
+                    self.x_forward.astype(dtype), self.x_backward.astype(dtype),
+                    dtype.type(self.a), dtype.type(self.b))
 
-    @classmethod
-    def join(cls, *gauss_list):
+    @staticmethod
+    def join(*gauss_list):
         """Join multiple Gauss quadratures together"""
         if not gauss_list:
-            return cls((), ())
+            return Rule((), ())
 
         a = gauss_list[0].a
         b = gauss_list[-1].b
@@ -88,7 +87,7 @@ class Rule:
             parts.append((curr.x, curr.w, x_forward, x_backward))
 
         x, w, x_forward, x_backward = map(np.hstack, zip(*parts))
-        return cls(x, w, x_forward, x_backward, a, b)
+        return Rule(x, w, x_forward, x_backward, a, b)
 
 
 def legendre(n, dtype=float):
@@ -204,3 +203,55 @@ def _legendre_recurrence(n, dtype=float):
     beta[0] = 2
     one = dtype.type(1)
     return alpha, beta, -one, one
+
+
+class NestedRule(Rule):
+    """Nested Gauss quadrature rule."""
+    def __init__(self, x, w, v, x_forward=None, x_backward=None, a=-1, b=1):
+        super().__init__(x, w, x_forward, x_backward, a, b)
+        self.v = np.asarray(v)
+        self.vsel = slice(1, None, 2)
+
+    def reseat(self, a, b):
+        """Reseat current quadrature rule to new domain"""
+        res = super().reseat(a, b)
+        new_v = 0.5 * (b - a) * self.v
+        return NestedRule(res.x, res.w, new_v, res.x_forward, res.x_backward,
+                          res.a, res.b)
+
+    def scale(self, factor):
+        """Scale weights by factor"""
+        res = super().scale(factor)
+        new_v = factor * self.v
+        return NestedRule(res.x, res.w, new_v, res.x_forward, res.x_backward,
+                          res.a, res.b)
+
+    def astype(self, dtype):
+        dtype = np.dtype(dtype)
+        res = super().astype(dtype)
+        new_v = self.v.astype(dtype)
+        return NestedRule(res.x, res.w, new_v, res.x_forward, res.x_backward,
+                          res.a, res.b)
+
+
+def kronrod_21():
+    """Gauss-Kronrod rule order 21/10"""
+    x = (-0.995657163025808090, -0.973906528517171743, -0.930157491355708244,
+         -0.865063366688984536, -0.780817726586416905, -0.679409568299024436,
+         -0.562757134668604664, -0.433395394129247213, -0.294392862701460201,
+         -0.148874338981631216, +0.000000000000000000, +0.148874338981631216,
+         +0.294392862701460201, +0.433395394129247213, +0.562757134668604664,
+         +0.679409568299024436, +0.780817726586416905, +0.865063366688984536,
+         +0.930157491355708244, +0.973906528517171743, +0.995657163025808090)
+    w = (+0.011694638867371874, +0.032558162307964725, +0.054755896574351995,
+         +0.075039674810919957, +0.093125454583697601, +0.109387158802297643,
+         +0.123491976262065845, +0.134709217311473339, +0.142775938577060085,
+         +0.147739104901338486, +0.149445554002916897, +0.147739104901338486,
+         +0.142775938577060085, +0.134709217311473339, +0.123491976262065845,
+         +0.109387158802297643, +0.093125454583697601, +0.075039674810919957,
+         +0.054755896574351995, +0.032558162307964725, +0.011694638867371874)
+    v = (+0.066671344308688138, +0.149451349150580587, +0.219086362515982042,
+         +0.269266719309996350, +0.295524224714752870, +0.295524224714752870,
+         +0.269266719309996350, +0.219086362515982042, +0.149451349150580587,
+         +0.066671344308688138)
+    return NestedRule(np.array(x), np.array(w), np.array(v))
