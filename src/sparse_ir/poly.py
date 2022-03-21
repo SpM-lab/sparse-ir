@@ -477,8 +477,8 @@ def _symmetrize_matsubara(x0):
     return x0
 
 
-def _compute_overlap(poly, f, rtol=2.3e-16, radix=4, max_refine_levels=20,
-                     max_refine_points=5000):
+def _compute_overlap(poly, f, rtol=2.3e-16, radix=2, max_refine_levels=40,
+                     max_refine_points=2000):
     base_rule = gauss.kronrod_21()
     xstart = poly.knots[:-1]
     xstop = poly.knots[1:]
@@ -488,6 +488,7 @@ def _compute_overlap(poly, f, rtol=2.3e-16, radix=4, max_refine_levels=20,
     res_error = 0
     res_magn = 0
     for _ in range(max_refine_levels):
+        #print(f"Level {_}: {xstart.size} segments")
         if xstart.size > max_refine_points:
             warn("Refinement is too broad, aborting (increase rtol)")
             break
