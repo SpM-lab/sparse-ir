@@ -300,14 +300,16 @@ class FiniteTempBasis:
 
 
 def finite_temp_bases(
-            beta: float, wmax: float, eps: float = None
+            beta: float, wmax: float, eps: float = None,
+            sve_result: tuple = None
         )-> Tuple[FiniteTempBasis, FiniteTempBasis]:
     """Construct FiniteTempBasis objects for fermion and bosons
 
     Construct FiniteTempBasis objects for fermion and bosons using
     the same LogisticKernel instance.
     """
-    sve_result = sve.compute(_kernel.LogisticKernel(beta*wmax), eps)
+    if sve_result is None:
+        sve_result = sve.compute(_kernel.LogisticKernel(beta*wmax), eps)
     basis_f = FiniteTempBasis("F", beta, wmax, eps, sve_result=sve_result)
     basis_b = FiniteTempBasis("B", beta, wmax, eps, sve_result=sve_result)
     return basis_f, basis_b
