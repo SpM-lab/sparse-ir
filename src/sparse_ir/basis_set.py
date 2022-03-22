@@ -36,7 +36,7 @@ class FiniteTempBasisSet:
         sve_result (tuple of three ndarray objects):
             Results of SVE
     """
-    def __init__(self, beta, wmax, eps, sve_result=None):
+    def __init__(self, beta, wmax, eps=None, sve_result=None):
         """
         Create basis sets for fermion and boson and
         associated sampling objects.
@@ -50,8 +50,6 @@ class FiniteTempBasisSet:
             self.basis_f = FiniteTempBasis("F", beta, wmax, eps, sve_result=sve_result)
             self.basis_b = FiniteTempBasis("B", beta, wmax, eps, sve_result=sve_result)
 
-        self.eps = eps
-
         # Tau sampling
         self.smpl_tau_f = TauSampling(self.basis_f)
         self.smpl_tau_b = TauSampling(self.basis_b)
@@ -61,10 +59,16 @@ class FiniteTempBasisSet:
         self.smpl_wn_b = MatsubaraSampling(self.basis_b)
 
     @property
+    def lambda_(self): return self.basis_f.beta.lambda_
+
+    @property
     def beta(self): return self.basis_f.beta
 
     @property
     def wmax(self): return self.basis_f.wmax
+
+    @property
+    def eps(self): return self.basis_f.eps
 
     @property
     def sve_result(self): return self.basis_f.sve_result
