@@ -510,15 +510,15 @@ def _compute_overlap(poly, f, rtol=2.3e-16, radix=2, max_refine_levels=40,
 
         magn = res_magn + intmagn.sum(1).max(1)
         relerror = intdiff.max(2) / magn[:, None]
-        xconverged = (relerror <= rtol).all(0)
-        xrefine = ~xconverged
 
+        xconverged = (relerror <= rtol).all(0)
         res_value += int10[:, xconverged].sum(1)
         res_error += intdiff[:, xconverged].sum(1)
         res_magn += intmagn[:, xconverged].sum(1).max(1)
-        if not xrefine.any():
+        if xconverged.all():
             break
 
+        xrefine = ~xconverged
         xstart = xstart[xrefine]
         xstop = xstop[xrefine]
         xedge = np.linspace(xstart, xstop, radix + 1, axis=-1)
