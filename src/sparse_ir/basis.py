@@ -72,23 +72,18 @@ class IRBasis:
         if not (lambda_ >= 0):
             raise ValueError("kernel cutoff lambda must be non-negative")
 
-        if eps is None and sve_result is None and not sve.HAVE_XPREC:
-            warn("xprec package is not available:\n"
-                 "expect single precision (1.5e-8) only as both cutoff and\n"
-                 "accuracy of the basis functions")
-
-        # Calculate basis functions from truncated singular value expansion
         self.kernel = _get_kernel(statistics, lambda_, kernel)
         if sve_result is None:
-            sve_result = sve.compute(self.kernel, eps)
-            u, s, v = sve_result
+            u, s, v = sve.compute(self.kernel, eps)
         else:
             u, s, v = sve_result
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
 
-        self._statistics = statistics
-        self._accuracy = s[-1] / s[0]
+        if eps is None and sve_result is None and not sve.HAVE_XPREC:
+            warn("xprec package is not available:\n"
+                 "expect single precision (1.5e-8) only as both cutoff and\n"
+                 "accuracy of the basis functions")
 
         # The radius of convergence of the asymptotic expansion is Lambda/2,
         # so for significantly larger frequencies we use the asymptotics,
@@ -101,6 +96,7 @@ class IRBasis:
         roots_ = v[-1].roots()
         self.sampling_points_v = np.hstack(
             (v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), v.xmax))
+        self.statistics = statistics
 
     def __getitem__(self, index):
         """Return basis functions/singular values for given index/indices.
@@ -123,29 +119,24 @@ class IRBasis:
         return self.kernel.lambda_
 
     @property
-    def beta(self):
-        """Inverse temperature (this is `None` because unscaled basis)"""
-        return None
-
-    @property
-    def wmax(self):
-        """Real frequency cutoff (this is `None` because unscaled basis)"""
-        return None
-
-    @property
-    def accuracy(self):
-        """Accuracy of singular value cutoff"""
-        return self._accuracy
-
-    @property
     def size(self):
-        """Number of basis functions / singular values"""
+        """Number of basis functions / singular values."""
         return self.u.size
 
     @property
     def shape(self):
         """Shape of the basis function set"""
         return self.u.shape
+
+    @property
+    def beta(self):
+        """Inverse temperature (this is `None` because unscaled basis)"""
+        return None
+
+    @property
+    def wmax(self):
+        """Frequency cutoff (this is `None` because unscaled basis)"""
+        return None
 
     @property
     def sve_result(self):
@@ -231,33 +222,32 @@ class FiniteTempBasis:
         if not (wmax >= 0):
             raise ValueError("frequency cutoff must be non-negative")
 
-        if eps is None and sve_result is None and not sve.HAVE_XPREC:
-            warn("xprec package is not available:\n"
-                 "expect single precision (1.5e-8) only as both cutoff and\n"
-                 "accuracy of the basis functions")
-
-        # Calculate basis functions from truncated singular value expansion
         self.kernel = _get_kernel(statistics, beta * wmax, kernel)
         if sve_result is None:
-            sve_result = sve.compute(self.kernel, eps)
-            u, s, v = sve_result
+            u, s, v = sve.compute(self.kernel, eps)
         else:
             u, s, v = sve_result
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
 
-        if u.xmin != -1 or u.xmax != 1:
-            raise RuntimeError("u must be defined in the reduced variable.")
+        self.sve_result = u, s, v
+        self.statistics = statistics
+        self.beta = beta
 
+<<<<<<< HEAD
         self._sve_result = sve_result
         self._statistics = statistics
         self._beta = beta
         self._accuracy = s[-1] / s[0]
+        if eps is None and sve_result is None and not sve.HAVE_XPREC:
+            warn("xprec package is not available:\n"
+                 "expect single precision (1.5e-8) only as both cutoff and\n"
+                 "accuracy of the basis functions")
 
         # The polynomials are scaled to the new variables by transforming the
         # knots according to: tau = beta/2 * (x + 1), w = wmax * y.  Scaling
         # the data is not necessary as the normalization is inferred.
-        wmax = self.kernel.lambda_ / self._beta
+        wmax = self.kernel.lambda_ / self.beta
         self.u = u.__class__(u.data, beta/2 * (u.knots + 1), beta/2 * u.dx, u.symm)
         self.v = v.__class__(v.data, wmax * v.knots, wmax * v.dx, v.symm)
 
@@ -303,27 +293,18 @@ class FiniteTempBasis:
 
     @property
     def wmax(self):
-        """Real frequency cutoff"""
-        return self.kernel.lambda_ / self._beta
-
-    @property
-    def accuracy(self):
-        """Accuracy of singular value cutoff"""
-        return self._accuracy
+        """Cutoff in real frequency."""
+        return self.kernel.lambda_ / self.beta
 
     @property
     def size(self):
-        """Number of basis functions / singular values"""
+        """Number of basis functions / singular values."""
         return self.u.size
 
     @property
     def shape(self):
         """Shape of the basis function set"""
         return self.u.shape
-
-    @property
-    def sve_result(self):
-        return self._sve_result
 
     def default_tau_sampling_points(self):
         """Default sampling points on the imaginary time/x axis"""
