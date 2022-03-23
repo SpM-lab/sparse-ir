@@ -255,6 +255,11 @@ class FiniteTempBasis:
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
 
+        if u.xmin != -1 or u.xmax != 1:
+            raise RuntimeError("u must be defined in the reduced variable.")
+
+        self._sve_result = sve_result
+
         # HACK: Determine eps estimate from singular values and set it slightly
         # larger but close to s_lmax / s_0, if it is not set. This might lead
         # to different basis sizes/inconsistencies.
@@ -337,7 +342,7 @@ class FiniteTempBasis:
 
     @property
     def sve_result(self):
-        return self.u, self.s, self.v
+        return self._sve_result
 
     def default_tau_sampling_points(self):
         """Default sampling points on the imaginary time/x axis"""
