@@ -68,7 +68,7 @@ class FiniteTempBasisSet:
     def wmax(self): return self.basis_f.wmax
 
     @property
-    def eps(self): return self.basis_f.eps
+    def accuracy(self): return self.basis_f.accuracy
 
     @property
     def sve_result(self): return self.basis_f.sve_result

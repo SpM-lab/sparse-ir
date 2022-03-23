@@ -85,18 +85,10 @@ class IRBasis:
         else:
             u, s, v = sve_result
             if u.shape != s.shape or s.shape != v.shape:
-                raise ValueError("mismatched shapes in SVE")
-
-        # HACK: Determine eps estimate from singular values and set it slightly
-        # larger but close to s_lmax / s_0, if it is not set. This might lead
-        # to different basis sizes/inconsistencies.
-        if eps is None:
-            eps = s[-1] / s[0]
-            pwr = np.round(np.log10(eps))
-            eps = np.floor(eps * 10**(-pwr+1)) * 10**(pwr-1)
+                raise ValueError("mismatched shapes in SVE")     
 
         self._statistics = statistics
-        self._eps = eps
+        self._accuracy = s[-1] / s[0]
 
         # The radius of convergence of the asymptotic expansion is Lambda/2,
         # so for significantly larger frequencies we use the asymptotics,
@@ -142,9 +134,9 @@ class IRBasis:
         return None
 
     @property
-    def eps(self):
-        """Relative cutoff for the singular values"""
-        return self._eps
+    def accuracy(self):
+        """Accuracy of singular value cutoff"""
+        return self._accuracy
 
     @property
     def size(self):
@@ -270,7 +262,7 @@ class FiniteTempBasis:
 
         self._statistics = statistics
         self._beta = beta
-        self._eps = eps
+        self._accuracy = s[-1] / s[0]
 
         # The polynomials are scaled to the new variables by transforming the
         # knots according to: tau = beta/2 * (x + 1), w = wmax * y.  Scaling
@@ -326,9 +318,9 @@ class FiniteTempBasis:
         return self.kernel.lambda_ / self._beta
 
     @property
-    def eps(self):
-        """Relative cutoff for the singular values"""
-        return self._eps
+    def accuracy(self):
+        """Accuracy of singular value cutoff"""
+        return self._accuracy
 
     @property
     def size(self):
