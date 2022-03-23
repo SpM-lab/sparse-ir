@@ -85,7 +85,7 @@ class IRBasis:
         else:
             u, s, v = sve_result
             if u.shape != s.shape or s.shape != v.shape:
-                raise ValueError("mismatched shapes in SVE")     
+                raise ValueError("mismatched shapes in SVE")
 
         self._statistics = statistics
         self._accuracy = s[-1] / s[0]
@@ -110,8 +110,7 @@ class IRBasis:
         """
         sve_result = self.u[index], self.s[index], self.v[index]
         return self.__class__(self.statistics, self.lambda_,
-                              eps=self.eps, kernel=self.kernel,
-                              sve_result=sve_result)
+                              kernel=self.kernel, sve_result=sve_result)
 
     @property
     def statistics(self):
@@ -251,15 +250,6 @@ class FiniteTempBasis:
             raise RuntimeError("u must be defined in the reduced variable.")
 
         self._sve_result = sve_result
-
-        # HACK: Determine eps estimate from singular values and set it slightly
-        # larger but close to s_lmax / s_0, if it is not set. This might lead
-        # to different basis sizes/inconsistencies.
-        if eps is None:
-            eps = s[-1] / s[0]
-            pwr = np.round(np.log10(eps))
-            eps = np.floor(eps * 10**(-pwr+1)) * 10**(pwr-1)
-
         self._statistics = statistics
         self._beta = beta
         self._accuracy = s[-1] / s[0]
@@ -294,8 +284,7 @@ class FiniteTempBasis:
         u, s, v = self.sve_result
         sve_result = u[index], s[index], v[index]
         return self.__class__(self.statistics, self.beta, self.wmax,
-                              eps=self.eps, kernel=self.kernel,
-                              sve_result=sve_result)
+                              kernel=self.kernel, sve_result=sve_result)
 
     @property
     def statistics(self):
@@ -365,8 +354,8 @@ def finite_temp_bases(
     """
     if sve_result is None:
         sve_result = sve.compute(_kernel.LogisticKernel(beta*wmax), eps)
-    basis_f = FiniteTempBasis("F", beta, wmax, eps=eps, sve_result=sve_result)
-    basis_b = FiniteTempBasis("B", beta, wmax, eps=eps, sve_result=sve_result)
+    basis_f = FiniteTempBasis("F", beta, wmax, eps, sve_result=sve_result)
+    basis_b = FiniteTempBasis("B", beta, wmax, eps, sve_result=sve_result)
     return basis_f, basis_b
 
 
