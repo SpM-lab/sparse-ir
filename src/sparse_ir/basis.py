@@ -93,7 +93,7 @@ class IRBasis:
         if eps is None:
             eps = s[-1] / s[0]
             pwr = np.round(np.log10(eps))
-            eps = np.ceil(eps * 10**(-pwr+1)) * 10**(pwr-1)
+            eps = np.floor(eps * 10**(-pwr+1)) * 10**(pwr-1)
 
         self._statistics = statistics
         self._eps = eps
@@ -266,7 +266,7 @@ class FiniteTempBasis:
         if eps is None:
             eps = s[-1] / s[0]
             pwr = np.round(np.log10(eps))
-            eps = np.ceil(eps * 10**(-pwr+1)) * 10**(pwr-1)
+            eps = np.floor(eps * 10**(-pwr+1)) * 10**(pwr-1)
 
         self._statistics = statistics
         self._beta = beta
