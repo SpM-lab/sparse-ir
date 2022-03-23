@@ -96,7 +96,7 @@ class IRBasis:
         roots_ = v[-1].roots()
         self.sampling_points_v = np.hstack(
             (v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), v.xmax))
-        self.statistics = statistics
+        self._statistics = statistics
 
     def __getitem__(self, index):
         """Return basis functions/singular values for given index/indices.
@@ -230,11 +230,6 @@ class FiniteTempBasis:
             if u.shape != s.shape or s.shape != v.shape:
                 raise ValueError("mismatched shapes in SVE")
 
-        self.sve_result = u, s, v
-        self.statistics = statistics
-        self.beta = beta
-
-<<<<<<< HEAD
         self._sve_result = sve_result
         self._statistics = statistics
         self._beta = beta
@@ -295,6 +290,10 @@ class FiniteTempBasis:
     def wmax(self):
         """Cutoff in real frequency."""
         return self.kernel.lambda_ / self.beta
+
+    @property
+    def sve_result(self):
+        return self._sve_result
 
     @property
     def size(self):
