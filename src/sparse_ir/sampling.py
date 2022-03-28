@@ -87,7 +87,8 @@ class MatsubaraSampling(SamplingBase):
 
     @classmethod
     def eval_matrix(cls, basis, x):
-        return basis.uhat(x).T
+        x_unique, x_where = np.unique(x, return_inverse=True)
+        return (basis.uhat(x_unique)[:, x_where]).T
 
     @property
     def wn(self):
