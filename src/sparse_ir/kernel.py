@@ -71,7 +71,7 @@ class KernelBase:
         """Return symmetrized kernel ``K(x, y) + sign * K(x, -y)``.
 
         By default, this returns a simple wrapper over the current instance
-        which naively performs the sum.  You may want to override this to 
+        which naively performs the sum.  You may want to override this to
         avoid cancellation.
         """
         return ReducedKernel(self, sign)
