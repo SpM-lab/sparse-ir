@@ -249,6 +249,13 @@ class PiecewiseLegendreFT:
 
     def __call__(self, n):
         """Obtain Fourier transform of polynomial for given frequencies"""
+        # Evaluate only on unique frequencies
+        n_unique, n_where = np.unique(n.ravel(), return_inverse=True)
+        result_flat = self._call_impl(n_unique)[..., n_where]
+        return result_flat.reshape(self.poly.shape + n.shape)
+
+    def _call_impl(self, n):
+        """Obtain Fourier transform of polynomial for given frequencies"""
         n = check_reduced_matsubara(n, self.zeta)
         n_flat = n.ravel()
         result_flat = _compute_unl_inner(self.poly, n_flat)
