@@ -33,17 +33,12 @@ class Rule:
 
     def reseat(self, a, b):
         """Reseat current quadrature rule to new domain"""
-        if self.a != -1 or self.b != 1:
-            raise NotImplementedError("only supporting unscaled for now")
-
-        extent = 0.5 * (b - a)
-        midpoint = 0.5 * (b + a)
-        x_new = extent * self.x
-        x_new += midpoint
-        x_forward = extent * self.x_forward
-        x_backward = extent * self.x_backward
-        w_new = extent * self.w
-        return Rule(x_new, w_new, x_forward, x_backward, a, b)
+        scaling = (b - a) / (self.b - self.a)
+        x = (self.x - self.a) * scaling + a
+        w = self.w * scaling
+        x_forward = self.x_forward * scaling
+        x_backward = self.x_backward * scaling
+        return Rule(x, w, x_forward, x_backward, a, b)
 
     def scale(self, factor):
         """Scale weights by factor"""

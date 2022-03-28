@@ -51,9 +51,9 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
 
     Return tuple ``(u, s, v)``, where:
 
-     - ``u`` is a ``PiecewisePoly`` instance holding the left singular functions
+     - ``u`` is a ``PiecewiseLegendrePoly`` instance holding the left singular functions
      - ``s`` is a vector of singular values
-     - ``v`` is a ``PiecewisePoly`` instance holding the right singular functions
+     - ``v`` is a ``PiecewiseLegendrePoly`` instance holding the right singular functions
     """
     if eps is None or work_dtype is None or svd_strat is None:
         eps, work_dtype, default_svd_strat = _choose_accuracy(eps, work_dtype)
@@ -294,8 +294,7 @@ def truncate(u, s, v, rtol=0, lmax=None):
         cutoff = max(cutoff, ssort[sall.size - lmax - 1])
 
     # Determine how many singular values survive in each group
-    swhich = np.repeat(np.arange(len(s)), [si.size for si in s])
-    scount = np.bincount(swhich, sall > cutoff, minlength=len(s)).astype(int)
+    scount = [np.count_nonzero(si > cutoff) for si in s]
 
     u_cut = [ui[:, :counti] for (ui, counti) in zip(u, scount)]
     s_cut = [si[:counti] for (si, counti) in zip(s, scount)]

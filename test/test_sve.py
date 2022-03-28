@@ -5,8 +5,6 @@ import sparse_ir
 
 import pytest
 
-BASES = [('F', 10), ('F', 42, 'F', 10_000)]
-
 
 def _check_smooth(u, s, uscale, fudge_factor):
     eps = np.finfo(s.dtype).eps
