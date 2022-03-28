@@ -33,7 +33,7 @@ def test_accuracy(K):
                     K, gauss_x.astype(dtype_x), gauss_y.astype(dtype_x))
     magn = np.abs(result_x).max()
     np.testing.assert_allclose(result, result_x, atol = 2 * magn * eps, rtol=0,
-                               err_msg="absolute precision tool poor")
+                               err_msg="absolute precision too poor")
 
     with np.errstate(invalid='ignore'):
         reldiff = np.where(np.abs(result_x) < tiny, 1, result / result_x)

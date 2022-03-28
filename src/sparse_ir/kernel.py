@@ -71,8 +71,8 @@ class KernelBase:
         """Return symmetrized kernel ``K(x, y) + sign * K(x, -y)``.
 
         By default, this returns a simple wrapper over the current instance
-        which naively performs the sum.  You may want to override if this
-        to avoid cancellation.
+        which naively performs the sum.  You may want to override this to
+        avoid cancellation.
         """
         return ReducedKernel(self, sign)
 
@@ -113,7 +113,7 @@ class SVEHintsBase:
 
     @property
     def segments_y(self):
-        """Segments for piecewise polynomials on the ``x`` axis.
+        """Segments for piecewise polynomials on the ``y`` axis.
 
         List of segments on the ``y`` axis for the associated piecewise
         polynomial.  Should reflect the approximate position of roots of a
@@ -131,7 +131,7 @@ class SVEHintsBase:
         """Upper bound for number of singular values
 
         Upper bound on the number of singular values above the given
-        threshold, i.e., where ``s[l] >= eps * s[0]```
+        threshold, i.e., where ``s[l] >= eps * s[0]``.
         """
         raise NotImplementedError()
 
@@ -147,11 +147,16 @@ class LogisticKernel(KernelBase):
     LogisticKernel is a fermionic analytic continuation kernel.
     Nevertheless, one can model the τ dependence of
     a bosonic correlation function as follows:
+
         ∫ exp(-Λ * y * (x + 1)/2) / (1 - exp(-Λ*y)) ρ(y) dy
         = ∫ K(x, y) ρ'(y) dy,
+
     with
+
         ρ'(y) == w(y) * ρ(y),
+
     where the weight function is given by
+
         w(y) = 1/tanh(Λ*y/2).
     """
     def __init__(self, lambda_):
@@ -322,7 +327,7 @@ class _SVEHintsRegularizedBose(SVEHintsBase):
     @property
     def segments_x(self):
         # Somewhat less accurate ...
-        nzeros = 15 * np.log10(self.kernel.lambda_)
+        nzeros = max(int(np.round(15 * np.log10(self.kernel.lambda_))), 15)
         diffs = 1./np.cosh(.18 * np.arange(nzeros))
         zeros_pos = diffs.cumsum()
         zeros_pos /= zeros_pos[-1]
@@ -354,7 +359,7 @@ class _SVEHintsRegularizedBose(SVEHintsBase):
 class ReducedKernel(KernelBase):
     """Restriction of centrosymmetric kernel to positive interval.
 
-    For a kernel ``K`` on ``[-1, 1] x [-1, 1]`` that is centrosymmetrix, i.e.,
+    For a kernel ``K`` on ``[-1, 1] x [-1, 1]`` that is centrosymmetric, i.e.
     ``K(x, y) == K(-x, -y)``, it is straight-forward to show that the left/right
     singular vectors can be chosen as either odd or even functions.
 
