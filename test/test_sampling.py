@@ -96,14 +96,3 @@ def test_wn_noise(sve_logistic, stat, lambda_):
     Giw_n = Giw +  noise * np.linalg.norm(Giw) * rng.randn(*Giw.shape)
     Gl_n = smpl.fit(Giw_n)
     np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
-
-
-def test_duplicate_index():
-    beta = 1.0
-    wmax = 10.0
-    eps = 1e-4
-    basis = sparse_ir.FiniteTempBasis("F", beta, wmax, eps)
-    mat = sparse_ir.MatsubaraSampling.eval_matrix(basis, np.array([1, 3, 3, 1, -1]))
-    mat2 = sparse_ir.MatsubaraSampling.eval_matrix(basis, np.array([1, 3, -1]))
-    idx = np.array([0, 1, 1, 0, 2])
-    np.testing.assert_array_equal(mat, mat2[idx,:])

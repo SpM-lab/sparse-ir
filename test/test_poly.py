@@ -74,3 +74,14 @@ def test_overlap(sve_logistic, lambda_, atol):
 
     ref = (np.arange(s.size) == 0).astype(float)
     np.testing.assert_allclose(u.overlap(u[0]), ref, rtol=0, atol=atol)
+
+
+def test_eval_unique(sve_logistic):
+    u, s, v = sve_logistic[42]
+    uhat = u.hat("odd")
+
+    # evaluate
+    res1 = uhat(np.array([1, 3, 3, 1]))
+    idx = np.array([0, 1, 1, 0])
+    res2 = uhat(np.array([1,3]))[:,idx]
+    np.testing.assert_array_equal(res1, res2)
