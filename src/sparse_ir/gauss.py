@@ -34,7 +34,7 @@ class Rule:
     def reseat(self, a, b):
         """Reseat current quadrature rule to new domain"""
         scaling = (b - a) / (self.b - self.a)
-        x = (self.x - self.a) * scaling + a
+        x = scaling * (self.x - (self.b + self.a)/2) + (b + a)/2
         w = self.w * scaling
         x_forward = self.x_forward * scaling
         x_backward = self.x_backward * scaling
