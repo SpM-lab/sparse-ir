@@ -3,10 +3,10 @@ from .sampling import TauSampling, MatsubaraSampling
 
 
 class FiniteTempBasisSet:
-    """Class for holding IR bases and sparse-sampling objects
+    """Class for holding IR bases and sparse-sampling objects.
 
-    An object of this class holds IR bases for fermion and bosons
-    and associated sparse-sampling objects
+    An object of this class holds IR bases for fermions and bosons
+    and associated sparse-sampling objects.
 
     Attributes:
         basis_f (FiniteTempBasis):

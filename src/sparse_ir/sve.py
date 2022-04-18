@@ -15,7 +15,7 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
             sve_strat=None, svd_strat=None):
     """Perform truncated singular value expansion of a kernel.
 
-    Perform a truncated singular value expansion (SVE) of a integral
+    Perform a truncated singular value expansion (SVE) of an integral
     kernel ``K : [xmin, xmax] x [ymin, ymax] -> R``:
 
         K(x, y) == sum(s[l] * u[l](x) * v[l](y) for l in (0, 1, 2, ...)),
@@ -23,7 +23,7 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
     where ``s[l]`` are the singular values, which are ordered in non-increasing
     fashion, ``u[l](x)`` are the left singular functions, which form an
     orthonormal system on ``[xmin, xmax]``, and ``v[l](y)`` are the right
-    singular functions, which for an orthonormal system on ``[ymin, ymax]``
+    singular functions, which form an orthonormal system on ``[ymin, ymax]``.
 
     The SVE is mapped onto the singular value decomposition (SVD) of a matrix
     by expanding the kernel in piecewise Legendre polynomials (by default by
@@ -32,19 +32,19 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
     Arguments:
 
       - ``K``: Integral kernel to take SVE from
-      - ``eps``:  Relative cutoff for the singular values.  Defaults to double
+      - ``eps``:  Relative cutoff for the singular values. Defaults to double
         precision (2.2e-16) if the xprec package is available, and 1.5e-8
         otherwise.
-      - ``n_sv``: Maximum basis size.  If given, only at most the ``n_sv`` most
+      - ``n_sv``: Maximum basis size. If given, only at most the ``n_sv`` most
         significant singular values and associated singular functions are
         returned.
-      - ``n_gauss``: Order of Legendre polynomials.  Defaults to hinted value
+      - ``n_gauss``: Order of Legendre polynomials. Defaults to hinted value
         by the kernel.
       - ``dtype``: Data type of the result.
-      - ``work_dtype``: Working data type.  Defaults to a data type with
+      - ``work_dtype``: Working data type. Defaults to a data type with
         machine epsilon of at least ``eps**2``, or otherwise most accurate data
         type available.
-      - ``sve_strat``: SVE to SVD translation strategy.  Defaults to SamplingSVE.
+      - ``sve_strat``: SVE to SVD translation strategy. Defaults to SamplingSVE.
       - ``svd_strat``: SVD solver. Defaults to fast (ID/RRQR) based solution
          when accuracy goals are moderate, and more accurate Jacobi-based
          algorithm otherwise.

@@ -75,7 +75,7 @@ def test_tau_noise(sve_logistic, stat, lambda_):
     Gtau = smpl.evaluate(Gl)
 
     noise = 1e-5
-    Gtau_n = Gtau +  noise * np.linalg.norm(Gtau) * rng.randn(*Gtau.shape)
+    Gtau_n = Gtau + noise * np.linalg.norm(Gtau) * rng.randn(*Gtau.shape)
     Gl_n = smpl.fit(Gtau_n)
 
     np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
