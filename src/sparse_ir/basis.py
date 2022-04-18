@@ -172,7 +172,7 @@ class IRBasis:
 class FiniteTempBasis:
     """Intermediate representation (IR) basis for given temperature.
 
-    For a continuation kernel from real frequencies, ω ∈ [-wmax, wmax], to
+    For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
     imaginary time, τ ∈ [0, beta], this class stores the truncated singular
     value expansion or IR basis::
 
@@ -214,7 +214,7 @@ class FiniteTempBasis:
             function, a slice or a subset `l`, you can use ``uhat[l]``.
 
         s:
-            vector of singular values of the continuation kernel
+            Vector of singular values of the continuation kernel
 
         v (sparse_ir.poly.PiecewiseLegendrePoly):
             Set of IR basis functions on the real frequency (`w`) axis.

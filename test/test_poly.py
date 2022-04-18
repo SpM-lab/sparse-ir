@@ -35,9 +35,9 @@ def test_eval(sve_logistic):
     l = s.size
 
     # evaluate
-    np.testing.assert_array_almost_equal_nulp(
+    np.testing.assert_array_equal(
             u(0.4), [u[i](0.4) for i in range(l)])
-    np.testing.assert_array_almost_equal_nulp(
+    np.testing.assert_array_equal(
             u([0.4, -0.2]),
             [[u[i](x) for x in (0.4, -0.2)] for i in range(l)])
 
@@ -47,7 +47,7 @@ def test_broadcast(sve_logistic):
 
     x = [0.3, 0.5]
     l = [2, 7]
-    np.testing.assert_array_almost_equal_nulp(
+    np.testing.assert_array_equal(
             u.value(l, x), [u[ll](xx) for (ll, xx) in zip(l, x)])
 
 
@@ -59,7 +59,7 @@ def test_matrix_hat(sve_logistic):
     result = uhat(n.reshape(3, 2))
     result_iter = uhat(n).reshape(-1, 3, 2)
     assert result.shape == result_iter.shape
-    np.testing.assert_array_almost_equal_nulp(result, result_iter)
+    np.testing.assert_array_equal(result, result_iter)
 
 
 @pytest.mark.parametrize("lambda_, atol", [(42, 1e-13), (1E+4, 1e-13)])
@@ -68,7 +68,6 @@ def test_overlap(sve_logistic, lambda_, atol):
 
     # Keep only even number of polynomials
     u, s, v = u[:2*(s.size//2)], s[:2*(s.size//2)], v[:2*(s.size//2)]
-    npoly = s.size
 
     np.testing.assert_allclose(u[0].overlap(u[0]), 1, rtol=0, atol=atol)
 

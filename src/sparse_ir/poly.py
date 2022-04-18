@@ -222,7 +222,7 @@ class PiecewiseLegendreFT:
     _DEFAULT_GRID = np.hstack([np.arange(2**6),
                         (2**np.linspace(6, 25, 16*(25-6)+1)).astype(int)])
 
-    def __init__(self, poly, freq='even', n_asymp=None):
+    def __init__(self, poly, freq='even', n_asymp=None, power_model=None):
         if poly.xmin != -1 or poly.xmax != 1:
             raise NotImplementedError("Only interval [-1, 1] supported")
         self.poly = poly
@@ -233,7 +233,10 @@ class PiecewiseLegendreFT:
             self._model = None
         else:
             self.n_asymp = n_asymp
-            self._model = _power_model(freq, poly)
+            if power_model is None:
+                self._model = _power_model(freq, poly)
+            else:
+                self._model = power_model
 
     @property
     def shape(self): return self.poly.shape
@@ -245,7 +248,8 @@ class PiecewiseLegendreFT:
     def ndim(self): return self.poly.ndim
 
     def __getitem__(self, l):
-        return self.__class__(self.poly[l], self.freq, self.n_asymp)
+        model = self._model if self._model is None else self._model[l]
+        return self.__class__(self.poly[l], self.freq, self.n_asymp, model)
 
     def __call__(self, n):
         """Obtain Fourier transform of polynomial for given frequencies"""
@@ -260,7 +264,7 @@ class PiecewiseLegendreFT:
         n_flat = n.ravel()
         result_flat = _compute_unl_inner(self.poly, n_flat)
 
-        # We use use the asymptotics at frequencies larger than conv_radius
+        # We use the asymptotics at frequencies larger than conv_radius
         # since it has lower relative error.
         cond_outer = np.abs(n_flat) >= self.n_asymp
         if cond_outer.any():
@@ -277,7 +281,7 @@ class PiecewiseLegendreFT:
             grid = self._DEFAULT_GRID
 
         f = self._func_for_part(part)
-        x0 = _roots.discrete_extrema(f, PiecewiseLegendreFT._DEFAULT_GRID)
+        x0 = _roots.discrete_extrema(f, grid)
         x0 = 2 * x0 + self.zeta
         return _symmetrize_matsubara(x0)
 
@@ -420,6 +424,8 @@ class _PowerModel:
     """
     def __init__(self, moments):
         """Initialize model"""
+        if moments.ndim == 1:
+            moments = moments[:, None]
         self.moments = np.asarray(moments)
         self.nmom, self.nl = self.moments.shape
 
@@ -438,6 +444,9 @@ class _PowerModel:
         """Return model Green's function for reduced frequencies"""
         wn = check_reduced_matsubara(wn)
         return self._giw_ravel(wn.ravel()).reshape(wn.shape + (self.nl,))
+
+    def __getitem__(self, l):
+        return self.__class__(self.moments[:,l])
 
 
 def _derivs(ppoly, x):

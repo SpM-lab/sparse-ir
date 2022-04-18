@@ -22,7 +22,7 @@ results computed by using unl.
 def test_single_pole(sve_logistic, stat, lambda_):
     wmax = 1.0
     pole = 0.1 * wmax
-    beta = lambda_/wmax
+    beta = lambda_ / wmax
     sve_result = sve_logistic[lambda_]
     basis = FiniteTempBasis(stat, beta, wmax, eps, sve_result=sve_result)
 
