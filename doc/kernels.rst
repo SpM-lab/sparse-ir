@@ -51,13 +51,13 @@ library expects a kernel ``K`` to be able to provide two things:
 
 Let us suppose you simply want to include a Gaussian default model on the real
 axis instead of the default (flat) one.  We create a new kernel by inheriting
-from :class:`sparse_ir.kernel.KernelBase` and then simply wrap around a
+from :class:`sparse_ir.kernel.AbstractKernel` and then simply wrap around a
 fermionic kernel, modifying the values as needed::
 
     import sparse_ir
     import sparse_ir.kernel
 
-    class KernelFGauss(sparse_ir.kernel.KernelBase):
+    class KernelFGauss(sparse_ir.kernel.AbstractKernel):
         def __init__(self, lambda_, std):
             self._inner = sparse_ir.LaplaceKernel(lambda_)
             self.lambda_ = lambda_
@@ -99,7 +99,7 @@ you should:
 
 Base classes
 ------------
-.. autoclass:: sparse_ir.kernel.KernelBase
+.. autoclass:: sparse_ir.kernel.AbstractKernel
     :members:
     :special-members: __call__
 

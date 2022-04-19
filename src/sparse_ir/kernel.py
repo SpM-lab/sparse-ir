@@ -5,7 +5,7 @@ from warnings import warn
 from typing import Callable
 
 
-class KernelBase:
+class AbstractKernel:
     """Integral kernel ``K(x, y)``.
 
     Abstract base class for an integral kernel, i.e., a real binary function
@@ -136,7 +136,7 @@ class SVEHintsBase:
         raise NotImplementedError()
 
 
-class LogisticKernel(KernelBase):
+class LogisticKernel(AbstractKernel):
     """Fermionic/bosonic analytical continuation kernel.
 
     In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``,
@@ -251,7 +251,7 @@ class _SVEHintsLogistic(SVEHintsBase):
         return int(np.round((25 + log10_lambda) * log10_lambda))
 
 
-class RegularizedBoseKernel(KernelBase):
+class RegularizedBoseKernel(AbstractKernel):
     """Regularized bosonic analytical continuation kernel.
 
     In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
@@ -356,7 +356,7 @@ class _SVEHintsRegularizedBose(SVEHintsBase):
         return int(28 * log10_lambda)
 
 
-class ReducedKernel(KernelBase):
+class ReducedKernel(AbstractKernel):
     """Restriction of centrosymmetric kernel to positive interval.
 
     For a kernel ``K`` on ``[-1, 1] x [-1, 1]`` that is centrosymmetric, i.e.
