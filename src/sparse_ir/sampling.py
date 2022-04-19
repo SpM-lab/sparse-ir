@@ -4,7 +4,7 @@ import numpy as np
 from warnings import warn
 
 
-class SamplingBase:
+class AbstractSampling:
     """Base class for sparse sampling.
 
     Encodes the "basis transformation" of a propagator from the truncated IR
@@ -53,7 +53,7 @@ class SamplingBase:
         raise NotImplementedError()
 
 
-class TauSampling(SamplingBase):
+class TauSampling(AbstractSampling):
     """Sparse sampling in imaginary time.
 
     Allows the transformation between the IR basis and a set of sampling points
@@ -74,7 +74,7 @@ class TauSampling(SamplingBase):
         return self.sampling_points
 
 
-class MatsubaraSampling(SamplingBase):
+class MatsubaraSampling(AbstractSampling):
     """Sparse sampling in Matsubara frequencies.
 
     Allows the transformation between the IR basis and a set of sampling points
