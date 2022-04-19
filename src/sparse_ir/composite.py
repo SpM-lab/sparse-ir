@@ -3,7 +3,7 @@
 import numpy as np
 
 
-class _CompositeBasisFunctionBase:
+class _AbstractCompositeBasisFunction:
     """Union of several basis functions"""
     def __init__(self, polys):
         self._polys = tuple(polys)
@@ -31,7 +31,7 @@ class _CompositeBasisFunctionBase:
     def size(self): return self._size
 
 
-class CompositeBasisFunction(_CompositeBasisFunctionBase):
+class CompositeBasisFunction(_AbstractCompositeBasisFunction):
     """Union of several basis functions for the imaginary-time/real-frequency
     domains"""
     def __init__(self, polys):
@@ -72,7 +72,7 @@ class CompositeBasisFunction(_CompositeBasisFunctionBase):
         #return np.unique(np.hstack([p.roots(alpha) for p in self._polys]))
 
 
-class CompositeBasisFunctionFT(_CompositeBasisFunctionBase):
+class CompositeBasisFunctionFT(_AbstractCompositeBasisFunction):
     """Union of fourier transform of several basis functions for the
     Matsubara domain"""
     def __init__(self, polys):
