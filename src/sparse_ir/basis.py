@@ -8,7 +8,7 @@ from . import kernel as _kernel
 from . import sve
 
 
-class IRBasis:
+class DimensionlessBasis:
     """Intermediate representation (IR) basis in reduced variables.
 
     For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
@@ -27,7 +27,7 @@ class IRBasis:
 
             # Compute IR basis suitable for fermions and β*W <= 42
             import sparse_ir
-            basis = sparse_ir.IRBasis(statistics='F', lambda_=42)
+            basis = sparse_ir.DimensionlessBasis(statistics='F', lambda_=42)
 
             # Assume spectrum is a single pole at x = 0.2, compute G(iw)
             # on the first few Matsubara frequencies

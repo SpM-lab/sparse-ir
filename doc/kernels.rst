@@ -20,7 +20,7 @@ defines two kernels:
    with w(ω)=1/ω.
 
 By default, :class:`sparse_ir.LogisticKernel` is used.
-Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
+Kernels can be fed directly into :class:`sparse_ir.DimensionlessBasis` or
 :class:`sparse_ir.FiniteTempBasis` to get the intermediate representation.
 
 .. _singular value expansion: https://w.wiki/3poQ
@@ -73,10 +73,10 @@ fermionic kernel, modifying the values as needed::
         def hints(self, eps):
             return self._inner.hints(eps)
 
-You can feed this kernel now directly to :class:`sparse_ir.IRBasis`::
+You can feed this kernel now directly to :class:`sparse_ir.DimensionlessBasis`::
 
     K = GaussFKernel(10., 1.)
-    basis = sparse_ir.IRBasis(K, 'F')
+    basis = sparse_ir.DimensionlessBasis(K, 'F')
     print(basis.s)
 
 This should get you started.  For a fully-fledged and robust implementation,
