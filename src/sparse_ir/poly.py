@@ -495,7 +495,7 @@ def _symmetrize_matsubara(x0):
 
 def _compute_overlap(poly, f, rtol=2.3e-16, radix=2, max_refine_levels=40,
                      max_refine_points=2000):
-    base_rule = gauss.kronrod_21()
+    base_rule = gauss.kronrod_31_15()
     xstart = poly.knots[:-1]
     xstop = poly.knots[1:]
 
