@@ -10,7 +10,7 @@ intermediate representation of correlation functions.  It provides:
 
 Installation
 ------------
-Install via `pip <https://pip.pypa.io/en/stable/getting-started>`_::
+Install via `pip <https://pypi.org/project/sparse-ir>`_::
 
     pip install sparse-ir[xprec]
 
