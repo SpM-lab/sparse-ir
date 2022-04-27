@@ -5,6 +5,7 @@ import numpy as np
 from warnings import warn
 
 from . import kernel as _kernel
+from . import poly
 from . import sve
 
 
@@ -193,16 +194,16 @@ class DimensionlessBasis(AbstractBasis):
     def statistics(self): return self._statistics
 
     @property
-    def u(self): return self._u
+    def u(self) -> poly.PiecewiseLegendrePoly: return self._u
 
     @property
-    def uhat(self): return self._uhat
+    def uhat(self) -> poly.PiecewiseLegendreFT: return self._uhat
 
     @property
-    def s(self): return self._s
+    def s(self) -> np.ndarray: return self._s
 
     @property
-    def v(self): return self._v
+    def v(self) -> poly.PiecewiseLegendrePoly: return self._v
 
     @property
     def kernel(self): return self._kernel
@@ -243,36 +244,6 @@ class FiniteTempBasis(AbstractBasis):
             # on the first few Matsubara frequencies
             gl = basis.s * basis.v(2.5)
             giw = gl @ basis.uhat([1, 3, 5, 7])
-
-    Attributes:
-        u (sparse_ir.poly.PiecewiseLegendrePoly):
-            Set of IR basis functions on the imaginary time (`tau`) axis.
-            These functions are stored as piecewise Legendre polynomials.
-
-            To obtain the value of all basis functions at a point or a array of
-            points `x`, you can call the function ``u(x)``.  To obtain a single
-            basis function, a slice or a subset `l`, you can use ``u[l]``.
-
-        uhat (sparse_ir.poly.PiecewiseLegendreFT):
-            Set of IR basis functions on the Matsubara frequency (`wn`) axis.
-            These objects are stored as a set of Bessel functions.
-
-            To obtain the value of all basis functions at a Matsubara frequency
-            or a array of points `wn`, you can call the function ``uhat(wn)``.
-            Note that we expect reduced frequencies, which are simply even/odd
-            numbers for bosonic/fermionic objects. To obtain a single basis
-            function, a slice or a subset `l`, you can use ``uhat[l]``.
-
-        s:
-            Vector of singular values of the continuation kernel
-
-        v (sparse_ir.poly.PiecewiseLegendrePoly):
-            Set of IR basis functions on the real frequency (`w`) axis.
-            These functions are stored as piecewise Legendre polynomials.
-
-            To obtain the value of all basis functions at a point or a array of
-            points `w`, you can call the function ``v(w)``.  To obtain a single
-            basis function, a slice or a subset `l`, you can use ``v[l]``.
     """
     def __init__(self, statistics, beta, wmax, eps=None, *, kernel=None,
                  sve_result=None):
@@ -341,16 +312,16 @@ class FiniteTempBasis(AbstractBasis):
     def wmax(self): return self._wmax
 
     @property
-    def u(self): return self._u
+    def u(self) -> poly.PiecewiseLegendrePoly: return self._u
 
     @property
-    def uhat(self): return self._uhat
+    def uhat(self) -> poly.PiecewiseLegendreFT: return self._uhat
 
     @property
-    def s(self): return self._s
+    def s(self) -> np.ndarray: return self._s
 
     @property
-    def v(self): return self._v
+    def v(self) -> poly.PiecewiseLegendrePoly: return self._v
 
     @property
     def kernel(self): return self._kernel
