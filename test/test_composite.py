@@ -81,7 +81,6 @@ def test_augmented_bosonic_basis():
     np.testing.assert_allclose(gtau_reconst, gtau, atol=1e-15 * magn, rtol=0)
 
 
-
 @pytest.mark.parametrize("stat", ["F", "B"])
 def test_vertex_basis(stat):
     """Vertex basis"""
