@@ -3,7 +3,7 @@
 from warnings import warn
 import numpy as np
 
-from . import gauss
+from . import _gauss
 from . import poly
 from . import svd
 from . import kernel
@@ -125,7 +125,7 @@ class SamplingSVE(AbstractSVE):
         self.eps = eps
         self.n_gauss = n_gauss
         self.nsvals_hint = sve_hints.nsvals
-        self._rule = gauss.legendre(n_gauss, dtype)
+        self._rule = _gauss.legendre(n_gauss, dtype)
         self._segs_x = sve_hints.segments_x.astype(dtype)
         self._segs_y = sve_hints.segments_y.astype(dtype)
         self._gauss_x = self._rule.piecewise(self._segs_x)
@@ -151,7 +151,7 @@ class SamplingSVE(AbstractSVE):
         u_x = u_x.reshape(self._segs_x.size - 1, self.n_gauss, s.size)
         v_y = v_y.reshape(self._segs_y.size - 1, self.n_gauss, s.size)
 
-        cmat = gauss.legendre_collocation(self._rule)
+        cmat = _gauss.legendre_collocation(self._rule)
         # lx,ixs -> ils -> lis
         u_data = (cmat @ u_x).transpose(1, 0, 2)
         v_data = (cmat @ v_y).transpose(1, 0, 2)

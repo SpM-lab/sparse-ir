@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from sparse_ir import kernel
-from sparse_ir import gauss
+from sparse_ir import _gauss
 
 KERNELS = [
     kernel.LogisticKernel(9),
@@ -21,7 +21,7 @@ def test_accuracy(K):
     dtype = np.float32
     dtype_x = np.float64
 
-    rule = gauss.legendre(10, dtype)
+    rule = _gauss.legendre(10, dtype)
     hints = K.sve_hints(2.2e-16)
     gauss_x = rule.piecewise(hints.segments_x)
     gauss_y = rule.piecewise(hints.segments_y)
