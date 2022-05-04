@@ -29,8 +29,7 @@ Install via `conda <https://anaconda.org/spm-lab/sparse-ir>`_::
 
 Quick start
 -----------
-Please refer to the `online documentation <https://sparse-ir.readthedocs.io>`_
-for more details.
+Check out our comprehensive `tutorial <https://SpM-lab.github.io/sparse-ir-tutorial>`_!
 
 Here is some python code illustrating the API::
 
@@ -65,6 +64,9 @@ imaginary (Euclidean) time ``tau``, together with a "coupling" strength
 By this construction, the imaginary time basis can be shown to be *optimal* in
 terms of compactness.
 
+Refer to the `online documentation`_ for more details.
+
+.. _online documentation: https://sparse-ir.readthedocs.io
 .. _intermediate representation: https://arxiv.org/abs/2106.12685
 .. _singular value expansion: https://w.wiki/3poQ
 
