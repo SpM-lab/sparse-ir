@@ -20,7 +20,7 @@ defines two kernels:
    with w(ω)=1/ω.
 
 By default, :class:`sparse_ir.LogisticKernel` is used.
-Kernels can be fed directly into :class:`sparse_ir.IRBasis` or
+Kernels can be fed directly into :class:`sparse_ir.DimensionlessBasis` or
 :class:`sparse_ir.FiniteTempBasis` to get the intermediate representation.
 
 .. _singular value expansion: https://w.wiki/3poQ
@@ -51,13 +51,13 @@ library expects a kernel ``K`` to be able to provide two things:
 
 Let us suppose you simply want to include a Gaussian default model on the real
 axis instead of the default (flat) one.  We create a new kernel by inheriting
-from :class:`sparse_ir.kernel.KernelBase` and then simply wrap around a
+from :class:`sparse_ir.kernel.AbstractKernel` and then simply wrap around a
 fermionic kernel, modifying the values as needed::
 
     import sparse_ir
     import sparse_ir.kernel
 
-    class KernelFGauss(sparse_ir.kernel.KernelBase):
+    class KernelFGauss(sparse_ir.kernel.AbstractKernel):
         def __init__(self, lambda_, std):
             self._inner = sparse_ir.LaplaceKernel(lambda_)
             self.lambda_ = lambda_
@@ -73,10 +73,10 @@ fermionic kernel, modifying the values as needed::
         def hints(self, eps):
             return self._inner.hints(eps)
 
-You can feed this kernel now directly to :class:`sparse_ir.IRBasis`::
+You can feed this kernel now directly to :class:`sparse_ir.DimensionlessBasis`::
 
     K = GaussFKernel(10., 1.)
-    basis = sparse_ir.IRBasis(K, 'F')
+    basis = sparse_ir.DimensionlessBasis(K, 'F')
     print(basis.s)
 
 This should get you started.  For a fully-fledged and robust implementation,
@@ -99,7 +99,7 @@ you should:
 
 Base classes
 ------------
-.. autoclass:: sparse_ir.kernel.KernelBase
+.. autoclass:: sparse_ir.kernel.AbstractKernel
     :members:
     :special-members: __call__
 
@@ -107,5 +107,5 @@ Base classes
     :members:
     :special-members: __call__
 
-.. autoclass:: sparse_ir.kernel.SVEHintsBase
+.. autoclass:: sparse_ir.kernel.AbstractSVEHints
     :members:

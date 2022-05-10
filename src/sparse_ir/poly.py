@@ -7,7 +7,7 @@ import scipy.special as sp_special
 import scipy.integrate as sp_integrate
 
 from . import _roots
-from . import gauss
+from . import _gauss
 
 try:
     from xprec import ddouble as _ddouble
@@ -495,7 +495,7 @@ def _symmetrize_matsubara(x0):
 
 def _compute_overlap(poly, f, rtol=2.3e-16, radix=2, max_refine_levels=40,
                      max_refine_points=2000):
-    base_rule = gauss.kronrod_21()
+    base_rule = _gauss.kronrod_31_15()
     xstart = poly.knots[:-1]
     xstop = poly.knots[1:]
 

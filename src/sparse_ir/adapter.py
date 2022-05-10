@@ -35,7 +35,8 @@ def load(statistics, Lambda, h5file=None):
              "To squelch this warning, set WARN_ACCURACY to False.")
 
     kernel_type = {"F": LogisticKernel, "B": RegularizedBoseKernel}[statistics]
-    basis = _basis.IRBasis(statistics, float(Lambda), kernel=kernel_type(Lambda))
+    basis = _basis.DimensionlessBasis(statistics, float(Lambda),
+                                      kernel=kernel_type(Lambda))
     return Basis(statistics, Lambda, (basis.u, basis.s, basis.v))
 
 

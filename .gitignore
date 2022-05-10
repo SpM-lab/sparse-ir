@@ -4,9 +4,9 @@
 
 *.pyc
 __pycache__/
-dist/
-build/
 *.egg-info/
+/dist/
+/build/
 
 doc/*build*/
 
@@ -17,3 +17,4 @@ doc/*build*/
 !/.conda/
 !/.dev/
 !/.editorconfig
+!/.readthedocs.yaml

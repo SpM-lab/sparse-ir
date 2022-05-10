@@ -45,7 +45,7 @@ Sparse sampling transformers
 Base classes
 -------------
 
-.. autoclass:: sparse_ir.sampling.SamplingBase
+.. autoclass:: sparse_ir.sampling.AbstractSampling
     :members:
 
 .. autoclass:: sparse_ir.sampling.DecomposedMatrix

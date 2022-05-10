@@ -62,14 +62,23 @@ def test_augmented_bosonic_basis():
 
     # G(tau) = c - e^{-tau*pole}/(1 - e^{-beta*pole})
     pole = 1.0
-    c = 1e-2
+    const = 1e-2
     tau_smpl = sparse_ir.TauSampling(basis_comp)
-    gtau = c - np.exp(-tau_smpl.sampling_points * pole)/(1 - np.exp(-beta * pole))
-    gl_from_tau = tau_smpl.fit(gtau)
+    gtau = const + basis.u(tau_smpl.tau).T @ (-basis.s * basis.v(pole))
+    magn = np.abs(gtau).max()
 
-    gtau_reconst = tau_smpl.evaluate(gl_from_tau)
-    np.testing.assert_allclose(gtau, gtau_reconst,
-                               atol=1e-14 * np.abs(gtau).max(), rtol=0)
+    # This illustrates that "naive" fitting is a problem if the fitting matrix
+    # is not well-conditioned.
+    gl_fit_bad = np.linalg.pinv(tau_smpl.matrix) @ gtau
+    gtau_reconst_bad = tau_smpl.evaluate(gl_fit_bad)
+    assert not np.allclose(gtau_reconst_bad, gtau, atol=1e-13 * magn, rtol=0)
+    np.testing.assert_allclose(gtau_reconst_bad, gtau,
+                               atol=5e-16 * tau_smpl.cond * magn, rtol=0)
+
+    # Now do the fit properly
+    gl_fit = tau_smpl.fit(gtau)
+    gtau_reconst = tau_smpl.evaluate(gl_fit)
+    np.testing.assert_allclose(gtau_reconst, gtau, atol=1e-15 * magn, rtol=0)
 
 
 @pytest.mark.parametrize("stat", ["F", "B"])

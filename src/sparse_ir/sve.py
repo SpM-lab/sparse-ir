@@ -3,7 +3,7 @@
 from warnings import warn
 import numpy as np
 
-from . import gauss
+from . import _gauss
 from . import poly
 from . import svd
 from . import kernel
@@ -68,7 +68,35 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
     return sve.postprocess(u, s, v, dtype)
 
 
-class SamplingSVE:
+class AbstractSVE:
+    """Truncated singular value expansion (SVE) of an integral kernel.
+
+    Given an integral kernel `K`, this provides methods for computing its
+    truncated singular value expansion (SVE), given by::
+
+        K(x, y) == sum(s[l] * u[l](x) * v[l](y) for l in range(L)),
+
+    where `L` is the truncation, `u[l](x)` is the `l`-th left singular
+    function, `s[l]` is the `l`-th singular value, and `v[l](y)` is the `l`-th
+    right singular function.  The left and right singular functions form
+    orthonormal systems on their respective spaces.
+
+    Computing the SVE involves introducing two sets of basis functions on the
+    `x` and `y` axis and then translating the SVE into one or more matrices,
+    the computing the singular value decomposition of those matrices, and
+    finally postprocessing the data.
+    """
+    @property
+    def matrices(self):
+        """SVD problems underlying the SVE."""
+        raise NotImplementedError()
+
+    def postprocess(self, u, s, v, dtype=None):
+        """Constructs the SVE result from the SVD"""
+        raise NotImplementedError()
+
+
+class SamplingSVE(AbstractSVE):
     """SVE to SVD translation by sampling technique [1].
 
     Maps the singular value expansion (SVE) of a kernel ``K`` onto the singular
@@ -97,7 +125,7 @@ class SamplingSVE:
         self.eps = eps
         self.n_gauss = n_gauss
         self.nsvals_hint = sve_hints.nsvals
-        self._rule = gauss.legendre(n_gauss, dtype)
+        self._rule = _gauss.legendre(n_gauss, dtype)
         self._segs_x = sve_hints.segments_x.astype(dtype)
         self._segs_y = sve_hints.segments_y.astype(dtype)
         self._gauss_x = self._rule.piecewise(self._segs_x)
@@ -107,14 +135,12 @@ class SamplingSVE:
 
     @property
     def matrices(self):
-        """SVD problems underlying the SVE."""
         result = kernel.matrix_from_gauss(self.K, self._gauss_x, self._gauss_y)
         result *= self._sqrtw_x[:, None]
         result *= self._sqrtw_y[None, :]
         return result,
 
     def postprocess(self, u, s, v, dtype=None):
-        """Constructs the SVE result from the SVD"""
         if dtype is None:
             dtype = np.result_type(u, s, v)
 
@@ -125,7 +151,7 @@ class SamplingSVE:
         u_x = u_x.reshape(self._segs_x.size - 1, self.n_gauss, s.size)
         v_y = v_y.reshape(self._segs_y.size - 1, self.n_gauss, s.size)
 
-        cmat = gauss.legendre_collocation(self._rule)
+        cmat = _gauss.legendre_collocation(self._rule)
         # lx,ixs -> ils -> lis
         u_data = (cmat @ u_x).transpose(1, 0, 2)
         v_data = (cmat @ v_y).transpose(1, 0, 2)
@@ -144,7 +170,7 @@ class SamplingSVE:
         return ulx, s, vly
 
 
-class CentrosymmSVE:
+class CentrosymmSVE(AbstractSVE):
     """SVE of centrosymmetric kernel in block-diagonal (even/odd) basis.
 
     For a centrosymmetric kernel ``K``, i.e., a kernel satisfying:
@@ -182,14 +208,12 @@ class CentrosymmSVE:
 
     @property
     def matrices(self):
-        """Set of SVD problems underlying the SVE."""
         m, = self.even.matrices
         yield m
         m, = self.odd.matrices
         yield m
 
     def postprocess(self, u, s, v, dtype):
-        """Constructs the SVE result from the SVD"""
         u_even, s_even, v_even = self.even.postprocess(u[0], s[0], v[0], dtype)
         u_odd, s_odd, v_odd = self.odd.postprocess(u[1], s[1], v[1], dtype)
 

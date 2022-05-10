@@ -4,7 +4,7 @@ Intermediate representation (IR) for many-body propagators
 """
 __copyright__ = "2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others"
 __license__ = "MIT"
-__version__ = "0.9.1"
+__version__ = "0.11.0"
 
 min_xprec_version = "1.0"
 
@@ -19,6 +19,6 @@ except ImportError:
 
 from .kernel import RegularizedBoseKernel, LogisticKernel
 from .sve import compute as compute_sve
-from .basis import IRBasis, FiniteTempBasis, finite_temp_bases
+from .basis import DimensionlessBasis, FiniteTempBasis, finite_temp_bases
 from .basis_set import FiniteTempBasisSet
 from .sampling import TauSampling, MatsubaraSampling

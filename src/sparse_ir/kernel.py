@@ -5,7 +5,7 @@ from warnings import warn
 from typing import Callable
 
 
-class KernelBase:
+class AbstractKernel:
     """Integral kernel ``K(x, y)``.
 
     Abstract base class for an integral kernel, i.e., a real binary function
@@ -42,7 +42,7 @@ class KernelBase:
         Advises the SVE routines of discretisation parameters suitable in
         tranforming the (infinite) SVE into an (finite) SVD problem.
 
-        See: :class:``SVEHintsBase``.
+        See: :class:``AbstractSVEHints``.
         """
         raise NotImplementedError()
 
@@ -99,7 +99,7 @@ class KernelBase:
         return lambda x: np.ones_like(x)
 
 
-class SVEHintsBase:
+class AbstractSVEHints:
     """Discretization hints for singular value expansion of a given kernel."""
     @property
     def segments_x(self):
@@ -136,7 +136,7 @@ class SVEHintsBase:
         raise NotImplementedError()
 
 
-class LogisticKernel(KernelBase):
+class LogisticKernel(AbstractKernel):
     """Fermionic/bosonic analytical continuation kernel.
 
     In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``,
@@ -211,7 +211,7 @@ class LogisticKernel(KernelBase):
             return lambda y: 1/np.tanh(0.5*self.lambda_*y)
 
 
-class _SVEHintsLogistic(SVEHintsBase):
+class _SVEHintsLogistic(AbstractSVEHints):
     def __init__(self, kernel, eps):
         self.kernel = kernel
         self.eps = eps
@@ -251,7 +251,7 @@ class _SVEHintsLogistic(SVEHintsBase):
         return int(np.round((25 + log10_lambda) * log10_lambda))
 
 
-class RegularizedBoseKernel(KernelBase):
+class RegularizedBoseKernel(AbstractKernel):
     """Regularized bosonic analytical continuation kernel.
 
     In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
@@ -316,7 +316,7 @@ class RegularizedBoseKernel(KernelBase):
         return lambda y: 1/y
 
 
-class _SVEHintsRegularizedBose(SVEHintsBase):
+class _SVEHintsRegularizedBose(AbstractSVEHints):
     def __init__(self, kernel, eps):
         self.kernel = kernel
         self.eps = eps
@@ -356,7 +356,7 @@ class _SVEHintsRegularizedBose(SVEHintsBase):
         return int(28 * log10_lambda)
 
 
-class ReducedKernel(KernelBase):
+class ReducedKernel(AbstractKernel):
     """Restriction of centrosymmetric kernel to positive interval.
 
     For a kernel ``K`` on ``[-1, 1] x [-1, 1]`` that is centrosymmetric, i.e.
@@ -421,7 +421,7 @@ class ReducedKernel(KernelBase):
     def conv_radius(self): return self.inner.conv_radius
 
 
-class _SVEHintsReduced(SVEHintsBase):
+class _SVEHintsReduced(AbstractSVEHints):
     def __init__(self, inner_hints):
         self.inner_hints = inner_hints
 

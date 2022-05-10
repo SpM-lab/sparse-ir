@@ -5,102 +5,64 @@ import numpy as np
 from warnings import warn
 
 from . import kernel as _kernel
+from . import poly
 from . import sve
 
 
-class IRBasis:
-    """Intermediate representation (IR) basis in reduced variables.
+class AbstractBasis:
+    """Abstract base class for intermediate representation bases."""
+    @property
+    def u(self):
+        """Basis functions on the (reduced) imaginary time axis.
 
-    For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
-    imaginary time, τ ∈ [0, β], this class stores the truncated singular
-    value expansion or IR basis::
+        Set of IR basis functions on the imaginary time (`tau`) or reduced
+        imaginary time (`x`) axis.
 
-        K(x, y) ≈ sum(u[l](x) * s[l] * v[l](y) for l in range(L))
+        To obtain the value of all basis functions at a point or a array of
+        points `x`, you can call the function ``u(x)``.  To obtain a single
+        basis function, a slice or a subset `l`, you can use ``u[l]``.
+        """
+        raise NotImplementedError()
 
-    The functions are given in reduced variables, ``x = 2*τ/β - 1`` and
-    ``y = ω/ωmax``, which scales both sides to the interval ``[-1, 1]``.  The
-    kernel then only depends on a cutoff parameter ``Λ = β * ωmax``.
+    @property
+    def uhat(self):
+        """Basis functions on the reduced Matsubara frequency (`wn`) axis.
 
-    Example:
-        The following example code assumes the spectral function is a single
-        pole at x = 0.2::
+        To obtain the value of all basis functions at a Matsubara frequency
+        or a array of points `wn`, you can call the function ``uhat(wn)``.
+        Note that we expect reduced frequencies, which are simply even/odd
+        numbers for bosonic/fermionic objects. To obtain a single basis
+        function, a slice or a subset `l`, you can use ``uhat[l]``.
+        """
+        raise NotImplementedError()
 
-            # Compute IR basis suitable for fermions and β*W <= 42
-            import sparse_ir
-            basis = sparse_ir.IRBasis(statistics='F', lambda_=42)
+    @property
+    def s(self):
+        """Vector of singular values of the continuation kernel"""
+        raise NotImplementedError()
 
-            # Assume spectrum is a single pole at x = 0.2, compute G(iw)
-            # on the first few Matsubara frequencies
-            gl = basis.s * basis.v(0.2)
-            giw = gl @ basis.uhat([1, 3, 5, 7])
+    @property
+    def v(self):
+        """Basis functions on the (reduced) real frequency axis.
 
-    See also:
-        :class:`FiniteTempBasis` for a basis directly in time/frequency.
+        Set of IR basis functions on the real frequency (`omega`) or reduced
+        real-frequency (`y`) axis.
 
-    Attributes:
-        u (sparse_ir.poly.PiecewiseLegendrePoly):
-            Set of IR basis functions on the reduced imaginary time (`x`) axis.
-            These functions are stored as piecewise Legendre polynomials.
+        To obtain the value of all basis functions at a point or a array of
+        points `y`, you can call the function ``v(y)``.  To obtain a single
+        basis function, a slice or a subset `l`, you can use ``v[l]``.
+        """
+        raise NotImplementedError()
 
-            To obtain the value of all basis functions at a point or a array of
-            points `x`, you can call the function ``u(x)``.  To obtain a single
-            basis function, a slice or a subset `l`, you can use ``u[l]``.
+    @property
+    def statistics(self):
+        """Quantum statistic (`"F"` for fermionic, `"B"` for bosonic)"""
+        raise NotImplementedError()
 
-        uhat (sparse_ir.poly.PiecewiseLegendreFT):
-            Set of IR basis functions on the Matsubara frequency (`wn`) axis.
-            These objects are stored as a set of Bessel functions.
-
-            To obtain the value of all basis functions at a Matsubara frequency
-            or a array of points `wn`, you can call the function ``uhat(wn)``.
-            Note that we expect reduced frequencies, which are simply even/odd
-            numbers for bosonic/fermionic objects. To obtain a single basis
-            function, a slice or a subset `l`, you can use ``uhat[l]``.
-
-        s:
-            vector of singular values of the continuation kernel
-
-        v (sparse_ir.poly.PiecewiseLegendrePoly):
-            Set of IR basis functions on the reduced real frequency (`y`) axis.
-            These functions are stored as piecewise Legendre polynomials.
-
-            To obtain the value of all basis functions at a point or a array of
-            points `y`, you can call the function ``v(y)``.  To obtain a single
-            basis function, a slice or a subset `l`, you can use ``v[l]``.
-    """
-    def __init__(self, statistics, lambda_, eps=None, *, kernel=None,
-                 sve_result=None):
-        if not (lambda_ >= 0):
-            raise ValueError("kernel cutoff lambda must be non-negative")
-
-        if eps is None and sve_result is None and not sve.HAVE_XPREC:
-            warn("xprec package is not available:\n"
-                 "expect single precision (1.5e-8) only as both cutoff and\n"
-                 "accuracy of the basis functions")
-
-        # Calculate basis functions from truncated singular value expansion
-        self.kernel = _get_kernel(statistics, lambda_, kernel)
-        if sve_result is None:
-            sve_result = sve.compute(self.kernel, eps)
-            u, s, v = sve_result
-        else:
-            u, s, v = sve_result
-            if u.shape != s.shape or s.shape != v.shape:
-                raise ValueError("mismatched shapes in SVE")
-
-        self._statistics = statistics
-        self._accuracy = s[-1] / s[0]
-
-        # The radius of convergence of the asymptotic expansion is Lambda/2,
-        # so for significantly larger frequencies we use the asymptotics,
-        # since it has lower relative error.
-        _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
-        self.u = u
-        self.uhat = u.hat(_even_odd, n_asymp=self.kernel.conv_radius)
-        self.s = s
-        self.v = v
-        roots_ = v[-1].roots()
-        self.sampling_points_v = np.hstack(
-            (v.xmin, 0.5 * (roots_[0:-1] + roots_[1:]), v.xmax))
+    @property
+    def accuracy(self):
+        """Accuracy of singular value cutoff"""
+        return self.s[-1] / self.s[0]
 
     def __getitem__(self, index):
         """Return basis functions/singular values for given index/indices.
@@ -108,14 +70,26 @@ class IRBasis:
         This can be used to truncate the basis to the n most significant
         singular values: `basis[:3]`.
         """
-        sve_result = self.u[index], self.s[index], self.v[index]
-        return self.__class__(self.statistics, self.lambda_,
-                              kernel=self.kernel, sve_result=sve_result)
+        raise NotImplementedError()
 
     @property
-    def statistics(self):
-        """Quantum statistic"""
-        return self._statistics
+    def size(self):
+        """Number of basis functions / singular values"""
+        return self.s.size
+
+    @property
+    def shape(self):
+        """Shape of the basis function set"""
+        return self.s.shape
+
+    @property
+    def kernel(self):
+        """Kernel of which this is the singular value expansion"""
+        raise NotImplementedError()
+
+    @property
+    def sve_result(self):
+        raise NotImplementedError()
 
     @property
     def lambda_(self):
@@ -124,32 +98,13 @@ class IRBasis:
 
     @property
     def beta(self):
-        """Inverse temperature (this is `None` because unscaled basis)"""
-        return None
+        """Inverse temperature or `None` because unscaled basis"""
+        raise NotImplementedError()
 
     @property
     def wmax(self):
         """Real frequency cutoff (this is `None` because unscaled basis)"""
-        return None
-
-    @property
-    def accuracy(self):
-        """Accuracy of singular value cutoff"""
-        return self._accuracy
-
-    @property
-    def size(self):
-        """Number of basis functions / singular values"""
-        return self.u.size
-
-    @property
-    def shape(self):
-        """Shape of the basis function set"""
-        return self.u.shape
-
-    @property
-    def sve_result(self):
-        return self.u, self.s, self.v
+        raise NotImplementedError()
 
     def default_tau_sampling_points(self):
         """Default sampling points on the imaginary time/x axis"""
@@ -169,7 +124,103 @@ class IRBasis:
         return True
 
 
-class FiniteTempBasis:
+class DimensionlessBasis(AbstractBasis):
+    """Intermediate representation (IR) basis in reduced variables.
+
+    For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
+    imaginary time, τ ∈ [0, β], this class stores the truncated singular
+    value expansion or IR basis::
+
+        K(x, y) ≈ sum(u[l](x) * s[l] * v[l](y) for l in range(L))
+
+    The functions are given in reduced variables, ``x = 2*τ/β - 1`` and
+    ``y = ω/ωmax``, which scales both sides to the interval ``[-1, 1]``.  The
+    kernel then only depends on a cutoff parameter ``Λ = β * ωmax``.
+
+    Example:
+        The following example code assumes the spectral function is a single
+        pole at x = 0.2::
+
+            # Compute IR basis suitable for fermions and β*W <= 42
+            import sparse_ir
+            basis = sparse_ir.DimensionlessBasis(statistics='F', lambda_=42)
+
+            # Assume spectrum is a single pole at x = 0.2, compute G(iw)
+            # on the first few Matsubara frequencies
+            gl = basis.s * basis.v(0.2)
+            giw = gl @ basis.uhat([1, 3, 5, 7])
+
+    See also:
+        :class:`FiniteTempBasis` for a basis directly in time/frequency.
+    """
+    def __init__(self, statistics, lambda_, eps=None, *, kernel=None,
+                 sve_result=None):
+        if not (lambda_ >= 0):
+            raise ValueError("kernel cutoff lambda must be non-negative")
+
+        if eps is None and sve_result is None and not sve.HAVE_XPREC:
+            warn("xprec package is not available:\n"
+                 "expect single precision (1.5e-8) only as both cutoff and\n"
+                 "accuracy of the basis functions")
+
+        # Calculate basis functions from truncated singular value expansion
+        self._kernel = _get_kernel(statistics, lambda_, kernel)
+        if sve_result is None:
+            sve_result = sve.compute(self._kernel, eps)
+            u, s, v = sve_result
+        else:
+            u, s, v = sve_result
+            if u.shape != s.shape or s.shape != v.shape:
+                raise ValueError("mismatched shapes in SVE")
+
+        self._statistics = statistics
+
+        # The radius of convergence of the asymptotic expansion is Lambda/2,
+        # so for significantly larger frequencies we use the asymptotics,
+        # since it has lower relative error.
+        even_odd = {'F': 'odd', 'B': 'even'}[statistics]
+        self._u = u
+        self._uhat = u.hat(even_odd, n_asymp=self._kernel.conv_radius)
+        self._s = s
+        self._v = v
+
+    def __getitem__(self, index):
+        u, s, v = self.sve_result
+        sve_result = u[index], s[index], v[index]
+        return DimensionlessBasis(self._statistics, self._kernel.lambda_,
+                                  kernel=self._kernel, sve_result=sve_result)
+
+    @property
+    def statistics(self): return self._statistics
+
+    @property
+    def u(self) -> poly.PiecewiseLegendrePoly: return self._u
+
+    @property
+    def uhat(self) -> poly.PiecewiseLegendreFT: return self._uhat
+
+    @property
+    def s(self) -> np.ndarray: return self._s
+
+    @property
+    def v(self) -> poly.PiecewiseLegendrePoly: return self._v
+
+    @property
+    def kernel(self): return self._kernel
+
+    @property
+    def beta(self): return None
+
+    @property
+    def wmax(self): return None
+
+    @property
+    def sve_result(self):
+        return self._u, self._s, self._v
+
+
+
+class FiniteTempBasis(AbstractBasis):
     """Intermediate representation (IR) basis for given temperature.
 
     For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
@@ -193,36 +244,6 @@ class FiniteTempBasis:
             # on the first few Matsubara frequencies
             gl = basis.s * basis.v(2.5)
             giw = gl @ basis.uhat([1, 3, 5, 7])
-
-    Attributes:
-        u (sparse_ir.poly.PiecewiseLegendrePoly):
-            Set of IR basis functions on the imaginary time (`tau`) axis.
-            These functions are stored as piecewise Legendre polynomials.
-
-            To obtain the value of all basis functions at a point or a array of
-            points `x`, you can call the function ``u(x)``.  To obtain a single
-            basis function, a slice or a subset `l`, you can use ``u[l]``.
-
-        uhat (sparse_ir.poly.PiecewiseLegendreFT):
-            Set of IR basis functions on the Matsubara frequency (`wn`) axis.
-            These objects are stored as a set of Bessel functions.
-
-            To obtain the value of all basis functions at a Matsubara frequency
-            or a array of points `wn`, you can call the function ``uhat(wn)``.
-            Note that we expect reduced frequencies, which are simply even/odd
-            numbers for bosonic/fermionic objects. To obtain a single basis
-            function, a slice or a subset `l`, you can use ``uhat[l]``.
-
-        s:
-            Vector of singular values of the continuation kernel
-
-        v (sparse_ir.poly.PiecewiseLegendrePoly):
-            Set of IR basis functions on the real frequency (`w`) axis.
-            These functions are stored as piecewise Legendre polynomials.
-
-            To obtain the value of all basis functions at a point or a array of
-            points `w`, you can call the function ``v(w)``.  To obtain a single
-            basis function, a slice or a subset `l`, you can use ``v[l]``.
     """
     def __init__(self, statistics, beta, wmax, eps=None, *, kernel=None,
                  sve_result=None):
@@ -237,9 +258,9 @@ class FiniteTempBasis:
                  "accuracy of the basis functions")
 
         # Calculate basis functions from truncated singular value expansion
-        self.kernel = _get_kernel(statistics, beta * wmax, kernel)
+        self._kernel = _get_kernel(statistics, beta * wmax, kernel)
         if sve_result is None:
-            sve_result = sve.compute(self.kernel, eps)
+            sve_result = sve.compute(self._kernel, eps)
             u, s, v = sve_result
         else:
             u, s, v = sve_result
@@ -252,19 +273,19 @@ class FiniteTempBasis:
         self._sve_result = sve_result
         self._statistics = statistics
         self._beta = beta
+        self._wmax = wmax
         self._accuracy = s[-1] / s[0]
 
         # The polynomials are scaled to the new variables by transforming the
         # knots according to: tau = beta/2 * (x + 1), w = wmax * y.  Scaling
         # the data is not necessary as the normalization is inferred.
-        wmax = self.kernel.lambda_ / self._beta
-        self.u = u.__class__(u.data, beta/2 * (u.knots + 1), beta/2 * u.dx, u.symm)
-        self.v = v.__class__(v.data, wmax * v.knots, wmax * v.dx, v.symm)
+        self._u = u.__class__(u.data, beta/2 * (u.knots + 1), beta/2 * u.dx, u.symm)
+        self._v = v.__class__(v.data, wmax * v.knots, wmax * v.dx, v.symm)
 
         # The singular values are scaled to match the change of variables, with
         # the additional complexity that the kernel may have an additional
         # power of w.
-        self.s = np.sqrt(beta/2 * wmax) * (wmax**(-self.kernel.ypower)) * s
+        self._s = np.sqrt(beta/2 * wmax) * (wmax**(-self.kernel.ypower)) * s
 
         # HACK: as we don't yet support Fourier transforms on anything but the
         # unit interval, we need to scale the underlying data.  This breaks
@@ -273,74 +294,40 @@ class FiniteTempBasis:
 
         conv_radius = 40 * self.kernel.lambda_
         _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
-        self.uhat = uhat_base.hat(_even_odd, conv_radius)
+        self._uhat = uhat_base.hat(_even_odd, conv_radius)
 
     def __getitem__(self, index):
-        """Return basis functions/singular values for given index/indices.
-
-        This can be used to truncate the basis to the n most significant
-        singular values: `basis[:3]`.
-        """
         u, s, v = self.sve_result
         sve_result = u[index], s[index], v[index]
-        return self.__class__(self.statistics, self.beta, self.wmax,
-                              kernel=self.kernel, sve_result=sve_result)
+        return FiniteTempBasis(self._statistics, self._beta, self._wmax,
+                               kernel=self._kernel, sve_result=sve_result)
 
     @property
-    def statistics(self):
-        """Quantum statistic"""
-        return self._statistics
+    def statistics(self): return self._statistics
 
     @property
-    def lambda_(self):
-        """Basis cutoff parameter Λ = β * ωmax"""
-        return self.kernel.lambda_
+    def beta(self): return self._beta
 
     @property
-    def beta(self):
-        """Inverse temperature (this is `None` because unscaled basis)"""
-        return self._beta
+    def wmax(self): return self._wmax
 
     @property
-    def wmax(self):
-        """Real frequency cutoff"""
-        return self.kernel.lambda_ / self._beta
+    def u(self) -> poly.PiecewiseLegendrePoly: return self._u
 
     @property
-    def accuracy(self):
-        """Accuracy of singular value cutoff"""
-        return self._accuracy
+    def uhat(self) -> poly.PiecewiseLegendreFT: return self._uhat
 
     @property
-    def size(self):
-        """Number of basis functions / singular values"""
-        return self.u.size
+    def s(self) -> np.ndarray: return self._s
 
     @property
-    def shape(self):
-        """Shape of the basis function set"""
-        return self.u.shape
+    def v(self) -> poly.PiecewiseLegendrePoly: return self._v
 
     @property
-    def sve_result(self):
-        return self._sve_result
-
-    def default_tau_sampling_points(self):
-        """Default sampling points on the imaginary time/x axis"""
-        return _default_sampling_points(self.u)
-
-    def default_matsubara_sampling_points(self, *, mitigate=True):
-        """Default sampling points on the imaginary frequency axis"""
-        return _default_matsubara_sampling_points(self.uhat, mitigate)
-
-    def default_omega_sampling_points(self):
-        """Default sampling points on the real frequency axis"""
-        return _default_sampling_points(self.v)
+    def kernel(self): return self._kernel
 
     @property
-    def is_well_conditioned(self):
-        """Returns True if the sampling is expected to be well-conditioned"""
-        return True
+    def sve_result(self): return self._sve_result
 
 
 def finite_temp_bases(
