@@ -286,7 +286,7 @@ class RegularizedBoseKernel(AbstractKernel):
         # separately.  Secondly, the denominator loses precision around 0 since
         # exp(v) = 1 + v + ..., which can be avoided using expm1(...)
         not_tiny = abs_v >= 1e-200
-        denom = np.ones_like(abs_v)
+        denom = -np.ones_like(abs_v)
         np.divide(abs_v, np.expm1(-abs_v, where=not_tiny),
                   out=denom, where=not_tiny)
         return -1/dtype.type(self.lambda_) * enum * denom

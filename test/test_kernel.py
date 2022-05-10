@@ -39,3 +39,9 @@ def test_accuracy(K):
         reldiff = np.where(np.abs(result_x) < tiny, 1, result / result_x)
     np.testing.assert_allclose(reldiff, 1, atol=100 * eps, rtol=0,
                                err_msg="relative precision too poor")
+
+@pytest.mark.parametrize("lambda_", [10, 42, 10_000])
+def test_singularity(lambda_):
+    x = np.random.rand(1000) * 2 - 1
+    K = kernel.RegularizedBoseKernel(lambda_)
+    np.testing.assert_allclose(K(x, [0.0]), 1 / lambda_)
