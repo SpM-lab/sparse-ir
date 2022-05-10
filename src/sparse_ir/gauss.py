@@ -210,7 +210,7 @@ class NestedRule(Rule):
     def reseat(self, a, b):
         """Reseat current quadrature rule to new domain"""
         res = super().reseat(a, b)
-        new_v = 0.5 * (b - a) * self.v
+        new_v = (b - a) / (self.b - self.a) * self.v
         return NestedRule(res.x, res.w, new_v, res.x_forward, res.x_backward,
                           res.a, res.b)
 
