@@ -4,19 +4,10 @@ import numpy as np
 from warnings import warn
 import numpy.polynomial.legendre as np_legendre
 import scipy.special as sp_special
-import scipy.integrate as sp_integrate
 
 from . import _util
 from . import _roots
 from . import _gauss
-
-try:
-    from xprec import ddouble as _ddouble
-except ImportError:
-    _ddouble = None
-    _xwork_dtype = float
-else:
-    _xwork_dtype = _ddouble
 
 
 class PiecewiseLegendrePoly:
