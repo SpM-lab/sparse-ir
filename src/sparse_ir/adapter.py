@@ -8,16 +8,19 @@ can be computed on-the-fly for arbitrary values of Lambda.  In other words,
 you should be able to replace ``irbasis`` with ``sparse_ir.adapter`` and
 everything should hopefully still work.
 
-Note however that on-the-fly computation typically has lower accuracy.  Thus,
-by default we only populate the basis down to singular values of 1.5e-8.
-You can change this by setting the `ACCURACY` parameter.
+Note however that on-the-fly computation typically has lower accuracy unless
+xprec is available. Thus, by default we only populate the basis down to
+singular values of ~1e-9 and emit a warning. You can squelch the warning by
+setting `WARN_ACCURACY` to false.
 """
+# Do not import additional public symbols into this namespace, always use
+# underscores - this module should look as much as possible like `irbasis`!
 import numpy as _np
-from warnings import warn
+from warnings import warn as _warn
 
 from . import basis as _basis
 from . import poly as _poly
-from .kernel import LogisticKernel, RegularizedBoseKernel
+from . import kernel as _kernel
 
 try:
     import xprec as _xprec
@@ -31,10 +34,11 @@ else:
 
 def load(statistics, Lambda, h5file=None):
     if WARN_ACCURACY:
-        warn("xprec package is not found - expect degraded accuracy!\n"
-             "To squelch this warning, set WARN_ACCURACY to False.")
+        _warn("xprec package is not found - expect degraded accuracy!\n"
+              "To squelch this warning, set WARN_ACCURACY to False.")
 
-    kernel_type = {"F": LogisticKernel, "B": RegularizedBoseKernel}[statistics]
+    kernel_type = {"F": _kernel.LogisticKernel,
+                   "B": _kernel.RegularizedBoseKernel}[statistics]
     basis = _basis.DimensionlessBasis(statistics, float(Lambda),
                                       kernel=kernel_type(Lambda))
     return Basis(statistics, Lambda, (basis.u, basis.s, basis.v))
