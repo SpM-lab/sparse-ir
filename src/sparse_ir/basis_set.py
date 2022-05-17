@@ -59,7 +59,7 @@ class FiniteTempBasisSet:
         self.smpl_wn_b = MatsubaraSampling(self.basis_b)
 
     @property
-    def lambda_(self): return self.basis_f.beta.lambda_
+    def lambda_(self): return self.basis_f.lambda_
 
     @property
     def beta(self): return self.basis_f.beta
