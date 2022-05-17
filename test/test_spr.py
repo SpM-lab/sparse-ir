@@ -11,8 +11,7 @@ import pytest
 def test_compression(sve_logistic, stat):
     beta = 10_000
     wmax = 1
-    eps = 1e-12
-    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax, eps=eps,
+    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax,
                                       sve_result=sve_logistic[beta*wmax])
     spr = SparsePoleRepresentation(basis)
 
@@ -26,16 +25,16 @@ def test_compression(sve_logistic, stat):
     Gl = SparsePoleRepresentation(basis, poles).to_IR(coeffs)
 
     g_spr = spr.from_IR(Gl)
+    eps = basis.accuracy * np.linalg.norm(g_spr)
+    print(f"eps = {eps:.2g}")
 
     # Comparison on Matsubara frequencies
     smpl = MatsubaraSampling(basis)
     smpl_for_spr = MatsubaraSampling(spr, smpl.sampling_points)
 
     giv = smpl_for_spr.evaluate(g_spr)
-
     giv_ref = smpl.evaluate(Gl, axis=0)
-
-    np.testing.assert_allclose(giv, giv_ref, atol=300*eps, rtol=0)
+    np.testing.assert_allclose(giv, giv_ref, atol=1e4*eps, rtol=0)
 
     # Comparison on tau
     smpl_tau = TauSampling(basis)
@@ -44,7 +43,7 @@ def test_compression(sve_logistic, stat):
     smpl_tau_for_spr= TauSampling(spr)
     gtau2 = smpl_tau_for_spr.evaluate(g_spr)
 
-    np.testing.assert_allclose(gtau, gtau2, atol=300*eps, rtol=0)
+    np.testing.assert_allclose(gtau, gtau2, atol=1e4*eps, rtol=0)
 
 
 def test_boson(sve_logistic):
