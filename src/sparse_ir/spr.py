@@ -1,12 +1,12 @@
 # Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
 import numpy as np
-from typing import Optional
 
 from . import kernel
 from . import sampling
 from . import basis as _basis
 from . import _util
+from . import svd
 
 
 class MatsubaraPoleBasis:
@@ -52,29 +52,28 @@ class SparsePoleRepresentation:
     Sparse pole representation (SPR)
     The poles are the extrema of V'_{L-1}(ω) and +/- wmax.
     """
-    def __init__(
-            self, basis: _basis.FiniteTempBasis,
-            sampling_points: Optional[np.ndarray] = None):
-        self._basis = basis
+    def __init__(self, basis: _basis.FiniteTempBasis, sampling_points=None):
+        if sampling_points is None:
+            sampling_points = basis.default_omega_sampling_points()
 
-        self._poles = basis.default_omega_sampling_points() \
-            if sampling_points is None else np.asarray(sampling_points)
+        self._basis = basis
+        self._poles = np.asarray(sampling_points)
         self._y_sampling_points = self._poles/basis.wmax
 
         self.u = TauPoleBasis(basis.beta, basis.statistics, self._poles)
         self.uhat = MatsubaraPoleBasis(basis.beta, self._poles)
 
         # Fitting matrix from IR
-        weight = \
-            basis.kernel.weight_func(self.statistics)(self._y_sampling_points)
-        fit_mat = np.einsum(
-            'l,lp,p->lp',
-            -basis.s,
-            basis.v(self._poles),
-            weight,
-            optimize=True
-        )
-        self.matrix = sampling.DecomposedMatrix(fit_mat)
+        weight_func = basis.kernel.weight_func(self.statistics)
+        weight = weight_func(self._y_sampling_points)
+        F = -basis.s[:, None] * basis.v(self._poles) * weight[None, :]
+
+        # Now, here we *know* that F is ill-conditioned in very particular way:
+        # it is a product A * B * C, where B is well conditioned and A, C are
+        # scalings.  This is handled with guaranteed relative accuracy by a
+        # Jacobi SVD, implied by the 'accurate' strategy.
+        uF, sF, vF = svd.compute(F, strategy='accurate')
+        self.matrix = sampling.DecomposedMatrix(F, svd_result=(uF, sF, vF.T))
 
     @property
     def statistics(self):
