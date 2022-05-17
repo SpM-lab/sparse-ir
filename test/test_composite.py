@@ -78,7 +78,7 @@ def test_augmented_bosonic_basis():
     # Now do the fit properly
     gl_fit = tau_smpl.fit(gtau)
     gtau_reconst = tau_smpl.evaluate(gl_fit)
-    np.testing.assert_allclose(gtau_reconst, gtau, atol=1e-15 * magn, rtol=0)
+    np.testing.assert_allclose(gtau_reconst, gtau, atol=1e-14 * magn, rtol=0)
 
 
 @pytest.mark.parametrize("stat", ["F", "B"])

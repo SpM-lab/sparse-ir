@@ -24,7 +24,7 @@ def test_sample1():
         v_n = b_xy.v.deriv(n)
         print(" n= ", n, u_n[0](0.1))
         print(" n= ", n, v_n[0](0.1))
-    
+
     # Compute u_{ln} as a matrix for the first
     # 10 non-nagative fermionic Matsubara frequencies
     # Fermionic/bosonic frequencies are denoted by odd/even integers.
@@ -69,7 +69,7 @@ def test_sample3():
     import sparse_ir
     import numpy as np
     from numpy.fft import fftn, ifftn
-    
+
     beta = 1e+3
     lambda_ = 1e+5
 
@@ -79,10 +79,10 @@ def test_sample3():
 
     b = sparse_ir.FiniteTempBasis('F', beta , wmax, eps=eps)
     print("Number of basis functions", b.size)
-    
+
     # Sparse sampling in tau
     smpl_tau = sparse_ir.TauSampling(b)
-    
+
     # Sparse sampling in Matsubara frequencies
     smpl_matsu = sparse_ir.MatsubaraSampling(b)
 
@@ -98,26 +98,26 @@ def test_sample3():
     k1, k2 = np.meshgrid(*kgrid, indexing='ij')
     ek = -2*(np.cos(k1) + np.cos(k2))
     iw = 1j*np.pi*smpl_matsu.sampling_points/beta
-    
+
     # G(iw, k): (nw, nk)
     gkf = 1.0 / (iw[:,None] - ek.ravel()[None,:])
 
     # G(l, k): (L, nk)
     gkl = smpl_matsu.fit(gkf)
-    
+
     # G(tau, k): (ntau, nk)
     gkt = smpl_tau.evaluate(gkl)
-        
+
     # G(tau, r): (ntau, nk)
     grt = np.fft.fftn(gkt.reshape(ntau, *kps), axes=(1,2)).\
             reshape(ntau, nk)
-    
+
     # Sigma(tau, r): (ntau, nk)
     srt = U*U*grt*grt*grt[::-1,:]
-        
+
     # Sigma(l, r): (L, nk)
     srl = smpl_tau.fit(srt)
-        
+
     # Sigma(iw, r): (nw, nk)
     srf = smpl_matsu.evaluate(srl)
 
