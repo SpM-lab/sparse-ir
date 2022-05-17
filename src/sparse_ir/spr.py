@@ -1,31 +1,35 @@
 # Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
 import numpy as np
-from .kernel import LogisticKernel, RegularizedBoseKernel
-from .sampling import DecomposedMatrix
-from .basis import FiniteTempBasis
 from typing import Optional
+
+from . import kernel
+from . import sampling
+from . import basis as _basis
+from . import _util
 
 
 class MatsubaraPoleBasis:
-    def __init__(self, beta: float, poles: np.ndarray):
-        self._beta = beta
+    def __init__(self, beta, poles):
+        self._beta = float(beta)
         self._poles = np.array(poles)
 
-    def __call__(self, n: np.ndarray) -> np.ndarray:
+    @_util.ravel_argument(last_dim=True)
+    def __call__(self, n):
         """Evaluate basis functions at given frequency n"""
         iv = 1j*n * np.pi/self._beta
         return 1/(iv[None, :] - self._poles[:, None])
 
 
 class TauPoleBasis:
-    def __init__(self, beta: float, statistics: str, poles: np.ndarray):
+    def __init__(self, beta: float, statistics: str, poles):
         self._beta = beta
         self._statistics = statistics
         self._poles = np.array(poles)
         self._wmax = np.abs(poles).max()
 
-    def __call__(self, tau) -> np.ndarray:
+    @_util.ravel_argument(last_dim=True)
+    def __call__(self, tau):
         """ Evaluate basis functions at tau """
         tau = np.asarray(tau)
         if (tau < 0).any() or (tau > self._beta).any():
@@ -36,9 +40,9 @@ class TauPoleBasis:
         lambda_ = self._beta * self._wmax
 
         if self._statistics == "F":
-            res = -LogisticKernel(lambda_)(x[:, None], y[None, :])
+            res = -kernel.LogisticKernel(lambda_)(x[:, None], y[None, :])
         else:
-            K = RegularizedBoseKernel(lambda_)
+            K = kernel.RegularizedBoseKernel(lambda_)
             res = -K(x[:, None], y[None, :])/y[None, :]
         return res.T
 
@@ -49,7 +53,7 @@ class SparsePoleRepresentation:
     The poles are the extrema of V'_{L-1}(ω) and +/- wmax.
     """
     def __init__(
-            self, basis: FiniteTempBasis,
+            self, basis: _basis.FiniteTempBasis,
             sampling_points: Optional[np.ndarray] = None):
         self._basis = basis
 
@@ -70,7 +74,7 @@ class SparsePoleRepresentation:
             weight,
             optimize=True
         )
-        self.matrix = DecomposedMatrix(fit_mat)
+        self.matrix = sampling.DecomposedMatrix(fit_mat)
 
     @property
     def statistics(self):
@@ -86,7 +90,7 @@ class SparsePoleRepresentation:
         return self._poles.size
 
     @property
-    def basis(self) -> FiniteTempBasis:
+    def basis(self) -> _basis.FiniteTempBasis:
         """ Underlying basis """
         return self._basis
 

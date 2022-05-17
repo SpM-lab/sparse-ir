@@ -6,6 +6,7 @@ import numpy.polynomial.legendre as np_legendre
 import scipy.special as sp_special
 import scipy.integrate as sp_integrate
 
+from . import _util
 from . import _roots
 from . import _gauss
 
@@ -429,8 +430,10 @@ class _PowerModel:
         self.moments = np.asarray(moments)
         self.nmom, self.nl = self.moments.shape
 
-    def _giw_ravel(self, wn):
+    @_util.ravel_argument()
+    def giw(self, wn):
         """Return model Green's function for vector of frequencies"""
+        wn = check_reduced_matsubara(wn)
         result_dtype = np.result_type(1j, wn, self.moments)
         result = np.zeros((wn.size, self.nl), result_dtype)
         inv_iw = 1j * np.pi/2 * wn
@@ -439,11 +442,6 @@ class _PowerModel:
             result += mom
             result *= inv_iw[:, None]
         return result
-
-    def giw(self, wn):
-        """Return model Green's function for reduced frequencies"""
-        wn = check_reduced_matsubara(wn)
-        return self._giw_ravel(wn.ravel()).reshape(wn.shape + (self.nl,))
 
     def __getitem__(self, l):
         return self.__class__(self.moments[:,l])
