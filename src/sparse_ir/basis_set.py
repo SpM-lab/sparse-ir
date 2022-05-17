@@ -13,18 +13,6 @@ class FiniteTempBasisSet:
             Fermion basis
         basis_b (FiniteTempBasis):
             Boson basis
-        beta (float):
-            Inverse temperature
-        wmax (float):
-            Cut-off frequency
-        eps (float):
-            Cut-off value for singular values
-        tau (1D ndarray of float):
-            Sampling points in the imaginary-time domain
-        wn_f (1D ndarray of int):
-            Sampling fermionic frequencies
-        wn_b (1D ndarray of int):
-            Sampling bosonic frequencies
         smpl_tau_f (TauSampling):
             Sparse sampling for tau & fermion
         smpl_tau_b (TauSampling):
@@ -33,8 +21,6 @@ class FiniteTempBasisSet:
             Sparse sampling for Matsubara frequency & fermion
         smpl_wn_b (MatsubaraSampling):
             Sparse sampling for Matsubara frequency & boson
-        sve_result (tuple of three ndarray objects):
-            Results of SVE
     """
     def __init__(self, beta, wmax, eps=None, sve_result=None):
         """
@@ -59,25 +45,41 @@ class FiniteTempBasisSet:
         self.smpl_wn_b = MatsubaraSampling(self.basis_b)
 
     @property
-    def lambda_(self): return self.basis_f.lambda_
+    def lambda_(self):
+        """Ultra-violet cutoff of the kernel"""
+        return self.basis_f.lambda_
 
     @property
-    def beta(self): return self.basis_f.beta
+    def beta(self):
+        """Inverse temperature"""
+        return self.basis_f.beta
 
     @property
-    def wmax(self): return self.basis_f.wmax
+    def wmax(self):
+        """Cut-off frequency"""
+        return self.basis_f.wmax
 
     @property
-    def accuracy(self): return self.basis_f.accuracy
+    def accuracy(self):
+        """Accuracy of the bases"""
+        return self.basis_f.accuracy
 
     @property
-    def sve_result(self): return self.basis_f.sve_result
+    def sve_result(self):
+        """Result of singular value expansion"""
+        return self.basis_f.sve_result
 
     @property
-    def tau(self): return self.smpl_tau_f.sampling_points
+    def tau(self):
+        """Sampling points in the imaginary-time domain"""
+        return self.smpl_tau_f.sampling_points
 
     @property
-    def wn_f(self): return self.smpl_wn_f.sampling_points
+    def wn_f(self):
+        """Sampling fermionic frequencies"""
+        return self.smpl_wn_f.sampling_points
 
     @property
-    def wn_b(self): return self.smpl_wn_b.sampling_points
+    def wn_b(self):
+        """Sampling bosonic frequencies"""
+        return self.smpl_wn_b.sampling_points
