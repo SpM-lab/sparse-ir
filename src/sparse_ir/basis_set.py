@@ -1,5 +1,7 @@
-from .basis import FiniteTempBasis, finite_temp_bases
-from .sampling import TauSampling, MatsubaraSampling
+# Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
+# SPDX-License-Identifier: MIT
+from . import basis
+from . import sampling
 
 
 class FiniteTempBasisSet:
@@ -30,19 +32,21 @@ class FiniteTempBasisSet:
         """
         if sve_result is None:
             # Create bases by sve of the logistic kernel
-            self.basis_f, self.basis_b = finite_temp_bases(beta, wmax, eps)
+            self.basis_f, self.basis_b = basis.finite_temp_bases(beta, wmax, eps)
         else:
             # Create bases using the given sve results
-            self.basis_f = FiniteTempBasis("F", beta, wmax, eps, sve_result=sve_result)
-            self.basis_b = FiniteTempBasis("B", beta, wmax, eps, sve_result=sve_result)
+            self.basis_f = basis.FiniteTempBasis(
+                                "F", beta, wmax, eps, sve_result=sve_result)
+            self.basis_b = basis.FiniteTempBasis(
+                                "B", beta, wmax, eps, sve_result=sve_result)
 
         # Tau sampling
-        self.smpl_tau_f = TauSampling(self.basis_f)
-        self.smpl_tau_b = TauSampling(self.basis_b)
+        self.smpl_tau_f = sampling.TauSampling(self.basis_f)
+        self.smpl_tau_b = sampling.TauSampling(self.basis_b)
 
         # Matsubara sampling
-        self.smpl_wn_f = MatsubaraSampling(self.basis_f)
-        self.smpl_wn_b = MatsubaraSampling(self.basis_b)
+        self.smpl_wn_f = sampling.MatsubaraSampling(self.basis_f)
+        self.smpl_wn_b = sampling.MatsubaraSampling(self.basis_b)
 
     @property
     def lambda_(self):
