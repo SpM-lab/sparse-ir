@@ -50,7 +50,7 @@ class TauPoleBasis:
 class SparsePoleRepresentation:
     """
     Sparse pole representation (SPR)
-    The poles are the extrema of V'_{L-1}(ω) and +/- wmax.
+    The poles are the extrema of V'_{L-1}(ω)
     """
     def __init__(self, basis: _basis.FiniteTempBasis, sampling_points=None):
         if sampling_points is None:

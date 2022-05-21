@@ -112,7 +112,7 @@ class AbstractBasis:
 
     def default_omega_sampling_points(self):
         """Default sampling points on the real frequency axis"""
-        return _default_sampling_points(self.v)
+        return self.v[-1].deriv().roots()
 
     def default_matsubara_sampling_points(self, *, mitigate=True):
         """Default sampling points on the imaginary frequency axis"""
