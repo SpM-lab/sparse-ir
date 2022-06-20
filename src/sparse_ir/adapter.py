@@ -53,6 +53,10 @@ class Basis:
         self._s = s
         self._v = v
 
+        conv_radius = 40 * Lambda
+        _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
+        self._uhat = u.hat(_even_odd, conv_radius)
+
     @property
     def Lambda(self):
         """Dimensionless parameter of IR basis"""
@@ -114,32 +118,16 @@ class Basis:
 
     def sampling_points_x(self, whichl):
         """Computes "optimal" sampling points in x space for given basis"""
-        return _poly.sampling_points_x(self._u[whichl])
+        return sampling_points_x(self, whichl)
 
     def sampling_points_y(self, whichl):
         """Computes "optimal" sampling points in y space for given basis"""
-        return _poly.sampling_points_x(self._v[whichl])
+        return sampling_points_y(self, whichl)
 
     def sampling_points_matsubara(self, whichl):
         """Computes sampling points in Matsubara domain for given basis"""
-        zeta = 0 if self.statistics == 'B' else 1
-        part = ['real', 'imag'][(whichl + zeta) % 2]
-        return _poly.find_hat_extrema(self._u[whichl], part, zeta)
+        return sampling_points_matsubara(self, whichl)
 
-
-def sampling_points_x(b, whichl):
-    """Computes "optimal" sampling points in x space for given basis"""
-    return b.sampling_points_x(whichl)
-
-
-def sampling_points_y(b, whichl):
-    """Computes "optimal" sampling points in y space for given basis"""
-    return b.sampling_points_y(whichl)
-
-
-def sampling_points_matsubara(b, whichl):
-    """Computes "optimal" sampling points in Matsubara domain for given basis"""
-    return b.sampling_points_matsubara(whichl)
 
 
 def _select(p, l):
@@ -148,3 +136,133 @@ def _select(p, l):
 
 def _selectvals(p, l, x):
     return p(x) if l is None else p.value(l, x)
+
+
+"""" CODE BELOW IS TAKEN FROM IRBAIS FOR COMPATIBLITITY"""
+def _find_roots(ulx):
+    """Find all roots in (-1, 1) using double exponential mesh + bisection"""
+    Nx = 10000
+    eps = 1e-14
+    tvec = _np.linspace(-3, 3, Nx)  # 3 is a very safe option.
+    xvec = _np.tanh(0.5 * _np.pi * _np.sinh(tvec))
+
+    zeros = []
+    for i in range(Nx - 1):
+        if ulx(xvec[i]) * ulx(xvec[i + 1]) < 0:
+            a = xvec[i + 1]
+            b = xvec[i]
+            u_a = ulx(a)
+            while a - b > eps:
+                half_point = 0.5 * (a + b)
+                if ulx(half_point) * u_a > 0:
+                    a = half_point
+                else:
+                    b = half_point
+            zeros.append(0.5 * (a + b))
+    return _np.array(zeros)
+
+
+def _start_guesses(n=1000):
+    "Construct points on a logarithmically extended linear interval"
+    x1 = _np.arange(n)
+    x2 = _np.array(_np.exp(_np.linspace(_np.log(n), _np.log(1E+8), n)), dtype=int)
+    x = _np.unique(_np.hstack((x1, x2)))
+    return x
+
+
+def _get_unl_real(basis_xy, x, l):
+    "Return highest-order basis function on the Matsubara axis"
+    unl = basis_xy.compute_unl(x, l)
+
+    # Purely real functions
+    zeta = 1 if basis_xy.statistics == 'F' else 0
+    if l % 2 == zeta:
+        assert _np.allclose(unl.imag, 0)
+        return unl.real
+    else:
+        assert _np.allclose(unl.real, 0)
+        return unl.imag
+
+
+def _sampling_points(fn):
+    "Given a discretized 1D function, return the location of the extrema"
+    fn = _np.asarray(fn)
+    fn_abs = _np.abs(fn)
+    sign_flip = fn[1:] * fn[:-1] < 0
+    sign_flip_bounds = _np.hstack((0, sign_flip.nonzero()[0] + 1, fn.size))
+    points = []
+    for segment in map(slice, sign_flip_bounds[:-1], sign_flip_bounds[1:]):
+        points.append(fn_abs[segment].argmax() + segment.start)
+    return _np.asarray(points)
+
+
+def _full_interval(sample, stat):
+    if stat == 'F':
+        return _np.hstack((-sample[::-1]-1, sample))
+    else:
+        # If we have a bosonic basis and even order (odd maximum), we have a
+        # root at zero. We have to artifically add that zero back, otherwise
+        # the condition number will blow up.
+        if sample[0] == 0:
+            sample = sample[1:]
+        return _np.hstack((-sample[::-1], 0, sample))
+
+
+def _get_mats_sampling(basis_xy, lmax=None):
+    "Generate Matsubara sampling points from extrema of basis functions"
+    if lmax is None:
+        lmax = basis_xy.dim()-1
+
+    x = _start_guesses()
+    y = _get_unl_real(basis_xy, x, lmax)
+    x_idx = _sampling_points(y)
+
+    sample = x[x_idx]
+    return _full_interval(sample, basis_xy.statistics)
+
+
+def sampling_points_x(b, whichl):
+    """Computes "optimal" sampling points in x space for given basis"""
+    xroots = _find_roots(b._u[whichl])
+    xroots_ex = _np.hstack((-1.0, xroots, 1.0))
+    return 0.5 * (xroots_ex[:-1] + xroots_ex[1:])
+
+
+def sampling_points_y(b, whichl):
+    """Computes "optimal" sampling points in y space for given basis"""
+
+    roots_positive_half = 0.5 * _find_roots(lambda y: b.vly(whichl, (y + 1)/2)) + 0.5
+    if whichl % 2 == 0:
+        roots_ex = _np.sort(
+            _np.hstack([-1, -roots_positive_half, roots_positive_half, 1]))
+    else:
+        roots_ex = _np.sort(
+            _np.hstack([-1, -roots_positive_half, 0, roots_positive_half, 1]))
+    return 0.5 * (roots_ex[:-1] + roots_ex[1:])
+
+
+def sampling_points_matsubara(b, whichl):
+    """
+    Computes "optimal" sampling points in Matsubara domain for given basis
+
+    Parameters
+    ----------
+    b :
+        basis object
+    whichl: int
+        Index of reference basis function "l"
+
+    Returns
+    -------
+    sampling_points: 1D array of int
+        sampling points in Matsubara domain
+
+    """
+    stat = b.statistics
+
+    assert stat == 'F' or stat == 'B' or stat == 'barB'
+
+    if whichl > b.dim()-1:
+        raise RuntimeError("Too large whichl")
+
+    return _get_mats_sampling(b, whichl)

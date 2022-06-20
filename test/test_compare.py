@@ -63,7 +63,7 @@ def test_vly(stat, lambda_, adapters, references):
 
 
 @pytest.mark.parametrize("stat,lambda_", COMPARE_PARAMS)
-def test_ulx(stat, lambda_, adapters, references):
+def test_ulx2(stat, lambda_, adapters, references):
     adapt = adapters[stat, lambda_]
     ref = references[stat, lambda_]
     shared_dim = min(adapt.dim(), ref.dim())
@@ -88,3 +88,45 @@ def test_ulx(stat, lambda_, adapters, references):
         ulxhat_ref = ref.compute_unl(n, li).ravel()
         tol = 1e-13 * np.abs(ulxhat_ref).max() * ref.sl(0) / ref.sl(li)
         np.testing.assert_allclose(ulxhat_adapt, ulxhat_ref, atol=tol, rtol=0)
+
+
+@pytest.mark.parametrize("stat,lambda_", COMPARE_PARAMS)
+def test_matasubara_sampling(stat, lambda_, adapters, references):
+    adapt = adapters[stat, lambda_]
+    ref = references[stat, lambda_]
+    shared_dim = min(adapt.dim(), ref.dim())
+    zeta = {'F': 1, 'B': 0}[stat]
+
+    l = shared_dim - 1
+
+    sp_adapt = adapt.sampling_points_matsubara(whichl=shared_dim-1)
+    u_adapt = adapt.compute_unl(sp_adapt, shared_dim-1)
+    u_adapt_real = u_adapt.real if l % 2 == zeta else u_adapt.imag
+
+    sp_ref = ref.sampling_points_matsubara(whichl=shared_dim-1)
+    u_ref = ref.compute_unl(sp_ref, shared_dim-1)
+    u_ref_real = u_ref.real if l % 2 == zeta else u_ref.imag
+
+    num_sign_changes_adapt = np.sum(u_adapt_real[:-1] * u_adapt_real[1:] < 0)
+    num_sign_changes_ref = np.sum(u_ref_real[:-1] * u_ref_real[1:] < 0)
+    assert num_sign_changes_adapt == num_sign_changes_ref
+
+
+@pytest.mark.parametrize("stat,lambda_", COMPARE_PARAMS)
+def test_sampling_x(stat, lambda_, adapters, references):
+    adapt = adapters[stat, lambda_]
+    ref = references[stat, lambda_]
+    shared_dim = min(adapt.dim(), ref.dim())
+    sp_adapt = adapt.sampling_points_x(whichl=shared_dim-1)
+    sp_ref = ref.sampling_points_x(whichl=shared_dim-1)
+    np.testing.assert_allclose(sp_adapt, sp_ref, rtol=0, atol=1e-8)
+
+
+@pytest.mark.parametrize("stat,lambda_", COMPARE_PARAMS)
+def test_sampling_y(stat, lambda_, adapters, references):
+    adapt = adapters[stat, lambda_]
+    ref = references[stat, lambda_]
+    shared_dim = min(adapt.dim(), ref.dim())
+    sp_adapt = adapt.sampling_points_y(whichl=shared_dim-1)
+    sp_ref = ref.sampling_points_y(whichl=shared_dim-1)
+    np.testing.assert_allclose(sp_adapt, sp_ref, rtol=0, atol=1e-8)
