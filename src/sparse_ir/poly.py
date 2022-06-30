@@ -116,7 +116,7 @@ class PiecewiseLegendrePoly:
             f (callable):
                 function that is called with a point ``x`` and returns ``f(x)``
                 at that position.
-            
+
             points (sequence of floats)
                 A sequence of break points in the integration interval
                 where local difficulties of the integrand may occur
