@@ -102,7 +102,7 @@ class PiecewiseLegendrePoly:
         res *= self._norm[i]
         return res
 
-    def overlap(self, f, *, rtol=2.3e-16, return_error=False):
+    def overlap(self, f, *, rtol=2.3e-16, return_error=False, points=None):
         r"""Evaluate overlap integral of this polynomial with function ``f``.
 
         Given the function ``f``, evaluate the integral::
@@ -117,12 +117,17 @@ class PiecewiseLegendrePoly:
                 function that is called with a point ``x`` and returns ``f(x)``
                 at that position.
 
+            points (sequence of floats)
+                A sequence of break points in the integration interval
+                where local difficulties of the integrand may occur
+                (e.g., singularities, discontinuities)
+
         Return:
             array-like object with shape (poly_dims, f_dims)
             poly_dims are the shape of the polynomial and f_dims are those
             of the function f(x).
         """
-        int_result, int_error = _compute_overlap(self, f, rtol=rtol)
+        int_result, int_error = _compute_overlap(self, f, rtol=rtol, points=points)
         if return_error:
             return int_result, int_error
         else:
@@ -483,10 +488,15 @@ def _symmetrize_matsubara(x0):
 
 
 def _compute_overlap(poly, f, rtol=2.3e-16, radix=2, max_refine_levels=40,
-                     max_refine_points=2000):
+                     max_refine_points=2000, points=None):
     base_rule = _gauss.kronrod_31_15()
-    xstart = poly.knots[:-1]
-    xstop = poly.knots[1:]
+    if points is None:
+        knots = poly.knots
+    else:
+        points = np.asarray(points)
+        knots = np.unique(np.hstack((poly.knots, points)))
+    xstart = knots[:-1]
+    xstop = knots[1:]
 
     f_shape = None
     res_value = 0

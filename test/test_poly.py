@@ -7,6 +7,7 @@ import sparse_ir
 from sparse_ir import sve
 from sparse_ir import kernel
 from sparse_ir import poly
+from scipy.integrate import quad
 
 import pytest
 
@@ -73,6 +74,18 @@ def test_overlap(sve_logistic, lambda_, atol):
 
     ref = (np.arange(s.size) == 0).astype(float)
     np.testing.assert_allclose(u.overlap(u[0]), ref, rtol=0, atol=atol)
+
+
+@pytest.mark.parametrize("lambda_, atol", [(42, 1e-13), (1E+4, 1e-13)])
+def test_overlap_break_points(sve_logistic, lambda_, atol):
+    u, s, v = sve_logistic[lambda_]
+
+    D = 0.5 * v.xmax
+    rhow = lambda omega: np.where(abs(omega)<=D, 1, 0)
+    rhol = v.overlap(rhow, points=[-D, D])
+    rhol_ref = [quad(v[l], -D, D)[0] for l in range(v.size)]
+
+    np.testing.assert_allclose(rhol, rhol_ref, rtol=0, atol=1e-12*np.abs(rhol_ref).max())
 
 
 def test_eval_unique(sve_logistic):
