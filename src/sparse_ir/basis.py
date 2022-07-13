@@ -373,9 +373,9 @@ def _default_matsubara_sampling_points(uhat, mitigate=True):
         wn_outer = wn[[0, -1]]
         wn_diff = 2 * np.round(0.025 * wn_outer).astype(int)
         if wn.size >= 20:
-            wn = np.hstack([wn, wn_outer - wn_diff])
+            wn = np.hstack([wn, wn_outer - np.sign(wn_outer) * wn_diff])
         if wn.size >= 42:
-            wn = np.hstack([wn, wn_outer + wn_diff])
+            wn = np.hstack([wn, wn_outer + np.sign(wn_outer) * wn_diff])
         wn = np.unique(wn)
 
     # For boson, include "0".
