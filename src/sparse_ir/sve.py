@@ -141,6 +141,9 @@ class SamplingSVE(AbstractSVE):
         return result,
 
     def postprocess(self, u, s, v, dtype=None):
+        u, = u
+        s, = s
+        v, = v
         if dtype is None:
             dtype = np.result_type(u, s, v)
 
@@ -214,8 +217,8 @@ class CentrosymmSVE(AbstractSVE):
         yield m
 
     def postprocess(self, u, s, v, dtype):
-        u_even, s_even, v_even = self.even.postprocess(u[0], s[0], v[0], dtype)
-        u_odd, s_odd, v_odd = self.odd.postprocess(u[1], s[1], v[1], dtype)
+        u_even, s_even, v_even = self.even.postprocess(u[:1], s[:1], v[:1], dtype)
+        u_odd, s_odd, v_odd = self.odd.postprocess(u[1:], s[1:], v[1:], dtype)
 
         # Merge two sets - data is [legendre, segment, l]
         u_data = np.concatenate([u_even.data, u_odd.data], axis=2)
