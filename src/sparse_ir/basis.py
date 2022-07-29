@@ -83,6 +83,11 @@ class AbstractBasis:
         return self.s.shape
 
     @property
+    def significance(self):
+        """Significance of the associated imaginary-time basis function"""
+        return self.s / self.s[0]
+
+    @property
     def kernel(self):
         """Kernel of which this is the singular value expansion"""
         raise NotImplementedError()

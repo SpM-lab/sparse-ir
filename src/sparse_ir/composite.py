@@ -106,11 +106,11 @@ class CompositeBasis:
         self._size = np.sum([b.size for b in bases])
         self.bases = bases
         self.u = CompositeBasisFunction([b.u for b in bases]) \
-                    if all(b.u is not None for b in bases) else None
+                    if all(hasattr(b, 'u') for b in bases) else None
         self.v = CompositeBasisFunction([b.v for b in bases]) \
-                    if all(b.v is not None for b in bases) else None
+                    if all(hasattr(b, 'v') for b in bases) else None
         self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases]) \
-                    if all(b.uhat is not None for b in bases) else None
+                    if all(hasattr(b, 'uhat')  for b in bases) else None
 
     @property
     def beta(self): return self._beta

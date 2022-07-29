@@ -54,8 +54,9 @@ class LegendreBasis(object):
                                           np.array([-1,1]), symm=symm)
         self.uhat = uhat_base.hat({'F': 'odd', 'B': 'even'}[statistics])
 
-        # self.v
-        self.v = None
+    def significance(self):
+        # TODO
+        return np.ones(self.size)
 
     def default_tau_sampling_points(self):
         return 0.5 * self.beta * (np_legendre.leggauss(self.size)[0] + 1)
@@ -85,14 +86,11 @@ class MatsubaraConstBasis(object):
         self.size = 1
         self.value = value
 
-        # self.u
-        self.u = None
-
         # self.uhat
         self.uhat = _ConstTerm(value)
 
-        # self.v
-        self.v = None
+    def significance(self):
+        return np.ones(1)
 
     def default_tau_sampling_points(self):
         return np.array([])
