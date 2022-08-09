@@ -5,7 +5,10 @@ from warnings import warn
 from inspect import getmodule
 
 def _xp(obj):
-    return getmodule(obj)
+    print("debug", getmodule(obj))
+    r = getmodule(obj)
+    assert r is not None
+    return r
 
 
 class AbstractSampling:

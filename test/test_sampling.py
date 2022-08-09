@@ -6,7 +6,8 @@ import pytest
 import sparse_ir
 from sparse_ir import sampling
 from sparse_ir.basis import FiniteTempBasis
-from jax import jnp
+from jax import numpy as jnp
+from jax import grad
 
 
 def test_decomp():
@@ -74,11 +75,17 @@ def test_autograd(sve_logistic, stat, lambda_):
     Gl = basis.s * rhol
     Gl_magn = np.linalg.norm(Gl)
 
-    Gtau = smpl.evaluate(jnp.asarray(Gl))
+    def f(x):
+        return smpl.evaluate(x)
+
+    g = grad(f)
+
+    Gtau = f(jnp.asarray(Gl))
+    diff_Gtau = g(jnp.asarray(Gl))
 
 
 
-@pytest.mark.parametrize("stat, lambda_", [('B', 42), ('F', 42)])
+@pytest.mark.parametrize("stat, lambda_", [('F', 42)])
 def test_tau_noise(sve_logistic, stat, lambda_):
     basis = sparse_ir.DimensionlessBasis(stat, lambda_,
                                          sve_result=sve_logistic[lambda_])
