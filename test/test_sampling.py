@@ -6,6 +6,7 @@ import pytest
 import sparse_ir
 from sparse_ir import sampling
 from sparse_ir.basis import FiniteTempBasis
+from jax import jnp
 
 
 def test_decomp():
@@ -61,6 +62,20 @@ def test_axis0():
     np.testing.assert_allclose(
             Ad.matmul(x), A@x,
             atol=1e-13 * norm_A, rtol=0)
+
+
+@pytest.mark.parametrize("stat, lambda_", [('B', 42), ('F', 42)])
+def test_autograd(sve_logistic, stat, lambda_):
+    basis = sparse_ir.DimensionlessBasis(stat, lambda_,
+                                         sve_result=sve_logistic[lambda_])
+    smpl = sparse_ir.TauSampling(basis)
+
+    rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
+    Gl = basis.s * rhol
+    Gl_magn = np.linalg.norm(Gl)
+
+    Gtau = smpl.evaluate(jnp.asarray(Gl))
+
 
 
 @pytest.mark.parametrize("stat, lambda_", [('B', 42), ('F', 42)])

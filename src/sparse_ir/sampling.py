@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 from warnings import warn
+from inspect import getmodule
+
+def _xp(obj):
+    return getmodule(obj)
 
 
 class AbstractSampling:
@@ -178,8 +182,8 @@ def _matop_along_axis(op, x, axis=None):
     if axis is None:
         return op(x)
 
-    x = np.asarray(x)
+    x = _xp(x).asarray(x)
     target_axis = max(x.ndim - 2, 0)
-    x = np.moveaxis(x, axis, target_axis)
+    x = _xp(x).moveaxis(x, axis, target_axis)
     r = op(x)
-    return np.moveaxis(r, target_axis, axis)
+    return _xp(r).moveaxis(r, target_axis, axis)
