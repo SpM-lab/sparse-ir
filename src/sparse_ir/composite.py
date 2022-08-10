@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 
+from . import abstract
+
 
 class _AbstractCompositeBasisFunction:
     """Union of several basis functions"""
@@ -85,48 +87,57 @@ class CompositeBasisFunctionFT(_AbstractCompositeBasisFunction):
         return np.vstack([p(n) for p in self._polys])
 
 
-class CompositeBasis:
+class CompositeBasis(abstract.AbstractBasis):
     """Union of several basis sets"""
     def __init__(self, bases):
         """Initialize a composite basis
 
         Args:
-            bases): iterable object of FiniteTempBasis instances
+            bases: iterable object of FiniteTempBasis instances
         """
-        if not all(b.statistics == bases[0].statistics for b in bases):
-            raise ValueError("All bases must have the same statistics!")
-        if not all(b.beta == bases[0].beta for b in bases):
-            raise ValueError("All bases must have the same beta!")
-
-        self._beta = bases[0].beta
-        self._size = np.sum([b.size for b in bases])
         self.bases = bases
-        self.u = CompositeBasisFunction([b.u for b in bases]) \
-                    if all(hasattr(b, 'u') for b in bases) else None
-        self.v = CompositeBasisFunction([b.v for b in bases]) \
-                    if all(hasattr(b, 'v') for b in bases) else None
-        self.uhat = CompositeBasisFunctionFT([b.uhat for b in bases]) \
-                    if all(hasattr(b, 'uhat')  for b in bases) else None
-
-    @property
-    def beta(self): return self._beta
-
-    @property
-    def size(self): return self._size
-
-    @property
-    def shape(self): return (self._size,)
+        self._size = np.sum([b.size for b in bases])
+        self._beta = _only(b.beta for b in bases)
+        self._statistics = _only(b.statistics for b in bases)
+        self._u = CompositeBasisFunction([b.u for b in bases])
+        self._uhat = CompositeBasisFunctionFT([b.uhat for b in bases])
 
     def default_tau_sampling_points(self):
+        # FIXME: this yields bad sampling points
         return np.unique(np.hstack(
                     [b.default_tau_sampling_points() for b in self.bases]))
 
     def default_matsubara_sampling_points(self, *, mitigate=True):
+        # FIXME: this yields bad sampling points
         return np.unique(np.hstack(
                     [b.default_matsubara_sampling_points(mitigate=mitigate)
                      for b in self.bases]))
 
     @property
+    def statistics(self): return self._statistics
+
+    @property
+    def u(self): return self._u
+
+    @property
+    def uhat(self): return self._uhat
+
+    @property
+    def shape(self): return 1,
+
+    @property
+    def size(self): return 1
+
+    @property
+    def beta(self): return self._beta
+
+    @property
     def is_well_conditioned(self):
-        """Returns True if the sampling is expected to be well-conditioned"""
         return False
+
+
+def _only(iter):
+    unique = set(iter)
+    if len(unique) != 1:
+        raise ValueError(f"inconsistent elements: {unique}")
+    return unique.pop()

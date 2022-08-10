@@ -4,132 +4,13 @@ from typing import Tuple
 import numpy as np
 from warnings import warn
 
+from . import abstract
 from . import kernel as _kernel
 from . import poly
 from . import sve
 
 
-class AbstractBasis:
-    """Abstract base class for intermediate representation bases."""
-    @property
-    def u(self):
-        """Basis functions on the (reduced) imaginary time axis.
-
-        Set of IR basis functions on the imaginary time (`tau`) or reduced
-        imaginary time (`x`) axis.
-
-        To obtain the value of all basis functions at a point or a array of
-        points `x`, you can call the function ``u(x)``.  To obtain a single
-        basis function, a slice or a subset `l`, you can use ``u[l]``.
-        """
-        raise NotImplementedError()
-
-    @property
-    def uhat(self):
-        """Basis functions on the reduced Matsubara frequency (`wn`) axis.
-
-        To obtain the value of all basis functions at a Matsubara frequency
-        or a array of points `wn`, you can call the function ``uhat(wn)``.
-        Note that we expect reduced frequencies, which are simply even/odd
-        numbers for bosonic/fermionic objects. To obtain a single basis
-        function, a slice or a subset `l`, you can use ``uhat[l]``.
-        """
-        raise NotImplementedError()
-
-    @property
-    def s(self):
-        """Vector of singular values of the continuation kernel"""
-        raise NotImplementedError()
-
-    @property
-    def v(self):
-        """Basis functions on the (reduced) real frequency axis.
-
-        Set of IR basis functions on the real frequency (`omega`) or reduced
-        real-frequency (`y`) axis.
-
-        To obtain the value of all basis functions at a point or a array of
-        points `y`, you can call the function ``v(y)``.  To obtain a single
-        basis function, a slice or a subset `l`, you can use ``v[l]``.
-        """
-        raise NotImplementedError()
-
-    @property
-    def statistics(self):
-        """Quantum statistic (`"F"` for fermionic, `"B"` for bosonic)"""
-        raise NotImplementedError()
-
-    @property
-    def accuracy(self):
-        """Accuracy of singular value cutoff"""
-        return self.s[-1] / self.s[0]
-
-    def __getitem__(self, index):
-        """Return basis functions/singular values for given index/indices.
-
-        This can be used to truncate the basis to the n most significant
-        singular values: `basis[:3]`.
-        """
-        raise NotImplementedError()
-
-    @property
-    def size(self):
-        """Number of basis functions / singular values"""
-        return self.s.size
-
-    @property
-    def shape(self):
-        """Shape of the basis function set"""
-        return self.s.shape
-
-    @property
-    def significance(self):
-        """Significance of the associated imaginary-time basis function"""
-        return self.s / self.s[0]
-
-    @property
-    def kernel(self):
-        """Kernel of which this is the singular value expansion"""
-        raise NotImplementedError()
-
-    @property
-    def sve_result(self):
-        raise NotImplementedError()
-
-    @property
-    def lambda_(self):
-        """Basis cutoff parameter Λ = β * ωmax"""
-        return self.kernel.lambda_
-
-    @property
-    def beta(self):
-        """Inverse temperature or `None` because unscaled basis"""
-        raise NotImplementedError()
-
-    @property
-    def wmax(self):
-        """Real frequency cutoff (this is `None` because unscaled basis)"""
-        raise NotImplementedError()
-
-    def default_tau_sampling_points(self):
-        """Default sampling points on the imaginary time/x axis"""
-        return _default_sampling_points(self.u)
-
-    def default_omega_sampling_points(self):
-        """Default sampling points on the real frequency axis"""
-        return self.v[-1].deriv().roots()
-
-    def default_matsubara_sampling_points(self, *, mitigate=True):
-        """Default sampling points on the imaginary frequency axis"""
-        return _default_matsubara_sampling_points(self.uhat, mitigate)
-
-    @property
-    def is_well_conditioned(self):
-        """Returns True if the sampling is expected to be well-conditioned"""
-        return True
-
-
-class DimensionlessBasis(AbstractBasis):
+class DimensionlessBasis(abstract.AbstractBasis):
     """Intermediate representation (IR) basis in reduced variables.
 
     For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
@@ -206,10 +87,28 @@ class DimensionlessBasis(AbstractBasis):
     def uhat(self) -> poly.PiecewiseLegendreFT: return self._uhat
 
     @property
-    def s(self) -> np.ndarray: return self._s
+    def s(self) -> np.ndarray:
+        """Vector of singular values of the continuation kernel"""
+        return self._s
 
     @property
-    def v(self) -> poly.PiecewiseLegendrePoly: return self._v
+    def v(self) -> poly.PiecewiseLegendrePoly:
+        """Basis functions on the (reduced) real frequency axis.
+
+        Set of IR basis functions on the real frequency (`omega`) or reduced
+        real-frequency (`y`) axis.
+
+        To obtain the value of all basis functions at a point or a array of
+        points `y`, you can call the function ``v(y)``.  To obtain a single
+        basis function, a slice or a subset `l`, you can use ``v[l]``.
+        """
+        return self._v
+
+    @property
+    def shape(self): return self._s.shape
+
+    @property
+    def size(self): return self._s.size
 
     @property
     def kernel(self): return self._kernel
@@ -224,9 +123,18 @@ class DimensionlessBasis(AbstractBasis):
     def sve_result(self):
         return self._u, self._s, self._v
 
+    def default_tau_sampling_points(self):
+        return _default_sampling_points(self._u)
+
+    def default_matsubara_sampling_points(self, *, mitigate=True):
+        return _default_matsubara_sampling_points(self._uhat, mitigate=mitigate)
+
+    def default_omega_sampling_points(self):
+        return _default_sampling_points(self._v)
 
 
-class FiniteTempBasis(AbstractBasis):
+
+class FiniteTempBasis(abstract.AbstractBasis):
     """Intermediate representation (IR) basis for given temperature.
 
     For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
@@ -318,22 +226,50 @@ class FiniteTempBasis(AbstractBasis):
     def wmax(self): return self._wmax
 
     @property
+    def shape(self): return self._s.shape
+
+    @property
+    def size(self): return self._s.size
+
+    @property
     def u(self) -> poly.PiecewiseLegendrePoly: return self._u
 
     @property
     def uhat(self) -> poly.PiecewiseLegendreFT: return self._uhat
 
     @property
-    def s(self) -> np.ndarray: return self._s
+    def s(self) -> np.ndarray:
+        """Vector of singular values of the continuation kernel"""
+        return self._s
 
     @property
-    def v(self) -> poly.PiecewiseLegendrePoly: return self._v
+    def v(self) -> poly.PiecewiseLegendrePoly:
+        """Basis functions on the (reduced) real frequency axis.
+
+        Set of IR basis functions on the real frequency (`omega`) axis.
+        To obtain the value of all basis functions at a point or a array of
+        points `y`, you can call the function ``v(omega)``.  To obtain a single
+        basis function, a slice or a subset `l`, you can use ``v[l]``.
+        """
+        return self._v
 
     @property
-    def kernel(self): return self._kernel
+    def kernel(self):
+        """Kernel of which this is the singular value expansion"""
+        return self._kernel
 
     @property
-    def sve_result(self): return self._sve_result
+    def sve_result(self):
+        return self._sve_result
+
+    def default_tau_sampling_points(self):
+        return _default_sampling_points(self._u)
+
+    def default_matsubara_sampling_points(self, *, mitigate=True):
+        return _default_matsubara_sampling_points(self._uhat, mitigate=mitigate)
+
+    def default_omega_sampling_points(self):
+        return _default_sampling_points(self._v)
 
 
 def finite_temp_bases(
@@ -350,7 +286,6 @@ def finite_temp_bases(
     basis_f = FiniteTempBasis("F", beta, wmax, eps, sve_result=sve_result)
     basis_b = FiniteTempBasis("B", beta, wmax, eps, sve_result=sve_result)
     return basis_f, basis_b
-
 
 
 def _default_sampling_points(u):

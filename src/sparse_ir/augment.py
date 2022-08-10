@@ -3,11 +3,12 @@
 import numpy as np
 import numpy.polynomial.legendre as np_legendre
 
+from .abstract import AbstractBasis
 from .poly import PiecewiseLegendreFT, PiecewiseLegendrePoly
 from .basis import _default_matsubara_sampling_points
 
 
-class LegendreBasis(object):
+class LegendreBasis(AbstractBasis):
     r"""Legendre basis
 
     In the original paper [L. Boehnke et al., PRB 84, 075145 (2011)],
@@ -33,12 +34,12 @@ class LegendreBasis(object):
         if not (size > 0):
             raise ValueError("size of basis must be positive")
 
-        self.statistics = statistics
-        self.beta = beta
-        self.size = size
+        self._statistics = statistics
+        self._beta = beta
+        self._size = size
         if cl is None:
             cl = np.ones(self.size)
-        self.cl = cl
+        self._cl = cl
 
         # self.u
         knots = np.array([0, beta])
@@ -46,17 +47,16 @@ class LegendreBasis(object):
         symm = (-1)**np.arange(size)
         for l in range(size):
             data[l, 0, l] = np.sqrt((l+0.5)/beta) * cl[l]
-        self.u = PiecewiseLegendrePoly(data, knots, symm=symm)
+        self._u = PiecewiseLegendrePoly(data, knots, symm=symm)
 
         # self.uhat
         # Hack: See basis.py
         uhat_base = PiecewiseLegendrePoly(np.sqrt(beta) * self.u.data,
                                           np.array([-1,1]), symm=symm)
         odd_even = {'F': 'odd', 'B': 'even'}[statistics]
-        self.uhat = PiecewiseLegendreFT(uhat_base, odd_even)
+        self._uhat = PiecewiseLegendreFT(uhat_base, odd_even)
 
     def significance(self):
-        # TODO
         return np.ones(self.size)
 
     def default_tau_sampling_points(self):
@@ -66,11 +66,29 @@ class LegendreBasis(object):
         return _default_matsubara_sampling_points(self.uhat, mitigate)
 
     @property
+    def statistics(self): return self._statistics
+
+    @property
+    def u(self): return self._u
+
+    @property
+    def uhat(self): return self._uhat
+
+    @property
+    def shape(self): return self._size,
+
+    @property
+    def size(self): return self._size
+
+    @property
+    def beta(self): return self._beta
+
+    @property
     def is_well_conditioned(self):
         return True
 
 
-class MatsubaraConstBasis(object):
+class MatsubaraConstBasis(AbstractBasis):
     """Constant term in matsubara-frequency domain
 
     The unity in the matsubara-frequency domain
@@ -82,13 +100,9 @@ class MatsubaraConstBasis(object):
         if not (beta > 0):
             raise ValueError("inverse temperature beta must be positive")
 
-        self.statistics = statistics
-        self.beta = beta
-        self.size = 1
-        self.value = value
-
-        # self.uhat
-        self.uhat = _ConstTerm(value)
+        self._statistics = statistics
+        self._beta = beta
+        self._value = value
 
     def significance(self):
         return np.ones(1)
@@ -98,6 +112,24 @@ class MatsubaraConstBasis(object):
 
     def default_matsubara_sampling_points(self, *, mitigate=True):
         return np.array([])
+
+    @property
+    def statistics(self): return self._statistics
+
+    @property
+    def u(self): return _ConstTerm(np.nan)
+
+    @property
+    def uhat(self): return _ConstTerm(self._value)
+
+    @property
+    def shape(self): return 1,
+
+    @property
+    def size(self): return 1
+
+    @property
+    def beta(self): return self._beta
 
     @property
     def is_well_conditioned(self):

@@ -46,9 +46,8 @@ def test_composite_basis(sve_logistic):
                           np.linspace(0, beta, 10))
     _check_composite_poly(basis_comp.uhat, [basis.uhat, basis2.uhat],
                           np.array([1,3]))
-    _check_composite_poly(basis_comp.v, [basis.v, basis2.v],
-                          np.linspace(-wmax, -wmax, 10))
     assert basis_comp.beta == beta
+    assert basis_comp.statistics == basis.statistics
 
 
 def test_augmented_bosonic_basis():
