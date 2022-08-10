@@ -142,10 +142,6 @@ class PiecewiseLegendrePoly:
         ddata *= scale.reshape(_scale_shape)
         return self.__class__(ddata, self, symm=(-1)**n * self.symm)
 
-    def hat(self, freq, n_asymp=None):
-        """Get Fourier transformed object"""
-        return PiecewiseLegendreFT(self, freq, n_asymp)
-
     def roots(self, alpha=2):
         """Find all roots of the piecewise polynomial
 

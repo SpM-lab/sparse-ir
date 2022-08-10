@@ -4,8 +4,6 @@ from _pytest.mark import param
 import numpy as np
 
 import sparse_ir
-from sparse_ir import sve
-from sparse_ir import kernel
 from sparse_ir import poly
 from scipy.integrate import quad
 
@@ -54,7 +52,7 @@ def test_broadcast(sve_logistic):
 
 def test_matrix_hat(sve_logistic):
     u, s, v = sve_logistic[42]
-    uhat = u.hat('odd')
+    uhat = poly.PiecewiseLegendreFT(u, "odd")
 
     n = np.array([1, 3, 5, -1, -3, 5])
     result = uhat(n.reshape(3, 2))
@@ -90,7 +88,7 @@ def test_overlap_break_points(sve_logistic, lambda_, atol):
 
 def test_eval_unique(sve_logistic):
     u, s, v = sve_logistic[42]
-    uhat = u.hat("odd")
+    uhat = poly.PiecewiseLegendreFT(u, "odd")
 
     # evaluate
     res1 = uhat(np.array([1, 3, 3, 1]))

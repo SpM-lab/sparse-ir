@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 import sparse_ir
-from sparse_ir import sve
-from sparse_ir import kernel
+from sparse_ir import poly
 from sparse_ir import composite
 from sparse_ir import augment
 
@@ -30,7 +29,7 @@ def test_composite_poly(sve_logistic):
     u_comp = composite.CompositeBasisFunction([u, u])
     _check_composite_poly(u_comp, [u, u], np.linspace(-1, 1, 10))
 
-    uhat = u.hat("odd")
+    uhat = poly.PiecewiseLegendreFT(u, "odd")
     uhat_comp = composite.CompositeBasisFunctionFT([uhat, uhat])
     _check_composite_poly(uhat_comp, [uhat, uhat], np.array([-3, 1, 5]))
 
@@ -47,9 +46,8 @@ def test_composite_basis(sve_logistic):
                           np.linspace(0, beta, 10))
     _check_composite_poly(basis_comp.uhat, [basis.uhat, basis2.uhat],
                           np.array([1,3]))
-    _check_composite_poly(basis_comp.v, [basis.v, basis2.v],
-                          np.linspace(-wmax, -wmax, 10))
     assert basis_comp.beta == beta
+    assert basis_comp.statistics == basis.statistics
 
 
 def test_augmented_bosonic_basis():
