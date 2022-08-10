@@ -96,6 +96,22 @@ class AbstractSVE:
         raise NotImplementedError()
 
 
+class SVEResult:
+    """Result of singular value expansion"""
+    def __init__(self, u, s, v, K, eps=None):
+        self.u = u
+        self.s = s
+        self.v = v
+
+        # In addition to its SVE, we remember the type of kernel and also the
+        # accuracy to which the SVE was computed.
+        self.K = K
+        self.eps = eps
+
+    def __iter__(self):
+        return iter((self.u, self.s, self.v))
+
+
 class SamplingSVE(AbstractSVE):
     """SVE to SVD translation by sampling technique [1].
 
@@ -170,7 +186,7 @@ class SamplingSVE(AbstractSVE):
         vly = poly.PiecewiseLegendrePoly(
                         v_data.astype(dtype), self._segs_y.astype(dtype))
         _canonicalize(ulx, vly)
-        return ulx, s, vly
+        return SVEResult(ulx, s, vly, self.K, self.eps)
 
 
 class CentrosymmSVE(AbstractSVE):
@@ -249,7 +265,7 @@ class CentrosymmSVE(AbstractSVE):
         full_hints = self.K.sve_hints(self.eps)
         u = poly.PiecewiseLegendrePoly(u_data, full_hints.segments_x, symm=signs)
         v = poly.PiecewiseLegendrePoly(v_data, full_hints.segments_y, symm=signs)
-        return u, s, v
+        return SVEResult(u, s, v, self.K, self.eps)
 
 
 def _choose_accuracy(eps, work_dtype):
