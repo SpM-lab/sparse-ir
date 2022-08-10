@@ -184,8 +184,9 @@ class DimensionlessBasis(AbstractBasis):
         # so for significantly larger frequencies we use the asymptotics,
         # since it has lower relative error.
         even_odd = {'F': 'odd', 'B': 'even'}[statistics]
+        n_asymp = self._kernel.conv_radius
         self._u = u
-        self._uhat = u.hat(even_odd, n_asymp=self._kernel.conv_radius)
+        self._uhat = poly.PiecewiseLegendreFT(u, even_odd, n_asymp=n_asymp)
         self._s = s
         self._v = v
 
@@ -296,10 +297,10 @@ class FiniteTempBasis(AbstractBasis):
         # unit interval, we need to scale the underlying data.  This breaks
         # the correspondence between U.hat and Uhat though.
         uhat_base = u.__class__(np.sqrt(beta) * u.data, u, symm=u.symm)
-
         conv_radius = 40 * self.kernel.lambda_
-        _even_odd = {'F': 'odd', 'B': 'even'}[statistics]
-        self._uhat = uhat_base.hat(_even_odd, conv_radius)
+        even_odd = {'F': 'odd', 'B': 'even'}[statistics]
+        self._uhat = poly.PiecewiseLegendreFT(uhat_base, even_odd,
+                                              n_asymp=conv_radius)
 
     def __getitem__(self, index):
         u, s, v = self.sve_result

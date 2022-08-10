@@ -3,7 +3,7 @@
 import numpy as np
 import numpy.polynomial.legendre as np_legendre
 
-from .poly import PiecewiseLegendrePoly
+from .poly import PiecewiseLegendreFT, PiecewiseLegendrePoly
 from .basis import _default_matsubara_sampling_points
 
 
@@ -52,7 +52,8 @@ class LegendreBasis(object):
         # Hack: See basis.py
         uhat_base = PiecewiseLegendrePoly(np.sqrt(beta) * self.u.data,
                                           np.array([-1,1]), symm=symm)
-        self.uhat = uhat_base.hat({'F': 'odd', 'B': 'even'}[statistics])
+        odd_even = {'F': 'odd', 'B': 'even'}[statistics]
+        self.uhat = PiecewiseLegendreFT(uhat_base, odd_even)
 
     def significance(self):
         # TODO

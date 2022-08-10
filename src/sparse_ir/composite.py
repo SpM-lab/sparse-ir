@@ -63,10 +63,6 @@ class CompositeBasisFunction(_AbstractCompositeBasisFunction):
         """Get the n'th derivative"""
         return np.vstack([p.deriv(n) for p in self._polys])
 
-    #def hat(self, freq, n_asymp=None):
-        #"""Get Fourier transformed object"""
-        #return CompositeBasisFunctionFT([p.hat(freq, n_asymp) for p in self._polys])
-
     #def roots(self, alpha=2):
         #"""Find all roots of the basis function """
         #return np.unique(np.hstack([p.roots(alpha) for p in self._polys]))

@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: MIT
 import numpy as np
 import sparse_ir
-from sparse_ir import sve
-from sparse_ir import kernel
+from sparse_ir import poly
 from sparse_ir import composite
 from sparse_ir import augment
 
@@ -30,7 +29,7 @@ def test_composite_poly(sve_logistic):
     u_comp = composite.CompositeBasisFunction([u, u])
     _check_composite_poly(u_comp, [u, u], np.linspace(-1, 1, 10))
 
-    uhat = u.hat("odd")
+    uhat = poly.PiecewiseLegendreFT(u, "odd")
     uhat_comp = composite.CompositeBasisFunctionFT([uhat, uhat])
     _check_composite_poly(uhat_comp, [uhat, uhat], np.array([-3, 1, 5]))
 
