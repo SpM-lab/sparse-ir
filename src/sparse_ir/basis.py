@@ -144,13 +144,15 @@ class FiniteTempBasis(abstract.AbstractBasis):
         return self._sve_result
 
     def default_tau_sampling_points(self):
-        return _default_sampling_points(self._u)
+        x = _default_sampling_points(self._sve_result.u, self.size)
+        return self._beta/2 * (x + 1)
 
     def default_matsubara_sampling_points(self, *, mitigate=True):
         return _default_matsubara_sampling_points(self._uhat, mitigate=mitigate)
 
     def default_omega_sampling_points(self):
-        return _default_sampling_points(self._v)
+        y = _default_sampling_points(self._sve_result.v, self.size)
+        return self._wmax * y
 
     def rescale(self, new_beta):
         """Return a basis for different temperature.
@@ -181,11 +183,32 @@ def finite_temp_bases(
     return basis_f, basis_b
 
 
-def _default_sampling_points(u):
-    poly = u[-1]
-    maxima = poly.deriv().roots()
-    left = .5 * (maxima[:1] + poly.xmin)
-    right = .5 * (maxima[-1:] + poly.xmax)
+def _default_sampling_points(u, L):
+    if u.xmin != -1 or u.xmax != 1:
+        raise ValueError("expecting unscaled functions here")
+
+    # For orthogonal polynomials (the high-T limit of IR), we know that the
+    # ideal sampling points for a basis of size L are the roots of the L-th
+    # polynomial.  We empirically find that these stay good sampling points
+    # for our kernels (probably because the kernels are totally positive).
+    if L < u.size:
+        return u[L].roots()
+    if L > u.size:
+        warn(f"Requesting {L} sampling points but we only have {u.size} "
+             f"basis functions in SVE.", UserWarning, 3)
+
+    # If we do not have enough polynomials in the basis, we approximate the
+    # roots of the L'th polynomial by the extrema of the (L-1)'st basis
+    # function, which is sensible due to the strong interleaving property
+    # of these functions' roots.
+    maxima = u[-1].deriv().roots()
+
+    # Putting the sampling points right at [0, beta], which would be the
+    # local extrema, is slightly worse conditioned than putting it in the
+    # middel.  This can be understood by the fact that the roots never
+    # occur right at the border.
+    left = .5 * (maxima[:1] + u.xmin)
+    right = .5 * (maxima[-1:] + u.xmax)
     return np.concatenate([left, maxima, right])
 
 
