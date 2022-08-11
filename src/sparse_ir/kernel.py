@@ -1,7 +1,6 @@
 # Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
 import numpy as np
-from warnings import warn
 from typing import Callable
 
 
@@ -200,8 +199,8 @@ class LogisticKernel(AbstractKernel):
         """
         Return the weight function for given statistics.
 
-        Fermion: w(x) = 1
-        Boson: w(y) = 1/tanh(Λ*y/2)
+         - Fermion: `w(x) == 1`
+         - Boson: `w(y) == 1/tanh(Λ*y/2)`
         """
         if statistics not in "FB":
             raise ValueError("invalid value of statistics argument")

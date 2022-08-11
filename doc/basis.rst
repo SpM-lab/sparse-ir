@@ -4,9 +4,6 @@ IR Basis
 .. autoclass:: sparse_ir.FiniteTempBasis
     :members:
 
-.. autoclass:: sparse_ir.DimensionlessBasis
-    :members:
-
 Piecewise polynomials
 ---------------------
 

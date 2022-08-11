@@ -10,130 +10,6 @@ from . import poly
 from . import sve
 
 
-class DimensionlessBasis(abstract.AbstractBasis):
-    """Intermediate representation (IR) basis in reduced variables.
-
-    For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
-    imaginary time, τ ∈ [0, β], this class stores the truncated singular
-    value expansion or IR basis::
-
-        K(x, y) ≈ sum(u[l](x) * s[l] * v[l](y) for l in range(L))
-
-    The functions are given in reduced variables, ``x = 2*τ/β - 1`` and
-    ``y = ω/ωmax``, which scales both sides to the interval ``[-1, 1]``.  The
-    kernel then only depends on a cutoff parameter ``Λ = β * ωmax``.
-
-    Example:
-        The following example code assumes the spectral function is a single
-        pole at x = 0.2::
-
-            # Compute IR basis suitable for fermions and β*W <= 42
-            import sparse_ir
-            basis = sparse_ir.DimensionlessBasis(statistics='F', lambda_=42)
-
-            # Assume spectrum is a single pole at x = 0.2, compute G(iw)
-            # on the first few Matsubara frequencies
-            gl = basis.s * basis.v(0.2)
-            giw = gl @ basis.uhat([1, 3, 5, 7])
-
-    See also:
-        :class:`FiniteTempBasis` for a basis directly in time/frequency.
-    """
-    def __init__(self, statistics, lambda_, eps=None, *, kernel=None,
-                 sve_result=None):
-        if not (lambda_ >= 0):
-            raise ValueError("kernel cutoff lambda must be non-negative")
-
-        if eps is None and sve_result is None and not sve.HAVE_XPREC:
-            warn("xprec package is not available:\n"
-                 "expect single precision (1.5e-8) only as both cutoff and\n"
-                 "accuracy of the basis functions")
-
-        # Calculate basis functions from truncated singular value expansion
-        self._kernel = _get_kernel(statistics, lambda_, kernel)
-        if sve_result is None:
-            sve_result = sve.compute(self._kernel, eps)
-            u, s, v = sve_result
-        else:
-            u, s, v = sve_result
-            if u.shape != s.shape or s.shape != v.shape:
-                raise ValueError("mismatched shapes in SVE")
-
-        self._statistics = statistics
-
-        # The radius of convergence of the asymptotic expansion is Lambda/2,
-        # so for significantly larger frequencies we use the asymptotics,
-        # since it has lower relative error.
-        even_odd = {'F': 'odd', 'B': 'even'}[statistics]
-        n_asymp = self._kernel.conv_radius
-        self._u = u
-        self._uhat = poly.PiecewiseLegendreFT(u, even_odd, n_asymp=n_asymp)
-        self._s = s
-        self._v = v
-
-    def __getitem__(self, index):
-        u, s, v = self.sve_result
-        sve_result = u[index], s[index], v[index]
-        return DimensionlessBasis(self._statistics, self._kernel.lambda_,
-                                  kernel=self._kernel, sve_result=sve_result)
-
-    @property
-    def statistics(self): return self._statistics
-
-    @property
-    def u(self) -> poly.PiecewiseLegendrePoly: return self._u
-
-    @property
-    def uhat(self) -> poly.PiecewiseLegendreFT: return self._uhat
-
-    @property
-    def s(self) -> np.ndarray:
-        """Vector of singular values of the continuation kernel"""
-        return self._s
-
-    @property
-    def v(self) -> poly.PiecewiseLegendrePoly:
-        """Basis functions on the (reduced) real frequency axis.
-
-        Set of IR basis functions on the real frequency (`omega`) or reduced
-        real-frequency (`y`) axis.
-
-        To obtain the value of all basis functions at a point or a array of
-        points `y`, you can call the function ``v(y)``.  To obtain a single
-        basis function, a slice or a subset `l`, you can use ``v[l]``.
-        """
-        return self._v
-
-    @property
-    def shape(self): return self._s.shape
-
-    @property
-    def size(self): return self._s.size
-
-    @property
-    def kernel(self): return self._kernel
-
-    @property
-    def beta(self): return None
-
-    @property
-    def wmax(self): return None
-
-    @property
-    def sve_result(self):
-        return self._u, self._s, self._v
-
-    def default_tau_sampling_points(self):
-        return _default_sampling_points(self._u)
-
-    def default_matsubara_sampling_points(self, *, mitigate=True):
-        return _default_matsubara_sampling_points(self._uhat, mitigate=mitigate)
-
-    def default_omega_sampling_points(self):
-        return _default_sampling_points(self._v)
-
-
-
 class FiniteTempBasis(abstract.AbstractBasis):
     """Intermediate representation (IR) basis for given temperature.
 
@@ -159,8 +35,8 @@ class FiniteTempBasis(abstract.AbstractBasis):
             gl = basis.s * basis.v(2.5)
             giw = gl @ basis.uhat([1, 3, 5, 7])
     """
-    def __init__(self, statistics, beta, wmax, eps=None, *, kernel=None,
-                 sve_result=None):
+    def __init__(self, statistics, beta, wmax, eps=None, *,
+                 max_size=None, kernel=None, sve_result=None):
         if not (beta > 0):
             raise ValueError("inverse temperature beta must be positive")
         if not (wmax >= 0):
@@ -175,19 +51,13 @@ class FiniteTempBasis(abstract.AbstractBasis):
         self._kernel = _get_kernel(statistics, beta * wmax, kernel)
         if sve_result is None:
             sve_result = sve.compute(self._kernel, eps)
-            u, s, v = sve_result
-        else:
-            u, s, v = sve_result
-            if u.shape != s.shape or s.shape != v.shape:
-                raise ValueError("mismatched shapes in SVE")
-
-        if u.xmin != -1 or u.xmax != 1:
-            raise RuntimeError("u must be defined in the reduced variable.")
 
         self._sve_result = sve_result
         self._statistics = statistics
         self._beta = beta
         self._wmax = wmax
+
+        u, s, v = sve_result.part(eps, max_size)
         self._accuracy = s[-1] / s[0]
 
         # The polynomials are scaled to the new variables by transforming the
@@ -211,10 +81,10 @@ class FiniteTempBasis(abstract.AbstractBasis):
                                               n_asymp=conv_radius)
 
     def __getitem__(self, index):
-        u, s, v = self.sve_result
-        sve_result = u[index], s[index], v[index]
-        return FiniteTempBasis(self._statistics, self._beta, self._wmax,
-                               kernel=self._kernel, sve_result=sve_result)
+        return FiniteTempBasis(
+                    self._statistics, self._beta, self._wmax, None,
+                    max_size=_slice_to_size(index), kernel=self._kernel,
+                    sve_result=self._sve_result)
 
     @property
     def statistics(self): return self._statistics
@@ -270,6 +140,18 @@ class FiniteTempBasis(abstract.AbstractBasis):
 
     def default_omega_sampling_points(self):
         return _default_sampling_points(self._v)
+
+    def rescale(self, new_beta):
+        """Return a basis for different temperature.
+
+        Uses the same kernel with the same ``eps``, but a different
+        temperature.  Note that this implies a different UV cutoff ``wmax``,
+        since ``lambda_ == beta * wmax`` stays constant.
+        """
+        new_wmax = self._kernel.lambda_ / new_beta
+        return FiniteTempBasis(self._statistics, new_beta, new_wmax, None,
+                               max_size=self.size, kernel=self._kernel,
+                               sve_result=self._sve_result)
 
 
 def finite_temp_bases(
@@ -341,3 +223,13 @@ def _get_kernel(statistics, lambda_, kernel):
             if not np.allclose(lambda_kernel, lambda_, atol=0, rtol=4e-16):
                 raise ValueError("lambda of kernel and basis mismatch")
     return kernel
+
+
+def _slice_to_size(index):
+    if not isinstance(index, slice):
+        raise ValueError("argument must be a slice (`n:m`)")
+    if index.start is not None and index.start != 0:
+        raise ValueError("slice must start at zero")
+    if index.step is not None and index.step != 1:
+        raise ValueError("slice must step in ones")
+    return index.stop

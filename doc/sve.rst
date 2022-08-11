@@ -14,9 +14,3 @@ Singular value decomposition
 
 .. automodule:: sparse_ir.svd
     :members:
-
-Gauss quadrature
-----------------
-
-.. automodule:: sparse_ir.gauss
-    :members:

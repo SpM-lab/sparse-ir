@@ -11,12 +11,12 @@ from . import kernel
 HAVE_XPREC = svd._ddouble is not None
 
 
-def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
-            sve_strat=None, svd_strat=None):
+def compute(K, eps=None, cutoff=None, n_sv=None, n_gauss=None, dtype=float,
+            work_dtype=None, sve_strat=None, svd_strat=None):
     """Perform truncated singular value expansion of a kernel.
 
     Perform a truncated singular value expansion (SVE) of an integral
-    kernel ``K : [xmin, xmax] x [ymin, ymax] -> R``:
+    kernel ``K : [xmin, xmax] x [ymin, ymax] -> R``::
 
         K(x, y) == sum(s[l] * u[l](x) * v[l](y) for l in (0, 1, 2, ...)),
 
@@ -30,41 +30,57 @@ def compute(K, eps=None, n_sv=None, n_gauss=None, dtype=float, work_dtype=None,
     using a collocation).
 
     Arguments:
+        K (kernel.AbstractKernel):
+            Integral kernel to take SVE from
+        eps (float):
+            Accuracy target for the basis: attempt to have singular values down
+            to a relative magnitude of ``eps``, and have each singular value
+            and singular vector be accurate to ``eps``.  A ``work_dtype`` with
+            a machine epsilon of ``eps**2`` or lower is required to satisfy
+            this. Defaults to ``2.2e-16`` if xprec is available, and ``1e-8``
+            otherwise.
+        cutoff (float):
+            Relative cutoff for the singular values.  A ``work_dtype`` with
+            machine epsilon of ``cutoff`` is required to satisfy this.
+            Defaults to a small multiple of the machine epsilon.
 
-      - ``K``: Integral kernel to take SVE from
-      - ``eps``:  Relative cutoff for the singular values. Defaults to double
-        precision (2.2e-16) if the xprec package is available, and 1.5e-8
-        otherwise.
-      - ``n_sv``: Maximum basis size. If given, only at most the ``n_sv`` most
-        significant singular values and associated singular functions are
-        returned.
-      - ``n_gauss``: Order of Legendre polynomials. Defaults to hinted value
-        by the kernel.
-      - ``dtype``: Data type of the result.
-      - ``work_dtype``: Working data type. Defaults to a data type with
-        machine epsilon of at least ``eps**2``, or otherwise most accurate data
-        type available.
-      - ``sve_strat``: SVE to SVD translation strategy. Defaults to SamplingSVE.
-      - ``svd_strat``: SVD solver. Defaults to fast (ID/RRQR) based solution
-         when accuracy goals are moderate, and more accurate Jacobi-based
-         algorithm otherwise.
+            Note that ``cutoff`` and ``eps`` serve distinct purposes. ``cutoff``
+            reprsents the accuracy to which the kernel is reproduced, whereas
+            ``eps`` is the accuracy to which the singular values and vectors
+            are guaranteed.
+        n_sv (int):
+            Maximum basis size. If given, only at most the ``n_sv`` most
+            significant singular values and associated singular functions are
+            returned.
+        n_gauss (int):
+            Order of Legendre polynomials. Defaults to kernel hinted value.
+        dtype (np.dtype):
+            Data type of the result.
+        work_dtype (np.dtype):
+            Working data type. Defaults to a data type with machine epsilon of
+            at most ``eps**2`` and at most  ``cutoff``, or otherwise most
+            accurate data type available.
+        sve_strat (AbstractSVE):
+            SVE to SVD translation strategy. Defaults to ``SamplingSVE``,
+            optionally wrapped inside of a ``CentrosymmSVE`` if the kernel
+            is centrosymmetric.
+        svd_strat ('fast' or 'default' or 'accurate'):
+            SVD solver. Defaults to fast (ID/RRQR) based solution
+            when accuracy goals are moderate, and more accurate Jacobi-based
+            algorithm otherwise.
 
-    Return tuple ``(u, s, v)``, where:
-
-     - ``u`` is a ``PiecewiseLegendrePoly`` instance holding the left singular functions
-     - ``s`` is a vector of singular values
-     - ``v`` is a ``PiecewiseLegendrePoly`` instance holding the right singular functions
+    Returns:
+        An ``SVEResult`` containing the truncated singular value expansion.
     """
-    if eps is None or work_dtype is None or svd_strat is None:
-        eps, work_dtype, default_svd_strat = _choose_accuracy(eps, work_dtype)
-    if svd_strat is None:
-        svd_strat = default_svd_strat
+    safe_eps, work_dtype, svd_strat = _safe_eps(eps, work_dtype, svd_strat)
     if sve_strat is None:
         sve_strat = CentrosymmSVE if K.is_centrosymmetric else SamplingSVE
-    sve = sve_strat(K, eps, n_gauss=n_gauss, dtype=work_dtype)
+    if cutoff is None:
+        cutoff = 2 * svd.finfo(work_dtype).eps
+    sve = sve_strat(K, safe_eps, n_gauss=n_gauss, dtype=work_dtype)
     u, s, v = zip(*(svd.compute(matrix, sve.nsvals_hint, svd_strat)
                     for matrix in sve.matrices))
-    u, s, v = truncate(u, s, v, eps, n_sv)
+    u, s, v = _truncate(u, s, v, cutoff, n_sv)
     return sve.postprocess(u, s, v, dtype)
 
 
@@ -96,6 +112,33 @@ class AbstractSVE:
         raise NotImplementedError()
 
 
+class SVEResult:
+    """Result of singular value expansion"""
+    def __init__(self, u, s, v, K, eps=None):
+        self.u = u
+        self.s = s
+        self.v = v
+
+        # In addition to its SVE, we remember the type of kernel and also the
+        # accuracy to which the SVE was computed.
+        self.K = K
+        self.eps = eps
+
+    def part(self, eps=None, max_size=None):
+        if eps is None:
+            eps = self.eps
+        cut = (self.s >= eps * self.s[0]).sum()
+        if max_size is not None and max_size < cut:
+            cut = max_size
+        if cut == self.s.size:
+            return self.u, self.s, self.v
+        else:
+            return self.u[:cut], self.s[:cut], self.v[:cut]
+
+    def __iter__(self):
+        return iter((self.u, self.s, self.v))
+
+
 class SamplingSVE(AbstractSVE):
     """SVE to SVD translation by sampling technique [1].
 
@@ -104,12 +147,12 @@ class SamplingSVE(AbstractSVE):
     sets of Gauss quadrature rules: ``(x, wx)`` and ``(y, wy)`` and
     approximating the integrals in the SVE equations by finite sums.  This
     implies that the singular values of the SVE are well-approximated by the
-    singular values of the following matrix:
+    singular values of the following matrix::
 
         A[i, j] = sqrt(wx[i]) * K(x[i], y[j]) * sqrt(wy[j])
 
     and the values of the singular functions at the Gauss sampling points can
-    be reconstructed from the singular vectors ``u`` and ``v`` as follows:
+    be reconstructed from the singular vectors ``u`` and ``v`` as follows::
 
         u[l,i] ≈ sqrt(wx[i]) u[l](x[i])
         v[l,j] ≈ sqrt(wy[j]) u[l](y[j])
@@ -170,7 +213,7 @@ class SamplingSVE(AbstractSVE):
         vly = poly.PiecewiseLegendrePoly(
                         v_data.astype(dtype), self._segs_y.astype(dtype))
         _canonicalize(ulx, vly)
-        return ulx, s, vly
+        return SVEResult(ulx, s, vly, self.K, self.eps)
 
 
 class CentrosymmSVE(AbstractSVE):
@@ -178,14 +221,14 @@ class CentrosymmSVE(AbstractSVE):
 
     For a centrosymmetric kernel ``K``, i.e., a kernel satisfying:
     ``K(x, y) == K(-x, -y)``, one can make the following ansatz for the
-    singular functions:
+    singular functions::
 
         u[l](x) = ured[l](x) + sign[l] * ured[l](-x)
         v[l](y) = vred[l](y) + sign[l] * ured[l](-y)
 
     where ``sign[l]`` is either +1 or -1.  This means that the singular value
     expansion can be block-diagonalized into an even and an odd part by
-    (anti-)symmetrizing the kernel:
+    (anti-)symmetrizing the kernel::
 
         Keven = K(x, y) + K(x, -y)
         Kodd  = K(x, y) - K(x, -y)
@@ -249,36 +292,49 @@ class CentrosymmSVE(AbstractSVE):
         full_hints = self.K.sve_hints(self.eps)
         u = poly.PiecewiseLegendrePoly(u_data, full_hints.segments_x, symm=signs)
         v = poly.PiecewiseLegendrePoly(v_data, full_hints.segments_y, symm=signs)
-        return u, s, v
+        return SVEResult(u, s, v, self.K, self.eps)
 
 
-def _choose_accuracy(eps, work_dtype):
-    """Choose work dtype and accuracy based on specs and defaults"""
-    if eps is None:
-        if work_dtype is None:
-            return np.sqrt(svd.MAX_EPS), svd.MAX_DTYPE, 'fast'
-        safe_eps = np.sqrt(svd.finfo(work_dtype).eps)
-        return safe_eps, work_dtype, 'fast'
-
+def _safe_eps(eps_required, work_dtype, svd_strat):
+    # First, choose the working dtype based on the eps required
     if work_dtype is None:
-        if eps >= np.sqrt(svd.finfo(float).eps):
-            return eps, float, 'fast'
-        work_dtype = svd.MAX_DTYPE
-
-    safe_eps = np.sqrt(svd.finfo(work_dtype).eps)
-    if eps >= safe_eps:
-        svd_strat = 'fast'
+        if eps_required is None or eps_required < 1e-8:
+            work_dtype = svd.MAX_DTYPE
+        else:
+            work_dtype = np.float64
     else:
-        svd_strat = 'accurate'
-        msg = ("\nBasis cutoff is {:.2g}, which is below sqrt(eps) with\n"
-               "eps = {:.2g}.  Expect singular values and basis functions\n"
-               "for large l to have lower precision than the cutoff.\n")
-        msg = msg.format(float(eps), float(np.square(safe_eps)))
+        work_dtype = np.dtype(work_dtype)
+
+    # Next, work out the actual epsilon
+    if work_dtype == np.float64:
+        # This is technically a bit too low (the true value is about 1.5e-8),
+        # but it's not too far off and easier to remember for the user.
+        safe_eps = 1e-8
+    else:
+        safe_eps = np.sqrt(svd.finfo(work_dtype).eps)
+
+    # Work out the SVD strategy to be used.  If the user sets this, we
+    # assume they know what they are doing and do not warn if they compute
+    # the basis.
+    warn_acc = False
+    if svd_strat is None:
+        if eps_required is not None and eps_required < safe_eps:
+            svd_strat = 'accurate'
+            warn_acc = True
+        else:
+            svd_strat = 'fast'
+
+    if warn_acc:
+        msg = (f"\n"
+            f"Requested accuracy is {eps_required:.2g}, which is below the\n"
+            f"accuracy {safe_eps:.2g} for the work data type {work_dtype}.\n"
+            f"Expect singular values and basis functions for large l to\n"
+            f"have lower precision than the cutoff.\n")
         if not HAVE_XPREC:
-            msg += "You can install the xprec package to gain more precision.\n"
+            msg += "Install the xprec package to gain more precision.\n"
         warn(msg, UserWarning, 3)
 
-    return eps, work_dtype, svd_strat
+    return safe_eps, work_dtype, svd_strat
 
 
 def _canonicalize(ulx, vly):
@@ -294,7 +350,7 @@ def _canonicalize(ulx, vly):
     vly.data[None, None, :] *= gauge
 
 
-def truncate(u, s, v, rtol=0, lmax=None):
+def _truncate(u, s, v, rtol=0, lmax=None):
     """Truncate singular value expansion.
 
     Arguments:
@@ -307,7 +363,7 @@ def truncate(u, s, v, rtol=0, lmax=None):
     """
     if lmax is not None and (lmax < 0 or int(lmax) != lmax):
         raise ValueError("invalid value of maximum number of singular values")
-    if rtol < 0 or rtol > 1:
+    if not (0 <= rtol <= 1):
         raise ValueError("invalid relative tolerance")
 
     sall = np.hstack(s)
@@ -321,7 +377,7 @@ def truncate(u, s, v, rtol=0, lmax=None):
         cutoff = max(cutoff, ssort[sall.size - lmax - 1])
 
     # Determine how many singular values survive in each group
-    scount = [np.count_nonzero(si > cutoff) for si in s]
+    scount = [(si > cutoff).sum() for si in s]
 
     u_cut = [ui[:, :counti] for (ui, counti) in zip(u, scount)]
     s_cut = [si[:counti] for (si, counti) in zip(s, scount)]
