@@ -4,7 +4,7 @@ Intermediate representation (IR) for many-body propagators
 """
 __copyright__ = "2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others"
 __license__ = "MIT"
-__version__ = "0.92.1"
+__version__ = "0.93.0"
 
 min_xprec_version = "1.0"
 
