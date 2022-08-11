@@ -18,7 +18,7 @@ setting `WARN_ACCURACY` to false.
 import numpy as _np
 from warnings import warn as _warn
 
-from . import basis as _basis
+from . import sve as _sve
 from . import poly as _poly
 from . import kernel as _kernel
 
@@ -39,14 +39,14 @@ def load(statistics, Lambda, h5file=None):
 
     kernel_type = {"F": _kernel.LogisticKernel,
                    "B": _kernel.RegularizedBoseKernel}[statistics]
-    basis = _basis.DimensionlessBasis(statistics, float(Lambda),
-                                      kernel=kernel_type(Lambda))
-    return Basis(statistics, Lambda, (basis.u, basis.s, basis.v))
+    kernel = kernel_type(float(Lambda))
+    sve_result = _sve.compute(kernel)
+    return Basis(statistics, Lambda, sve_result)
 
 
 class Basis:
     def __init__(self, statistics, Lambda, sve_result):
-        u, s, v = sve_result
+        u, s, v = sve_result.part()
         self._statistics = statistics
         self._Lambda = Lambda
         self._u = u

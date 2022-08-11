@@ -4,34 +4,6 @@
 
 # Sample codes in the SciPost review paper
 
-def test_sample1():
-    # Compute IR basis for fermions and \Lambda = \beta * \omega_max = 1000
-    import sparse_ir
-    import numpy as np
-
-    lambda_  = 1000
-    eps = 1e-8 # cut-off value for singular values
-    b_xy = sparse_ir.DimensionlessBasis('F', lambda_, eps)
-
-    # All singular values
-    print("singular values: ", b_xy.s)
-    print("u_0(0.1)", b_xy.u[0](0.1))
-    print("v_0(0.1)", b_xy.v[0](0.1))
-
-    print("n-th derivative of u_l(x) and v_l(y)")
-    for n in range(1,3):
-        u_n = b_xy.u.deriv(n)
-        v_n = b_xy.v.deriv(n)
-        print(" n= ", n, u_n[0](0.1))
-        print(" n= ", n, v_n[0](0.1))
-
-    # Compute u_{ln} as a matrix for the first
-    # 10 non-nagative fermionic Matsubara frequencies
-    # Fermionic/bosonic frequencies are denoted by odd/even integers.
-    hatF_t = b_xy.uhat(2*np.arange(10)+1)
-    print(hatF_t.shape)
-
-
 def test_sample2():
     # Compute IR basis for fermions and \beta = 100 and \omega_max = 10
     import sparse_ir

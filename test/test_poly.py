@@ -22,9 +22,6 @@ def test_shape(sve_logistic):
 def test_slice(sve_logistic):
     sve_result = sve_logistic[42]
 
-    basis = sparse_ir.DimensionlessBasis('F', 42, sve_result=sve_result)
-    assert basis[:5].size == 5
-
     basis = sparse_ir.FiniteTempBasis('F', 4.2, 10, sve_result=sve_result)
     assert basis[:4].size == 4
 

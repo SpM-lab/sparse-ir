@@ -18,7 +18,7 @@ except ImportError:
     pass
 
 from .kernel import RegularizedBoseKernel, LogisticKernel
-from .sve import compute as compute_sve
-from .basis import DimensionlessBasis, FiniteTempBasis, finite_temp_bases
+from .sve import compute as compute_sve, SVEResult
+from .basis import FiniteTempBasis, finite_temp_bases
 from .basis_set import FiniteTempBasisSet
 from .sampling import TauSampling, MatsubaraSampling

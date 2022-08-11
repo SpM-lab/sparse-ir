@@ -65,8 +65,8 @@ def test_axis0():
 
 @pytest.mark.parametrize("stat, lambda_", [('B', 42), ('F', 42)])
 def test_tau_noise(sve_logistic, stat, lambda_):
-    basis = sparse_ir.DimensionlessBasis(stat, lambda_,
-                                         sve_result=sve_logistic[lambda_])
+    basis = sparse_ir.FiniteTempBasis(stat, 1, lambda_,
+                                      sve_result=sve_logistic[lambda_])
     smpl = sparse_ir.TauSampling(basis)
     rng = np.random.RandomState(4711)
 
@@ -84,8 +84,8 @@ def test_tau_noise(sve_logistic, stat, lambda_):
 
 @pytest.mark.parametrize("stat, lambda_", [('B', 42), ('F', 42)])
 def test_wn_noise(sve_logistic, stat, lambda_):
-    basis = sparse_ir.DimensionlessBasis(stat, lambda_,
-                                         sve_result=sve_logistic[lambda_])
+    basis = sparse_ir.FiniteTempBasis(stat, 1, lambda_,
+                                      sve_result=sve_logistic[lambda_])
     smpl = sparse_ir.MatsubaraSampling(basis)
     rng = np.random.RandomState(4711)
 
