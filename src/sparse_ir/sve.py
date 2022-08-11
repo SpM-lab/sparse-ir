@@ -16,7 +16,7 @@ def compute(K, eps=None, cutoff=None, n_sv=None, n_gauss=None, dtype=float,
     """Perform truncated singular value expansion of a kernel.
 
     Perform a truncated singular value expansion (SVE) of an integral
-    kernel ``K : [xmin, xmax] x [ymin, ymax] -> R``:
+    kernel ``K : [xmin, xmax] x [ymin, ymax] -> R``::
 
         K(x, y) == sum(s[l] * u[l](x) * v[l](y) for l in (0, 1, 2, ...)),
 
@@ -44,10 +44,10 @@ def compute(K, eps=None, cutoff=None, n_sv=None, n_gauss=None, dtype=float,
             machine epsilon of ``cutoff`` is required to satisfy this.
             Defaults to a small multiple of the machine epsilon.
 
-            Note that `cutoff` and `eps` serve distinct purposes. `cutoff`
+            Note that ``cutoff`` and ``eps`` serve distinct purposes. ``cutoff``
             reprsents the accuracy to which the kernel is reproduced, whereas
-            `eps` is the accuracy to which the singular values and vectors are
-            guaranteed.
+            ``eps`` is the accuracy to which the singular values and vectors
+            are guaranteed.
         n_sv (int):
             Maximum basis size. If given, only at most the ``n_sv`` most
             significant singular values and associated singular functions are
@@ -58,7 +58,7 @@ def compute(K, eps=None, cutoff=None, n_sv=None, n_gauss=None, dtype=float,
             Data type of the result.
         work_dtype (np.dtype):
             Working data type. Defaults to a data type with machine epsilon of
-            at most ``eps**2`` and at most  ``cutoff`, or otherwise most
+            at most ``eps**2`` and at most  ``cutoff``, or otherwise most
             accurate data type available.
         sve_strat (AbstractSVE):
             SVE to SVD translation strategy. Defaults to ``SamplingSVE``,
@@ -147,12 +147,12 @@ class SamplingSVE(AbstractSVE):
     sets of Gauss quadrature rules: ``(x, wx)`` and ``(y, wy)`` and
     approximating the integrals in the SVE equations by finite sums.  This
     implies that the singular values of the SVE are well-approximated by the
-    singular values of the following matrix:
+    singular values of the following matrix::
 
         A[i, j] = sqrt(wx[i]) * K(x[i], y[j]) * sqrt(wy[j])
 
     and the values of the singular functions at the Gauss sampling points can
-    be reconstructed from the singular vectors ``u`` and ``v`` as follows:
+    be reconstructed from the singular vectors ``u`` and ``v`` as follows::
 
         u[l,i] ≈ sqrt(wx[i]) u[l](x[i])
         v[l,j] ≈ sqrt(wy[j]) u[l](y[j])
@@ -221,14 +221,14 @@ class CentrosymmSVE(AbstractSVE):
 
     For a centrosymmetric kernel ``K``, i.e., a kernel satisfying:
     ``K(x, y) == K(-x, -y)``, one can make the following ansatz for the
-    singular functions:
+    singular functions::
 
         u[l](x) = ured[l](x) + sign[l] * ured[l](-x)
         v[l](y) = vred[l](y) + sign[l] * ured[l](-y)
 
     where ``sign[l]`` is either +1 or -1.  This means that the singular value
     expansion can be block-diagonalized into an even and an odd part by
-    (anti-)symmetrizing the kernel:
+    (anti-)symmetrizing the kernel::
 
         Keven = K(x, y) + K(x, -y)
         Kodd  = K(x, y) - K(x, -y)

@@ -28,10 +28,6 @@ get the intermediate representation.
 
 Predefined kernels
 ------------------
-.. autoclass:: sparse_ir.LaplaceKernel
-    :members:
-    :special-members: __call__
-
 .. autoclass:: sparse_ir.LogisticKernel
     :members:
     :special-members: __call__
@@ -59,7 +55,7 @@ fermionic kernel, modifying the values as needed::
 
     class KernelFGauss(sparse_ir.kernel.AbstractKernel):
         def __init__(self, lambda_, std):
-            self._inner = sparse_ir.LaplaceKernel(lambda_)
+            self._inner = sparse_ir.LogisticKernel(lambda_)
             self.lambda_ = lambda_
             self.std = std
 
