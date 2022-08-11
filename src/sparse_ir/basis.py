@@ -144,9 +144,9 @@ class FiniteTempBasis(abstract.AbstractBasis):
     def rescale(self, new_beta):
         """Return a basis for different temperature.
 
-        Uses the same kernel, but a different temperature.  Note that this
-        implies a different UV cutoff `wmax`, since `lambda_ == beta * wmax`
-        stays constant.
+        Uses the same kernel with the same ``eps``, but a different
+        temperature.  Note that this implies a different UV cutoff ``wmax``,
+        since ``lambda_ == beta * wmax`` stays constant.
         """
         new_wmax = self._kernel.lambda_ / new_beta
         return FiniteTempBasis(self._statistics, new_beta, new_wmax, None,
