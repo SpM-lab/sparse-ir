@@ -48,3 +48,14 @@ def test_num_roots_uhat(sve_logistic, stat, lambda_):
     for i in [0, 1, 7, 10]:
         x0 = basis.uhat[i].extrema()
         assert i + 1 <= x0.size <= i + 2
+
+
+@pytest.mark.parametrize("stat", ['F', 'B'])
+@pytest.mark.parametrize("lambda_", [10, 42, 10_000])
+def test_accuracy(sve_logistic, stat, lambda_):
+    basis = sparse_ir.FiniteTempBasis(stat, 4, lambda_,
+                                      sve_result=sve_logistic[lambda_])
+
+    assert 0 < basis.accuracy <= basis.significance[-1]
+    assert basis.significance[0] == 1
+    assert basis.accuracy <= basis.s[-1] / basis.s[0]

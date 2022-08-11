@@ -58,7 +58,10 @@ class FiniteTempBasis(abstract.AbstractBasis):
         self._wmax = wmax
 
         u, s, v = sve_result.part(eps, max_size)
-        self._accuracy = s[-1] / s[0]
+        if sve_result.s.size > s.size:
+            self._accuracy = sve_result.s[s.size] / s[0]
+        else:
+            self._accuracy = s[-1] / s[0]
 
         # The polynomials are scaled to the new variables by transforming the
         # knots according to: tau = beta/2 * (x + 1), w = wmax * y.  Scaling
@@ -122,6 +125,14 @@ class FiniteTempBasis(abstract.AbstractBasis):
         basis function, a slice or a subset `l`, you can use ``v[l]``.
         """
         return self._v
+
+    @property
+    def significance(self):
+        return self._s / self._s[0]
+
+    @property
+    def accuracy(self):
+        return self._accuracy
 
     @property
     def kernel(self):
