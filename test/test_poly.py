@@ -11,7 +11,7 @@ import pytest
 
 
 def test_shape(sve_logistic):
-    u, s, v = sve_logistic[42]
+    u, s, v = sve_logistic[42].part()
     l = s.size
     assert u.shape == (l,)
 
@@ -30,7 +30,7 @@ def test_slice(sve_logistic):
 
 
 def test_eval(sve_logistic):
-    u, s, v = sve_logistic[42]
+    u, s, v = sve_logistic[42].part()
     l = s.size
 
     # evaluate
@@ -42,7 +42,7 @@ def test_eval(sve_logistic):
 
 
 def test_broadcast(sve_logistic):
-    u, s, v = sve_logistic[42]
+    u, s, v = sve_logistic[42].part()
 
     x = [0.3, 0.5]
     l = [2, 7]
@@ -51,7 +51,7 @@ def test_broadcast(sve_logistic):
 
 
 def test_matrix_hat(sve_logistic):
-    u, s, v = sve_logistic[42]
+    u, s, v = sve_logistic[42].part()
     uhat = poly.PiecewiseLegendreFT(u, "odd")
 
     n = np.array([1, 3, 5, -1, -3, 5])
@@ -63,7 +63,7 @@ def test_matrix_hat(sve_logistic):
 
 @pytest.mark.parametrize("lambda_, atol", [(42, 1e-13), (1E+4, 1e-13)])
 def test_overlap(sve_logistic, lambda_, atol):
-    u, s, v = sve_logistic[lambda_]
+    u, s, v = sve_logistic[lambda_].part()
 
     # Keep only even number of polynomials
     u, s, v = u[:2*(s.size//2)], s[:2*(s.size//2)], v[:2*(s.size//2)]
@@ -76,7 +76,7 @@ def test_overlap(sve_logistic, lambda_, atol):
 
 @pytest.mark.parametrize("lambda_, atol", [(42, 1e-13), (1E+4, 1e-13)])
 def test_overlap_break_points(sve_logistic, lambda_, atol):
-    u, s, v = sve_logistic[lambda_]
+    u, s, v = sve_logistic[lambda_].part()
 
     D = 0.5 * v.xmax
     rhow = lambda omega: np.where(abs(omega)<=D, 1, 0)
@@ -87,7 +87,7 @@ def test_overlap_break_points(sve_logistic, lambda_, atol):
 
 
 def test_eval_unique(sve_logistic):
-    u, s, v = sve_logistic[42]
+    u, s, v = sve_logistic[42].part()
     uhat = poly.PiecewiseLegendreFT(u, "odd")
 
     # evaluate

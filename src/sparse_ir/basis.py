@@ -39,8 +39,8 @@ class DimensionlessBasis(abstract.AbstractBasis):
     See also:
         :class:`FiniteTempBasis` for a basis directly in time/frequency.
     """
-    def __init__(self, statistics, lambda_, eps=None, *, kernel=None,
-                 sve_result=None):
+    def __init__(self, statistics, lambda_, eps=None, *,
+                 max_size=None, kernel=None, sve_result=None):
         if not (lambda_ >= 0):
             raise ValueError("kernel cutoff lambda must be non-negative")
 
@@ -53,12 +53,9 @@ class DimensionlessBasis(abstract.AbstractBasis):
         self._kernel = _get_kernel(statistics, lambda_, kernel)
         if sve_result is None:
             sve_result = sve.compute(self._kernel, eps)
-            u, s, v = sve_result
-        else:
-            u, s, v = sve_result
-            if u.shape != s.shape or s.shape != v.shape:
-                raise ValueError("mismatched shapes in SVE")
 
+        u, s, v = sve_result.part(eps, max_size)
+        self._sve_result = sve_result
         self._statistics = statistics
 
         # The radius of convergence of the asymptotic expansion is Lambda/2,
@@ -72,10 +69,10 @@ class DimensionlessBasis(abstract.AbstractBasis):
         self._v = v
 
     def __getitem__(self, index):
-        u, s, v = self.sve_result
-        sve_result = u[index], s[index], v[index]
-        return DimensionlessBasis(self._statistics, self._kernel.lambda_,
-                                  kernel=self._kernel, sve_result=sve_result)
+        return DimensionlessBasis(
+                    self._statistics, self._kernel.lambda_, None,
+                    max_size=_slice_to_size(index), kernel=self._kernel,
+                    sve_result=self._sve_result)
 
     @property
     def statistics(self): return self._statistics
@@ -121,7 +118,7 @@ class DimensionlessBasis(abstract.AbstractBasis):
 
     @property
     def sve_result(self):
-        return self._u, self._s, self._v
+        return self._sve_result
 
     def default_tau_sampling_points(self):
         return _default_sampling_points(self._u)
@@ -159,8 +156,8 @@ class FiniteTempBasis(abstract.AbstractBasis):
             gl = basis.s * basis.v(2.5)
             giw = gl @ basis.uhat([1, 3, 5, 7])
     """
-    def __init__(self, statistics, beta, wmax, eps=None, *, kernel=None,
-                 sve_result=None):
+    def __init__(self, statistics, beta, wmax, eps=None, *,
+                 max_size=None, kernel=None, sve_result=None):
         if not (beta > 0):
             raise ValueError("inverse temperature beta must be positive")
         if not (wmax >= 0):
@@ -175,19 +172,13 @@ class FiniteTempBasis(abstract.AbstractBasis):
         self._kernel = _get_kernel(statistics, beta * wmax, kernel)
         if sve_result is None:
             sve_result = sve.compute(self._kernel, eps)
-            u, s, v = sve_result
-        else:
-            u, s, v = sve_result
-            if u.shape != s.shape or s.shape != v.shape:
-                raise ValueError("mismatched shapes in SVE")
-
-        if u.xmin != -1 or u.xmax != 1:
-            raise RuntimeError("u must be defined in the reduced variable.")
 
         self._sve_result = sve_result
         self._statistics = statistics
         self._beta = beta
         self._wmax = wmax
+
+        u, s, v = sve_result.part(eps, max_size)
         self._accuracy = s[-1] / s[0]
 
         # The polynomials are scaled to the new variables by transforming the
@@ -211,10 +202,10 @@ class FiniteTempBasis(abstract.AbstractBasis):
                                               n_asymp=conv_radius)
 
     def __getitem__(self, index):
-        u, s, v = self.sve_result
-        sve_result = u[index], s[index], v[index]
-        return FiniteTempBasis(self._statistics, self._beta, self._wmax,
-                               kernel=self._kernel, sve_result=sve_result)
+        return FiniteTempBasis(
+                    self._statistics, self._beta, self._wmax, None,
+                    max_size=_slice_to_size(index), kernel=self._kernel,
+                    sve_result=self._sve_result)
 
     @property
     def statistics(self): return self._statistics
@@ -341,3 +332,13 @@ def _get_kernel(statistics, lambda_, kernel):
             if not np.allclose(lambda_kernel, lambda_, atol=0, rtol=4e-16):
                 raise ValueError("lambda of kernel and basis mismatch")
     return kernel
+
+
+def _slice_to_size(index):
+    if not isinstance(index, slice):
+        raise ValueError("argument must be a slice (`n:m`)")
+    if index.start is not None and index.start != 0:
+        raise ValueError("slice must start at zero")
+    if index.step is not None and index.step != 1:
+        raise ValueError("slice must step in ones")
+    return index.stop
