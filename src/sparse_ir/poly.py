@@ -4,6 +4,7 @@ import numpy as np
 from warnings import warn
 import numpy.polynomial.legendre as np_legendre
 import scipy.special as sp_special
+from sympy import Q
 
 from . import _util
 from . import _roots
@@ -267,7 +268,7 @@ class PiecewiseLegendreFT:
         return result_flat.reshape(self.poly.shape + n.shape)
 
     def extrema(self, part=None, grid=None):
-        """Obtain extrema of fourier-transformed polynomial."""
+        """Obtain extrema of Fourier-transformed polynomial."""
         if self.poly.shape:
             raise ValueError("select single polynomial")
         if grid is None:
@@ -275,6 +276,18 @@ class PiecewiseLegendreFT:
 
         f = self._func_for_part(part)
         x0 = _roots.discrete_extrema(f, grid)
+        x0 = 2 * x0 + self.zeta
+        return _symmetrize_matsubara(x0)
+
+    def sign_changes(self, part=None, grid=None):
+        """Obtain sign changes of Fourier-transformed polynomial."""
+        if self.poly.shape:
+            raise ValueError("select single polynomial")
+        if grid is None:
+            grid = self._DEFAULT_GRID
+
+        f = self._func_for_part(part)
+        x0 = _roots.find_all(f, grid, type='discrete')
         x0 = 2 * x0 + self.zeta
         return _symmetrize_matsubara(x0)
 
@@ -472,6 +485,8 @@ def _refine_grid(knots, alpha):
 
 
 def _symmetrize_matsubara(x0):
+    if not x0.size:
+        return x0
     if not (x0[1:] >= x0[:-1]).all():
         raise ValueError("set of Matsubara points not ordered")
     if not (x0[0] >= 0):

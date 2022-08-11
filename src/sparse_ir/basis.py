@@ -75,13 +75,15 @@ class FiniteTempBasis(abstract.AbstractBasis):
         self._s = np.sqrt(beta/2 * wmax) * (wmax**(-self.kernel.ypower)) * s
 
         # HACK: as we don't yet support Fourier transforms on anything but the
-        # unit interval, we need to scale the underlying data.  This breaks
-        # the correspondence between U.hat and Uhat though.
-        uhat_base = u.__class__(np.sqrt(beta) * u.data, u, symm=u.symm)
+        # unit interval, we need to scale the underlying data.
+        uhat_base_full = poly.PiecewiseLegendrePoly(
+                            np.sqrt(beta) * sve_result.u.data, sve_result.u,
+                            symm=sve_result.u.symm)
         conv_radius = 40 * self.kernel.lambda_
         even_odd = {'F': 'odd', 'B': 'even'}[statistics]
-        self._uhat = poly.PiecewiseLegendreFT(uhat_base, even_odd,
-                                              n_asymp=conv_radius)
+        self._uhat_full = poly.PiecewiseLegendreFT(uhat_base_full, even_odd,
+                                                   n_asymp=conv_radius)
+        self._uhat = self._uhat_full[:s.size]
 
     def __getitem__(self, index):
         return FiniteTempBasis(
@@ -147,8 +149,8 @@ class FiniteTempBasis(abstract.AbstractBasis):
         x = _default_sampling_points(self._sve_result.u, self.size)
         return self._beta/2 * (x + 1)
 
-    def default_matsubara_sampling_points(self, *, mitigate=True):
-        return _default_matsubara_sampling_points(self._uhat, mitigate=mitigate)
+    def default_matsubara_sampling_points(self):
+        return _default_matsubara_sampling_points(self._uhat_full, self.size)
 
     def default_omega_sampling_points(self):
         y = _default_sampling_points(self._sve_result.v, self.size)
@@ -212,13 +214,37 @@ def _default_sampling_points(u, L):
     return np.concatenate([left, maxima, right])
 
 
-def _default_matsubara_sampling_points(uhat, mitigate=True):
-    # Use the (discrete) extrema of the corresponding highest-order basis
-    # function in Matsubara.  This turns out to be close to optimal with
-    # respect to conditioning for this size (within a few percent).
-    polyhat = uhat[-1]
-    wn = polyhat.extrema()
+def _default_matsubara_sampling_points(uhat, L, fence=False):
+    l_requested = L
 
+    # The number of sign changes is always odd for bosonic basis (freq=='even')
+    # and even for fermionic basis (freq='odd').  So in order to get at least
+    # as many sign changes as basis functions.
+    if uhat.freq == 'odd' and l_requested % 2 == 1:
+        l_requested += 1
+    elif uhat.freq == 'even' and l_requested % 2 == 0:
+        l_requested += 1
+
+    # As with the zeros, the sign changes provide excellent sampling points
+    if l_requested < uhat.size:
+        wn = uhat[l_requested].sign_changes()
+    else:
+        # As a fallback, use the (discrete) extrema of the corresponding
+        # highest-order basis function in Matsubara.  This turns out to be okay.
+        polyhat = uhat[L-1]
+        wn = polyhat.extrema()
+
+        # For bosonic bases, we must explicitly include the zero frequency,
+        # otherwise the condition number blows up.
+        if wn[0] % 2 == 0:
+            wn = np.unique(np.hstack((0, wn)))
+
+    if fence:
+        wn = _fence_matsubara_sampling(wn)
+    return wn
+
+
+def _fence_matsubara_sampling(wn):
     # While the condition number for sparse sampling in tau saturates at a
     # modest level, the conditioning in Matsubara steadily deteriorates due
     # to the fact that we are not free to set sampling points continuously.
@@ -226,20 +252,13 @@ def _default_matsubara_sampling_points(uhat, mitigate=True):
     # by a factor of ~4 (still OK). To battle this, we fence the largest
     # frequency with two carefully chosen oversampling points, which brings
     # the two sampling problems within a factor of 2.
-    if mitigate:
-        wn_outer = wn[[0, -1]]
-        wn_diff = 2 * np.round(0.025 * wn_outer).astype(int)
-        if wn.size >= 20:
-            wn = np.hstack([wn, wn_outer - np.sign(wn_outer) * wn_diff])
-        if wn.size >= 42:
-            wn = np.hstack([wn, wn_outer + np.sign(wn_outer) * wn_diff])
-        wn = np.unique(wn)
-
-    # For boson, include "0".
-    if wn[0] % 2 == 0:
-        wn = np.unique(np.hstack((0, wn)))
-
-    return wn
+    wn_outer = wn[[0, -1]]
+    wn_diff = 2 * np.round(0.025 * wn_outer).astype(int)
+    if wn.size >= 20:
+        wn = np.hstack([wn, wn_outer - np.sign(wn_outer) * wn_diff])
+    if wn.size >= 42:
+        wn = np.hstack([wn, wn_outer + np.sign(wn_outer) * wn_diff])
+    return np.unique(wn)
 
 
 def _get_kernel(statistics, lambda_, kernel):

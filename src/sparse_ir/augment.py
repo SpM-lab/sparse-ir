@@ -62,8 +62,8 @@ class LegendreBasis(AbstractBasis):
     def default_tau_sampling_points(self):
         return 0.5 * self.beta * (np_legendre.leggauss(self.size)[0] + 1)
 
-    def default_matsubara_sampling_points(self, *, mitigate=True):
-        return _default_matsubara_sampling_points(self.uhat, mitigate)
+    def default_matsubara_sampling_points(self):
+        return _default_matsubara_sampling_points(self.uhat, self.size)
 
     @property
     def statistics(self): return self._statistics
@@ -110,7 +110,7 @@ class MatsubaraConstBasis(AbstractBasis):
     def default_tau_sampling_points(self):
         return np.array([])
 
-    def default_matsubara_sampling_points(self, *, mitigate=True):
+    def default_matsubara_sampling_points(self):
         return np.array([])
 
     @property
