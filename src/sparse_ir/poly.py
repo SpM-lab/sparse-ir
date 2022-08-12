@@ -4,7 +4,6 @@ import numpy as np
 from warnings import warn
 import numpy.polynomial.legendre as np_legendre
 import scipy.special as sp_special
-from sympy import Q
 
 from . import _util
 from . import _roots
