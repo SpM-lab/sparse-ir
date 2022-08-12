@@ -1,5 +1,6 @@
 # Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
+from argparse import ArgumentError
 from _pytest.mark import param
 import numpy as np
 
@@ -24,6 +25,15 @@ def test_slice(sve_logistic):
 
     basis = sparse_ir.FiniteTempBasis('F', 4.2, 10, sve_result=sve_result)
     assert basis[:4].size == 4
+
+
+def test_violate(sve_logistic):
+    u, s, v = sve_logistic[42].part()
+
+    with pytest.raises(ValueError):
+        u(1.5)
+    with pytest.raises(ValueError):
+        v(-3.0)
 
 
 def test_eval(sve_logistic):

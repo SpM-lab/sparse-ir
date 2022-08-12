@@ -185,14 +185,9 @@ class PiecewiseLegendrePoly:
     @property
     def ndim(self): return self.data.ndim - 2
 
-    def _in_domain(self, x):
-        return (x >= self.xmin).all() and (x <= self.xmax).all()
-
     def _split(self, x):
         """Split segment"""
-        if not self._in_domain(x):
-            raise ValueError("x must be in [%g, %g]" % (self.xmin, self.xmax))
-
+        x = _util.check_range(x, self.xmin, self.xmax)
         i = self.knots.searchsorted(x, 'right').clip(None, self.nsegments)
         i -= 1
         xtilde = x - self._xm[i]

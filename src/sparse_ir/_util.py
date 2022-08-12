@@ -59,3 +59,13 @@ def check_reduced_matsubara(n, zeta=None):
         if not (n & 1 == zeta).all():
             raise ValueError("n have wrong parity")
     return n
+
+
+def check_range(x, xmin, xmax):
+    """Checks each element is in range [xmin, xmax]"""
+    x = np.asarray(x)
+    if not (x >= xmin).all():
+        raise ValueError(f"Some x violate lower bound {xmin}")
+    if not (x <= xmax).all():
+        raise ValueError(f"Some x violate upper bound {xmax}")
+    return x
