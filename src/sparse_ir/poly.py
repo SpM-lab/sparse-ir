@@ -253,7 +253,7 @@ class PiecewiseLegendreFT:
 
     def _call_impl(self, n):
         """Obtain Fourier transform of polynomial for given frequencies"""
-        n = check_reduced_matsubara(n, self.zeta)
+        n = _util.check_reduced_matsubara(n, self.zeta)
         n_flat = n.ravel()
         result_flat = _compute_unl_inner(self.poly, n_flat)
 
@@ -306,29 +306,6 @@ class PiecewiseLegendreFT:
         else:
             raise ValueError("part must be either 'real' or 'imag'")
 
-
-def check_reduced_matsubara(n, zeta=None):
-    """Checks that ``n`` is a reduced Matsubara frequency.
-
-    Check that the argument is a reduced Matsubara frequency, which is an
-    integer obtained by scaling the freqency `w[n]` as follows::
-
-        beta / np.pi * w[n] == 2 * n + zeta
-
-    Note that this means that instead of a fermionic frequency (``zeta == 1``),
-    we expect an odd integer, while for a bosonic frequency (``zeta == 0``),
-    we expect an even one.  If ``zeta`` is omitted, any one is fine.
-    """
-    n = np.asarray(n)
-    if not np.issubdtype(n.dtype, np.integer):
-        nfloat = n
-        n = nfloat.astype(int)
-        if not (n == nfloat).all():
-            raise ValueError("reduced frequency n must be integer")
-    if zeta is not None:
-        if not (n & 1 == zeta).all():
-            raise ValueError("n have wrong parity")
-    return n
 
 
 def _imag_power(n):
@@ -437,7 +414,7 @@ class _PowerModel:
     @_util.ravel_argument()
     def giw(self, wn):
         """Return model Green's function for vector of frequencies"""
-        wn = check_reduced_matsubara(wn)
+        wn = _util.check_reduced_matsubara(wn)
         result_dtype = np.result_type(1j, wn, self.moments)
         result = np.zeros((wn.size, self.nl), result_dtype)
         inv_iw = 1j * np.pi/2 * wn
