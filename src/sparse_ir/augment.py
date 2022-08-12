@@ -24,9 +24,14 @@ class AugmentedBasis(abstract.AbstractBasis):
     that serves as a base for multi-point functions `[2]`_.
 
     Warning:
-        Augmented bases tend to be poorly conditioned.  Care should be taken
-        while fitting.  E.g., if possible, prefer to take the Hartree--Fock
-        term explicitly into account rather than fitting with a extended basis.
+        Bases augmented with `TauConst` and `TauLinear` tend to be poorly
+        conditioned.  Care must be taken while fitting and compactness should
+        be enforced if possible to regularize the problem.
+
+        While vertex bases, i.e., bases augmented with `MatsubaraConst`, stay
+        reasonably well-conditioned, it is still good practice to treat the
+        Hartree--Fock term separately rather than including it in the basis,
+        if possible.
 
     See also:
          - :class:`MatsubaraConst` for vertex basis `[1]`_
@@ -102,7 +107,10 @@ class AugmentedBasis(abstract.AbstractBasis):
 
     @property
     def is_well_conditioned(self):
-        return not self._augmentations
+        wbasis = self._basis.is_well_conditioned
+        waug = (len(self._augmentations) == 1
+                and isinstance(self._augmentations[0], MatsubaraConst))
+        return wbasis and waug
 
 
 class _AugmentedFunction:
@@ -256,7 +264,7 @@ class TauLinear(AbstractAugmentation):
         n = _util.check_reduced_matsubara(n, zeta=0)
         inv_w = np.pi/self._beta * n
         inv_w = np.reciprocal(inv_w, out=inv_w, where=n.astype(bool))
-        return self.norm * 2/1j * inv_w
+        return self._norm * 2/1j * inv_w
 
 
 class MatsubaraConst(AbstractAugmentation):
