@@ -21,7 +21,7 @@ class AbstractBasis:
     """
     @property
     def u(self):
-        """Basis functions on the (reduced) imaginary time axis.
+        """Basis functions on the imaginary time axis.
 
         Set of IR basis functions on the imaginary time (`tau`) axis.
         To obtain the value of all basis functions at a point or a array of
@@ -91,16 +91,16 @@ class AbstractBasis:
 
     @property
     def beta(self):
-        """Inverse temperature or `None` if unscaled basis"""
+        """Inverse temperature"""
         raise NotImplementedError()
 
     @property
     def wmax(self):
-        """Real frequency cutoff or `None` if unscaled basis"""
+        """Real frequency cutoff or `None` if not present"""
         raise NotImplementedError()
 
     def default_tau_sampling_points(self):
-        """Default sampling points on the imaginary time/x axis"""
+        """Default sampling points on the imaginary time axis"""
         raise NotImplementedError()
 
     def default_matsubara_sampling_points(self):
