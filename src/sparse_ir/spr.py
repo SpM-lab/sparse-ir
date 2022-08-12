@@ -126,9 +126,9 @@ class SparsePoleRepresentation:
         """Default sampling points on the imaginary time/x axis"""
         return self.basis.default_tau_sampling_points()
 
-    def default_matsubara_sampling_points(self, *, mitigate=True):
+    def default_matsubara_sampling_points(self):
         """Default sampling points on the imaginary frequency axis"""
-        return self.basis.default_matsubara_sampling_points(mitigate= mitigate)
+        return self.basis.default_matsubara_sampling_points()
 
     @property
     def is_well_conditioned(self):

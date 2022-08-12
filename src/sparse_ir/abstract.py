@@ -103,7 +103,7 @@ class AbstractBasis:
         """Default sampling points on the imaginary time/x axis"""
         raise NotImplementedError()
 
-    def default_matsubara_sampling_points(self, *, mitigate=True):
+    def default_matsubara_sampling_points(self):
         """Default sampling points on the imaginary frequency axis"""
         raise NotImplementedError()
 

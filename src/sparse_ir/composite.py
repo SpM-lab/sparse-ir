@@ -107,10 +107,10 @@ class CompositeBasis(abstract.AbstractBasis):
         return np.unique(np.hstack(
                     [b.default_tau_sampling_points() for b in self.bases]))
 
-    def default_matsubara_sampling_points(self, *, mitigate=True):
+    def default_matsubara_sampling_points(self):
         # FIXME: this yields bad sampling points
         return np.unique(np.hstack(
-                    [b.default_matsubara_sampling_points(mitigate=mitigate)
+                    [b.default_matsubara_sampling_points()
                      for b in self.bases]))
 
     @property
