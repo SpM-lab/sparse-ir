@@ -35,3 +35,37 @@ class RavelArgumentDecorator(object):
             return res.reshape(res.shape[:-1] + x.shape)
         else:
             return res.reshape(x.shape + res.shape[1:])
+
+
+def check_reduced_matsubara(n, zeta=None):
+    """Checks that ``n`` is a reduced Matsubara frequency.
+
+    Check that the argument is a reduced Matsubara frequency, which is an
+    integer obtained by scaling the freqency `w[n]` as follows::
+
+        beta / np.pi * w[n] == 2 * n + zeta
+
+    Note that this means that instead of a fermionic frequency (``zeta == 1``),
+    we expect an odd integer, while for a bosonic frequency (``zeta == 0``),
+    we expect an even one.  If ``zeta`` is omitted, any one is fine.
+    """
+    n = np.asarray(n)
+    if not np.issubdtype(n.dtype, np.integer):
+        nfloat = n
+        n = nfloat.astype(int)
+        if not (n == nfloat).all():
+            raise ValueError("reduced frequency n must be integer")
+    if zeta is not None:
+        if not (n & 1 == zeta).all():
+            raise ValueError("n have wrong parity")
+    return n
+
+
+def check_range(x, xmin, xmax):
+    """Checks each element is in range [xmin, xmax]"""
+    x = np.asarray(x)
+    if not (x >= xmin).all():
+        raise ValueError(f"Some x violate lower bound {xmin}")
+    if not (x <= xmax).all():
+        raise ValueError(f"Some x violate upper bound {xmax}")
+    return x

@@ -11,7 +11,7 @@ Contents
    sampling
    kernels
    sve
-   composite
+   augment
    porting
    hacking
 

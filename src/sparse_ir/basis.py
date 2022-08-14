@@ -229,9 +229,13 @@ def _default_matsubara_sampling_points(uhat, L, fence=False):
     if l_requested < uhat.size:
         wn = uhat[l_requested].sign_changes()
     else:
+        if l_requested > uhat.size:
+            warn(f"Requesting {L} sampling frequencies but only {uhat.size} "
+                 f"basis functions in SVE.", UserWarning, 3)
+
         # As a fallback, use the (discrete) extrema of the corresponding
         # highest-order basis function in Matsubara.  This turns out to be okay.
-        polyhat = uhat[L-1]
+        polyhat = uhat[-1]
         wn = polyhat.extrema()
 
         # For bosonic bases, we must explicitly include the zero frequency,
