@@ -67,7 +67,7 @@ class AugmentedBasis(abstract.AbstractBasis):
         if stop <= self._naug:
             raise ValueError("Cannot truncate to only augmentation")
         return AugmentedBasis(self._basis[:stop - self._naug],
-                              self._augmentations)
+                              *self._augmentations)
 
     @property
     def shape(self):
