@@ -189,29 +189,32 @@ def _default_sampling_points(u, L):
     if u.xmin != -1 or u.xmax != 1:
         raise ValueError("expecting unscaled functions here")
 
-    # For orthogonal polynomials (the high-T limit of IR), we know that the
-    # ideal sampling points for a basis of size L are the roots of the L-th
-    # polynomial.  We empirically find that these stay good sampling points
-    # for our kernels (probably because the kernels are totally positive).
     if L < u.size:
-        return u[L].roots()
-    if L > u.size:
-        warn(f"Requesting {L} sampling points but we only have {u.size} "
-             f"basis functions in SVE.", UserWarning, 3)
+        # For orthogonal polynomials (the high-T limit of IR), we know that the
+        # ideal sampling points for a basis of size L are the roots of the L-th
+        # polynomial.  We empirically find that these stay good sampling points
+        # for our kernels (probably because the kernels are totally positive).
+        x0 = u[L].roots()
+    else:
+        # If we do not have enough polynomials in the basis, we approximate the
+        # roots of the L'th polynomial by the extrema of the (L-1)'st basis
+        # function, which is sensible due to the strong interleaving property
+        # of these functions' roots.
+        maxima = u[-1].deriv().roots()
 
-    # If we do not have enough polynomials in the basis, we approximate the
-    # roots of the L'th polynomial by the extrema of the (L-1)'st basis
-    # function, which is sensible due to the strong interleaving property
-    # of these functions' roots.
-    maxima = u[-1].deriv().roots()
+        # Putting the sampling points right at [0, beta], which would be the
+        # local extrema, is slightly worse conditioned than putting it in the
+        # middel.  This can be understood by the fact that the roots never
+        # occur right at the border.
+        left = .5 * (maxima[:1] + u.xmin)
+        right = .5 * (maxima[-1:] + u.xmax)
+        x0 = np.concatenate([left, maxima, right])
 
-    # Putting the sampling points right at [0, beta], which would be the
-    # local extrema, is slightly worse conditioned than putting it in the
-    # middel.  This can be understood by the fact that the roots never
-    # occur right at the border.
-    left = .5 * (maxima[:1] + u.xmin)
-    right = .5 * (maxima[-1:] + u.xmax)
-    return np.concatenate([left, maxima, right])
+    if x0.size != L:
+        warn(f"Requesting {L} sampling points for corresponding basis size,\n"
+             f"but {x0.size} were returned.  This may indiciate a problem "
+             f"with precision.", UserWarning, 3)
+    return x0
 
 
 def _default_matsubara_sampling_points(uhat, L, fence=False):
@@ -225,14 +228,10 @@ def _default_matsubara_sampling_points(uhat, L, fence=False):
     elif uhat.freq == 'even' and l_requested % 2 == 0:
         l_requested += 1
 
-    # As with the zeros, the sign changes provide excellent sampling points
     if l_requested < uhat.size:
+        # As with the zeros, the sign changes provide excellent sampling points
         wn = uhat[l_requested].sign_changes()
     else:
-        if l_requested > uhat.size:
-            warn(f"Requesting {L} sampling frequencies but only {uhat.size} "
-                 f"basis functions in SVE.", UserWarning, 3)
-
         # As a fallback, use the (discrete) extrema of the corresponding
         # highest-order basis function in Matsubara.  This turns out to be okay.
         polyhat = uhat[-1]
@@ -243,6 +242,10 @@ def _default_matsubara_sampling_points(uhat, L, fence=False):
         if wn[0] % 2 == 0:
             wn = np.unique(np.hstack((0, wn)))
 
+    if wn.size != l_requested:
+        warn(f"Requesting {l_requested} {uhat.freq} sampling frequencies for\n"
+             f"basis size L={L}, but {wn.size} were returned.  This may "
+             f"indiciate a problem with precision.", UserWarning, 3)
     if fence:
         wn = _fence_matsubara_sampling(wn)
     return wn
