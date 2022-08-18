@@ -23,7 +23,7 @@ jobs:
           - os: ubuntu-latest
             numpy: auto
             scipy: auto
-            python: 3.9
+            python: 3.10
 
     steps:
       - uses: actions/checkout@v2
