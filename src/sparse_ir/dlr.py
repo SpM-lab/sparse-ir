@@ -10,16 +10,16 @@ from . import _util
 from . import svd
 
 
-class SparsePoleRepresentation(abstract.AbstractBasis):
+class DiscreteLehmannRepresentation(abstract.AbstractBasis):
     """
-    Sparse pole representation (SPR)
-    The poles are the extrema of V'_{L-1}(ω)
+    Discrete Lehmann representation (DLR)
+    The poles are choosen to be the extrema of V'_{L-1}(ω).
     """
     def __init__(self, basis: _basis.FiniteTempBasis, sampling_points=None):
         if sampling_points is None:
             sampling_points = basis.default_omega_sampling_points()
         if not isinstance(basis.kernel, kernel.LogisticKernel):
-            raise ValueError("SPR supports only LogisticKernel")
+            raise ValueError("DLR supports only LogisticKernel")
 
         self._basis = basis
         self._poles = np.asarray(sampling_points)
@@ -87,21 +87,21 @@ class SparsePoleRepresentation(abstract.AbstractBasis):
 
     def from_IR(self, gl: np.ndarray, axis=0) -> np.ndarray:
         """
-        From IR to SPR
+        From IR to DLR
 
         gl:
             Expansion coefficients in IR
         """
         return self.matrix.lstsq(gl, axis)
 
-    def to_IR(self, g_spr: np.ndarray, axis=0) -> np.ndarray:
+    def to_IR(self, g_dlr: np.ndarray, axis=0) -> np.ndarray:
         """
-        From SPR to IR
+        From DLR to IR
 
-        g_spr:
-            Expansion coefficients in SPR
+        g_dlr:
+            Expansion coefficients in DLR
         """
-        return self.matrix.matmul(g_spr, axis)
+        return self.matrix.matmul(g_dlr, axis)
 
     def default_tau_sampling_points(self):
         return self.basis.default_tau_sampling_points()

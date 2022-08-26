@@ -1,7 +1,7 @@
 # Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
 import sparse_ir
-from sparse_ir.spr import SparsePoleRepresentation
+from sparse_ir.dlr import DiscreteLehmannRepresentation
 from sparse_ir.sampling import MatsubaraSampling, TauSampling
 import numpy as np
 import pytest
@@ -25,7 +25,7 @@ def test_compression(sve_logistic, stat):
     eps = 1e-12
     basis = sparse_ir.FiniteTempBasis(stat, beta, wmax, eps=eps,
                                       sve_result=sve_logistic[beta*wmax])
-    spr = SparsePoleRepresentation(basis)
+    dlr = DiscreteLehmannRepresentation(basis)
 
     np.random.seed(4711)
 
@@ -34,15 +34,15 @@ def test_compression(sve_logistic, stat):
     coeffs = 2*np.random.rand(num_poles) - 1
     assert np.abs(poles).max() <= wmax
 
-    Gl = SparsePoleRepresentation(basis, poles).to_IR(coeffs)
+    Gl = DiscreteLehmannRepresentation(basis, poles).to_IR(coeffs)
 
-    g_spr = spr.from_IR(Gl)
+    g_dlr = dlr.from_IR(Gl)
 
     # Comparison on Matsubara frequencies
     smpl = MatsubaraSampling(basis)
-    smpl_for_spr = MatsubaraSampling(spr, smpl.sampling_points)
+    smpl_for_dlr = MatsubaraSampling(dlr, smpl.sampling_points)
 
-    giv = smpl_for_spr.evaluate(g_spr)
+    giv = smpl_for_dlr.evaluate(g_dlr)
 
     giv_ref = smpl.evaluate(Gl, axis=0)
 
@@ -52,8 +52,8 @@ def test_compression(sve_logistic, stat):
     smpl_tau = TauSampling(basis)
     gtau = smpl_tau.evaluate(Gl)
 
-    smpl_tau_for_spr = TauSampling(spr)
-    gtau2 = smpl_tau_for_spr.evaluate(g_spr)
+    smpl_tau_for_dlr = TauSampling(dlr)
+    gtau2 = smpl_tau_for_dlr.evaluate(g_dlr)
 
     np.testing.assert_allclose(gtau, gtau2, atol=300*eps, rtol=0)
 
@@ -72,7 +72,7 @@ def test_boson(sve_logistic):
     rhol_pole = np.einsum('lp,p->l', basis_b.v(omega_p), coeff)
     gl_pole = - basis_b.s * rhol_pole
 
-    sp = SparsePoleRepresentation(basis_b, omega_p)
+    sp = DiscreteLehmannRepresentation(basis_b, omega_p)
     gl_pole2 = sp.to_IR(coeff)
 
     np.testing.assert_allclose(gl_pole, gl_pole2, atol=300*eps, rtol=0)
