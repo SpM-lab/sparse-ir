@@ -71,6 +71,23 @@ Refer to the `online documentation`_ for more details.
 .. _singular value expansion: https://w.wiki/3poQ
 
 
-License
--------
-This software is released under the MIT License.  See LICENSE.txt.
+License and citation
+-------------------------------
+This software is released under the MIT License.  See LICENSE.txt for details.
+
+If you find the intermediate representation, sparse sampling, or this software
+useful in your research, please consider citing the following papers:
+
+ - Hiroshi Shinaoka et al., `Phys. Rev. B 96, 035147`_  (2017)
+ - Jia Li et al., `Phys. Rev. B 101, 035144`_ (2020)
+ - Markus Wallerberger et al., `arXiv 2206.11762`_ (2022)
+
+If you are discussing sparse sampling in your research specifically, please
+also consider citing an independently discovered, closely related approach, the
+MINIMAX isometry method (Merzuk Kaltak and Georg Kresse,
+`Phys. Rev. B 101, 205145`_, 2020).
+
+.. _Phys. Rev. B 96, 035147: https://doi.org/10.1103/PhysRevB.96.035147
+.. _Phys. Rev. B 101, 035144: https://doi.org/10.1103/PhysRevB.101.035144
+.. _arXiv 2206.11762: https://doi.org/10.48550/arXiv.2206.11762
+.. _Phys. Rev. B 101, 205145: https://doi.org/10.1103/PhysRevB.101.205145

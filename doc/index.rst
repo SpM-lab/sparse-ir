@@ -12,6 +12,7 @@ Contents
    kernels
    sve
    augment
+   otherbases
    porting
    hacking
 

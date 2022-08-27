@@ -23,9 +23,6 @@ Available augmentations
 Base classes
 ------------
 
-.. autoclass:: sparse_ir.abstract.AbstractBasis
-    :members:
-
 .. autoclass:: sparse_ir.augment.AbstractAugmentation
     :members:
     :special-members: __call__
