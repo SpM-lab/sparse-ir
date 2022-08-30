@@ -103,8 +103,16 @@ class AbstractBasis:
         """Default sampling points on the imaginary time axis"""
         raise NotImplementedError()
 
-    def default_matsubara_sampling_points(self):
-        """Default sampling points on the imaginary frequency axis"""
+    def default_matsubara_sampling_points(self, *, positive_only=False):
+        """Default sampling points on the imaginary frequency axis
+
+        Arguments:
+            positive_only (bool):
+                Only return non-negative frequencies.  This is useful if the
+                object to be fitted is symmetric in Matsubura frequency,
+                ``ghat(w) == ghat(-w).conj()``, or, equivalently, real in
+                imaginary time.
+        """
         raise NotImplementedError()
 
     @property

@@ -121,8 +121,8 @@ class DiscreteLehmannRepresentation(abstract.AbstractBasis):
     def default_tau_sampling_points(self):
         return self.basis.default_tau_sampling_points()
 
-    def default_matsubara_sampling_points(self):
-        return self.basis.default_matsubara_sampling_points()
+    def default_matsubara_sampling_points(self, **kwargs):
+        return self.basis.default_matsubara_sampling_points(**kwargs)
 
     @property
     def is_well_conditioned(self):

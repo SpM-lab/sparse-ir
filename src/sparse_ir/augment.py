@@ -101,9 +101,9 @@ class AugmentedBasis(abstract.AbstractBasis):
         x = basis._default_sampling_points(self._basis.sve_result.u, self.size)
         return self.beta/2 * (x + 1)
 
-    def default_matsubara_sampling_points(self):
+    def default_matsubara_sampling_points(self, *, positive_only=False):
         return basis._default_matsubara_sampling_points(
-                            self._basis._uhat_full, self.size)
+                    self._basis._uhat_full, self.size, positive_only=positive_only)
 
     @property
     def is_well_conditioned(self):
