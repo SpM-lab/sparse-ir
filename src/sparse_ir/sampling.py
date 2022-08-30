@@ -3,6 +3,8 @@
 import numpy as np
 from warnings import warn
 
+from . import _util
+
 
 class AbstractSampling:
     """Base class for sparse sampling.
@@ -17,23 +19,7 @@ class AbstractSampling:
             |  coefficients  |<----------------|  sampling points  |
             |________________|      fit        |___________________|
 
-
-    Attributes:
-        basis: IR Basis instance
-        matrix: Evaluation matrix is decomposed form
-        sampling_points: Set of sampling points
     """
-    def __init__(self, basis, sampling_points):
-        self.sampling_points = np.array(sampling_points)
-        self.basis = basis
-        self.matrix = DecomposedMatrix(
-                        self.__class__.eval_matrix(basis, self.sampling_points))
-
-        # Check conditioning
-        if self.basis.is_well_conditioned and self.cond > 1e8:
-            warn("Sampling matrix is poorly conditioned (cond = %.2g)"
-                 % self.cond, ConditioningWarning)
-
     def evaluate(self, al, axis=None):
         """Evaluate the basis coefficients at the sparse sampling points"""
         return self.matrix.matmul(al, axis)
@@ -45,12 +31,23 @@ class AbstractSampling:
     @property
     def cond(self):
         """Condition number of the fitting problem"""
-        return self.matrix.s[0] / self.matrix.s[-1]
+        return self.matrix.cond
 
-    @classmethod
-    def eval_matrix(cls, basis, x):
-        """Return evaluation matrix from coefficients to sampling points"""
+    @property
+    def sampling_points(self):
+        """Set of sampling points"""
         raise NotImplementedError()
+
+    @property
+    def matrix(self):
+        """Evaluation matrix is decomposed form"""
+        raise NotImplementedError()
+
+    @property
+    def basis(self):
+        """Basis instance"""
+        raise NotImplementedError()
+
 
 
 class TauSampling(AbstractSampling):
@@ -62,16 +59,33 @@ class TauSampling(AbstractSampling):
     def __init__(self, basis, sampling_points=None):
         if sampling_points is None:
             sampling_points = basis.default_tau_sampling_points()
-        super().__init__(basis, sampling_points)
+        else:
+            sampling_points = np.asarray(sampling_points)
+            if sampling_points.ndim != 1:
+                raise ValueError("sampling points must be vector")
 
-    @classmethod
-    def eval_matrix(cls, basis, x):
-        return basis.u(x).T
+        matrix = basis.u(sampling_points).T
+        self._basis = basis
+        self._sampling_points = sampling_points
+        self._matrix = DecomposedMatrix(matrix)
+
+        if basis.is_well_conditioned and self._matrix.cond > 1e8:
+            warn(f"Sampling matrix is poorly conditioned "
+                 f"(kappa = {self._matrix.cond:.2g})", ConditioningWarning)
+
+    @property
+    def basis(self): return self._basis
+
+    @property
+    def sampling_points(self): return self._sampling_points
+
+    @property
+    def matrix(self): return self._matrix
 
     @property
     def tau(self):
         """Sampling points in (reduced) imaginary time"""
-        return self.sampling_points
+        return self._sampling_points
 
 
 class MatsubaraSampling(AbstractSampling):
@@ -83,16 +97,33 @@ class MatsubaraSampling(AbstractSampling):
     def __init__(self, basis, sampling_points=None):
         if sampling_points is None:
             sampling_points = basis.default_matsubara_sampling_points()
-        super().__init__(basis, sampling_points)
+        else:
+            sampling_points = _util.check_reduced_matsubara(sampling_points)
+            if sampling_points.ndim != 1:
+                raise ValueError("sampling points must be vector")
 
-    @classmethod
-    def eval_matrix(cls, basis, x):
-        return basis.uhat(x).T
+        matrix = basis.uhat(sampling_points).T
+        self._basis = basis
+        self._sampling_points = sampling_points
+        self._matrix = DecomposedMatrix(matrix)
+
+        if basis.is_well_conditioned and self._matrix.cond > 1e8:
+            warn(f"Sampling matrix is poorly conditioned "
+                 f"(kappa = {self._matrix.cond:.2g})", ConditioningWarning)
+
+    @property
+    def basis(self): return self._basis
+
+    @property
+    def sampling_points(self): return self._sampling_points
+
+    @property
+    def matrix(self): return self._matrix
 
     @property
     def wn(self):
         """Sampling points as (reduced) Matsubara frequencies"""
-        return self.sampling_points
+        return self._sampling_points
 
 
 class DecomposedMatrix:
@@ -168,6 +199,11 @@ class DecomposedMatrix:
     def vH(self):
         """Right singular vectors, transposed"""
         return self._v.conj().T
+
+    @property
+    def cond(self):
+        """Return condition number of matrix"""
+        return self._s[0] / self._s[-1]
 
 
 class ConditioningWarning(RuntimeWarning):
