@@ -101,6 +101,9 @@ class FiniteTempBasis(abstract.AbstractBasis):
     def wmax(self): return self._wmax
 
     @property
+    def lambda_(self): return self._beta * self._wmax
+
+    @property
     def shape(self): return self._s.shape
 
     @property
