@@ -49,7 +49,6 @@ class AbstractSampling:
         raise NotImplementedError()
 
 
-
 class TauSampling(AbstractSampling):
     """Sparse sampling in imaginary time.
 
@@ -135,24 +134,19 @@ class DecomposedMatrix:
 
     This allows for fast and accurate least squares fits using ``A.lstsq(x)``.
     """
-    @classmethod
-    def get_svd_result(cls, a, eps=None):
-        """Construct decomposition from matrix"""
-        u, s, vH = np.linalg.svd(a, full_matrices=False)
-        where = s.astype(bool) if eps is None else s/s[0] <= eps
-        if not where.all():
-            return u[:, where], s[where], vH[where]
-        else:
-            return u, s, vH
-
     def __init__(self, a, svd_result=None):
         a = np.asarray(a)
         if a.ndim != 2:
             raise ValueError("a must be of matrix form")
         if svd_result is None:
-            u, s, vH = self.__class__.get_svd_result(a)
+            u, s, vH = np.linalg.svd(a, full_matrices=False)
         else:
-            u, s, vH = map(np.asarray, svd_result)
+            u, s, vH = _util.check_svd_result(svd_result, a.shape)
+
+        # Remove singular values which are exactly zero
+        where = s.astype(bool)
+        if not where.all():
+            u, s, vH = u[:, where], s[where], vH[where]
 
         self._a = a
         self._uH = np.array(u.conj().T)
@@ -202,7 +196,7 @@ class DecomposedMatrix:
 
     @property
     def cond(self):
-        """Return condition number of matrix"""
+        """Condition number of matrix"""
         return self._s[0] / self._s[-1]
 
 
