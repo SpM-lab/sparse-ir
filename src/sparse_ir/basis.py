@@ -168,8 +168,9 @@ class FiniteTempBasis(abstract.AbstractBasis):
         x = _default_sampling_points(self._sve_result.u, self.size)
         return self._beta/2 * (x + 1)
 
-    def default_matsubara_sampling_points(self):
-        return _default_matsubara_sampling_points(self._uhat_full, self.size)
+    def default_matsubara_sampling_points(self, *, positive_only=False):
+        return _default_matsubara_sampling_points(self._uhat_full, self.size,
+                                                  positive_only=positive_only)
 
     def default_omega_sampling_points(self):
         y = _default_sampling_points(self._sve_result.v, self.size)
@@ -236,7 +237,7 @@ def _default_sampling_points(u, L):
     return x0
 
 
-def _default_matsubara_sampling_points(uhat, L, fence=False):
+def _default_matsubara_sampling_points(uhat, L, *, fence=False, positive_only=False):
     l_requested = L
 
     # The number of sign changes is always odd for bosonic basis (freq=='even')
@@ -249,28 +250,32 @@ def _default_matsubara_sampling_points(uhat, L, fence=False):
 
     if l_requested < uhat.size:
         # As with the zeros, the sign changes provide excellent sampling points
-        wn = uhat[l_requested].sign_changes()
+        wn = uhat[l_requested].sign_changes(positive_only=positive_only)
     else:
         # As a fallback, use the (discrete) extrema of the corresponding
         # highest-order basis function in Matsubara.  This turns out to be okay.
         polyhat = uhat[-1]
-        wn = polyhat.extrema()
+        wn = polyhat.extrema(positive_only=positive_only)
 
         # For bosonic bases, we must explicitly include the zero frequency,
         # otherwise the condition number blows up.
         if wn[0] % 2 == 0:
             wn = np.unique(np.hstack((0, wn)))
 
-    if wn.size != l_requested:
-        warn(f"Requesting {l_requested} {uhat.freq} sampling frequencies for\n"
-             f"basis size L={L}, but {wn.size} were returned.  This may "
+    expected_size = l_requested
+    if positive_only:
+        expected_size = (expected_size + 1) // 2
+
+    if wn.size != expected_size:
+        warn(f"Requesting {expected_size} {uhat.freq} sampling frequencies\n"
+             f"for basis size L={L}, but {wn.size} were returned.  This may\n"
              f"indiciate a problem with precision.", UserWarning, 3)
     if fence:
-        wn = _fence_matsubara_sampling(wn)
+        wn = _fence_matsubara_sampling(wn, positive_only)
     return wn
 
 
-def _fence_matsubara_sampling(wn):
+def _fence_matsubara_sampling(wn, positive_only):
     # While the condition number for sparse sampling in tau saturates at a
     # modest level, the conditioning in Matsubara steadily deteriorates due
     # to the fact that we are not free to set sampling points continuously.
@@ -278,7 +283,7 @@ def _fence_matsubara_sampling(wn):
     # by a factor of ~4 (still OK). To battle this, we fence the largest
     # frequency with two carefully chosen oversampling points, which brings
     # the two sampling problems within a factor of 2.
-    wn_outer = wn[[0, -1]]
+    wn_outer = wn[-1:] if positive_only else wn[[0, -1]]
     wn_diff = 2 * np.round(0.025 * wn_outer).astype(int)
     if wn.size >= 20:
         wn = np.hstack([wn, wn_outer - np.sign(wn_outer) * wn_diff])

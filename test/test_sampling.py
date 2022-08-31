@@ -83,10 +83,11 @@ def test_tau_noise(sve_logistic, stat, lambda_):
 
 
 @pytest.mark.parametrize("stat, lambda_", [('B', 42), ('F', 42)])
-def test_wn_noise(sve_logistic, stat, lambda_):
+@pytest.mark.parametrize("positive_only", [False, True])
+def test_wn_noise(sve_logistic, stat, lambda_, positive_only):
     basis = sparse_ir.FiniteTempBasis(stat, 1, lambda_,
                                       sve_result=sve_logistic[lambda_])
-    smpl = sparse_ir.MatsubaraSampling(basis)
+    smpl = sparse_ir.MatsubaraSampling(basis, positive_only=positive_only)
     rng = np.random.RandomState(4711)
 
     rhol = basis.v([-.999, -.01, .5]) @ [0.8, -.2, 0.5]
@@ -97,4 +98,5 @@ def test_wn_noise(sve_logistic, stat, lambda_):
     noise = 1e-5
     Giw_n = Giw +  noise * np.linalg.norm(Giw) * rng.randn(*Giw.shape)
     Gl_n = smpl.fit(Giw_n)
-    np.testing.assert_allclose(Gl, Gl_n, atol=12 * noise * Gl_magn, rtol=0)
+    np.testing.assert_allclose(Gl, Gl_n,
+                atol=12 * np.sqrt(1 + positive_only) * noise * Gl_magn, rtol=0)

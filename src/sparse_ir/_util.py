@@ -69,3 +69,20 @@ def check_range(x, xmin, xmax):
     if not (x <= xmax).all():
         raise ValueError(f"Some x violate upper bound {xmax}")
     return x
+
+
+def check_svd_result(svd_result, matrix_shape=None):
+    """Checks that argument is a valid SVD triple (u, s, vH)"""
+    u, s, vH = map(np.asarray, svd_result)
+    m_u, k_u = u.shape
+    k_s, = s.shape
+    k_v, n_v = vH.shape
+    if k_u != k_s or k_s != k_v:
+        raise ValueError("shape mismatch between SVD elements:"
+                         f"({m_u}, {k_u}) x ({k_s}) x ({k_v}, {n_v})")
+    if matrix_shape is not None:
+        m, n = matrix_shape
+        if m_u != m or n_v != n:
+            raise ValueError(f"shape mismatch between SVD ({m_u}, {n_v}) "
+                             f"and matrix ({m}, {n})")
+    return u, s, vH

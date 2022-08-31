@@ -254,7 +254,7 @@ class PiecewiseLegendreFT:
 
         return result
 
-    def extrema(self, part=None, grid=None):
+    def extrema(self, *, part=None, grid=None, positive_only=False):
         """Obtain extrema of Fourier-transformed polynomial."""
         if self.poly.shape:
             raise ValueError("select single polynomial")
@@ -264,9 +264,11 @@ class PiecewiseLegendreFT:
         f = self._func_for_part(part)
         x0 = _roots.discrete_extrema(f, grid)
         x0 = 2 * x0 + self.zeta
-        return _symmetrize_matsubara(x0)
+        if not positive_only:
+            x0 = _symmetrize_matsubara(x0)
+        return x0
 
-    def sign_changes(self, part=None, grid=None):
+    def sign_changes(self, *, part=None, grid=None, positive_only=False):
         """Obtain sign changes of Fourier-transformed polynomial."""
         if self.poly.shape:
             raise ValueError("select single polynomial")
@@ -276,7 +278,9 @@ class PiecewiseLegendreFT:
         f = self._func_for_part(part)
         x0 = _roots.find_all(f, grid, type='discrete')
         x0 = 2 * x0 + self.zeta
-        return _symmetrize_matsubara(x0)
+        if not positive_only:
+            x0 = _symmetrize_matsubara(x0)
+        return x0
 
     def _func_for_part(self, part=None):
         if part is None:
