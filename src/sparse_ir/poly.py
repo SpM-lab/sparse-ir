@@ -239,27 +239,20 @@ class PiecewiseLegendreFT:
         model = self._model if self._model is None else self._model[l]
         return self.__class__(self.poly[l], self.freq, self.n_asymp, model)
 
+    @_util.ravel_argument(last_dim=True)
     def __call__(self, n):
         """Obtain Fourier transform of polynomial for given frequencies"""
-        # Evaluate only on unique frequencies
-        n_unique, n_where = np.unique(n.ravel(), return_inverse=True)
-        result_flat = self._call_impl(n_unique)[..., n_where]
-        return result_flat.reshape(self.poly.shape + n.shape)
-
-    def _call_impl(self, n):
-        """Obtain Fourier transform of polynomial for given frequencies"""
         n = _util.check_reduced_matsubara(n, self.zeta)
-        n_flat = n.ravel()
-        result_flat = _compute_unl_inner(self.poly, n_flat)
+        result = _compute_unl_inner(self.poly, n)
 
         # We use the asymptotics at frequencies larger than conv_radius
         # since it has lower relative error.
-        cond_outer = np.abs(n_flat) >= self.n_asymp
+        cond_outer = np.abs(n) >= self.n_asymp
         if cond_outer.any():
-            n_outer = n_flat[cond_outer]
-            result_flat[..., cond_outer] = self._model.giw(n_outer).T
+            n_outer = n[cond_outer]
+            result[..., cond_outer] = self._model.giw(n_outer).T
 
-        return result_flat.reshape(self.poly.shape + n.shape)
+        return result
 
     def extrema(self, part=None, grid=None):
         """Obtain extrema of Fourier-transformed polynomial."""

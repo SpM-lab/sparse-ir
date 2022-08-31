@@ -27,6 +27,53 @@ def test_slice(sve_logistic):
     assert basis[:4].size == 4
 
 
+@pytest.mark.parametrize("fn", ["u", "v"])
+def test_broadcast_uv(sve_logistic, fn):
+    sve_result = sve_logistic[42]
+    basis = sparse_ir.FiniteTempBasis('F', 4.2, 10, sve_result=sve_result)
+
+    f = getattr(basis, fn)
+    assert_eq = np.testing.assert_array_equal
+
+    l = [1, 2, 4]
+    x = [0.5, 0.3, 1.0, 2.0]
+
+    # Broadcast over x
+    assert_eq(f[1](x), [f[1](xi) for xi in x])
+
+    # Broadcast over l
+    assert_eq(f[l](x[0]), [f[li](x[0]) for li in l])
+
+    # Broadcast over both l, x
+    assert_eq(f[l](x), np.reshape([f[li](xi) for li in l for xi in x], (3, 4)))
+
+    # Tensorial
+    assert_eq(f[l](np.reshape(x, (2, 2))), f[l](x).reshape(3, 2, 2))
+
+
+def test_broadcast_uhat(sve_logistic):
+    sve_result = sve_logistic[42]
+    basis = sparse_ir.FiniteTempBasis('B', 4.2, 10, sve_result=sve_result)
+
+    f = basis.uhat
+    def assert_eq(x, y): np.testing.assert_allclose(x, y, rtol=0, atol=1e-15)
+
+    l = [1, 2, 4]
+    x = [-2, 8, 4, 6]
+
+    # Broadcast over x
+    assert_eq(f[1](x), [f[1](xi) for xi in x])
+
+    # Broadcast over l
+    assert_eq(f[l](x[0]), [f[li](x[0]) for li in l])
+
+    # Broadcast over both l, x
+    assert_eq(f[l](x), np.reshape([f[li](xi) for li in l for xi in x], (3, 4)))
+
+    # Tensorial
+    assert_eq(f[l](np.reshape(x, (2, 2))), f[l](x).reshape(3, 2, 2))
+
+
 def test_violate(sve_logistic):
     u, s, v = sve_logistic[42].part()
 
