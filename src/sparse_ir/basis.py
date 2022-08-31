@@ -122,12 +122,28 @@ class FiniteTempBasis(abstract.AbstractBasis):
 
     @property
     def v(self) -> poly.PiecewiseLegendrePoly:
-        """Basis functions on the (reduced) real frequency axis.
+        r"""Basis functions on the real frequency axis.
 
-        Set of IR basis functions on the real frequency (`omega`) axis.
-        To obtain the value of all basis functions at a point or a array of
-        points `y`, you can call the function ``v(omega)``.  To obtain a single
-        basis function, a slice or a subset `l`, you can use ``v[l]``.
+        Set of IR basis functions on the real frequency (omega) axis, where
+        omega is a real number of magnitude less than :py:attr:`wmax`.  To get
+        the ``l``-th basis function at real frequency ``omega`` of some basis
+        ``basis``, use::
+
+            ulomega = basis.v[l](omega)    # l-th basis function at freq. omega
+
+        Note that ``v`` supports vectorization both over ``l`` and ``omega``.
+        In particular, omitting the subscript yields a vector with all basis
+        functions, evaluated at that position::
+
+            basis.v(omega) == [basis.v[l](omega) for l in range(basis.size)]
+
+        Similarly, supplying a vector of `omega` points yields a matrix ``A``,
+        where ``A[l,n]`` corresponds to the ``l``-th basis function evaluated
+        at ``omega[n]``::
+
+            omega = [0.5, 1.0]
+            basis.v(omega) == \
+                [[basis.v[l](t) for t in omega] for l in range(basis.size)]
         """
         return self._v
 

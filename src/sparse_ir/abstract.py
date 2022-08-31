@@ -21,24 +21,67 @@ class AbstractBasis:
     """
     @property
     def u(self):
-        """Basis functions on the imaginary time axis.
+        r"""Basis functions on the imaginary time axis.
 
-        Set of IR basis functions on the imaginary time (`tau`) axis.
-        To obtain the value of all basis functions at a point or a array of
-        points `tau`, you can call the function ``utau)``.  To obtain a single
-        basis function, a slice or a subset `l`, you can use ``u[l]``.
+        Set of IR basis functions on the imaginary time (tau) axis, where tau
+        is a real number between zero and :py:attr:`beta`.  To get the ``l``-th
+        basis function at imaginary time ``tau`` of some basis ``basis``, use::
+
+            ultau = basis.u[l](tau)        # l-th basis function at time tau
+
+        Note that ``u`` supports vectorization both over ``l`` and ``tau``.
+        In particular, omitting the subscript yields a vector with all basis
+        functions, evaluated at that position::
+
+            basis.u(tau) == [basis.u[l](tau) for l in range(basis.size)]
+
+        Similarly, supplying a vector of `tau` points yields a matrix ``A``,
+        where ``A[l,n]`` corresponds to the ``l``-th basis function evaluated
+        at ``tau[n]``::
+
+            tau = [0.5, 1.0]
+            basis.u(tau) == \
+                [[basis.u[l](t) for t in tau] for l in range(basis.size)]
         """
         raise NotImplementedError()
 
     @property
     def uhat(self):
-        """Basis functions on the reduced Matsubara frequency (`wn`) axis.
+        r"""Basis functions on the reduced Matsubara frequency (``wn``) axis.
 
-        To obtain the value of all basis functions at a Matsubara frequency
-        or a array of points `wn`, you can call the function ``uhat(wn)``.
-        Note that we expect reduced frequencies, which are simply even/odd
-        numbers for bosonic/fermionic objects. To obtain a single basis
-        function, a slice or a subset `l`, you can use ``uhat[l]``.
+        Set of IR basis functions reduced Matsubara frequency (wn) axis, where
+        wn is an integer.  These are related to :py:attr:`u` by the following
+        Fourier transform:
+
+        .. math::
+
+           \hat u(n) = \int_0^\beta d\tau \exp(i\pi n \tau/\beta) u(\tau)
+
+        To get the ``l``-th basis function at some reduced frequency ``wn`` of
+        some basis ``basis``, use::
+
+            uln = basis.uhat[l](wn)        # l-th basis function at freq wn
+
+        ``uhat`` supports vectorization both over ``l`` and ``wn``.
+        In particular, omitting the subscript yields a vector with all basis
+        functions, evaluated at that position::
+
+            basis.uhat(wn) == [basis.uhat[l](wn) for l in range(basis.size)]
+
+        Similarly, supplying a vector of `wn` points yields a matrix ``A``,
+        where ``A[l,n]`` corresponds to the ``l``-th basis function evaluated
+        at ``wn[n]``::
+
+            wn = [1, 3]
+            basis.uhat(wn) == \\
+                [[basis.uhat[l](wi) for wi in wn] for l in range(basis.size)]
+
+        Note:
+            Instead of the value of the Matsubara frequency, these functions
+            expect integers corresponding to the prefactor of pi over beta.
+            For example, the first few positive fermionic frequencies would
+            be specified as ``[1, 3, 5, 7]``, and the first bosonic frequencies
+            are ``[0, 2, 4, 6]``.  This is also distinct to an index!
         """
         raise NotImplementedError()
 
