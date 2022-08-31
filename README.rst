@@ -15,21 +15,21 @@ Install via `pip <https://pypi.org/project/sparse-ir>`_::
     pip install sparse-ir[xprec]
 
 The above line is the recommended way to install `sparse-ir`.  It automatically
-installs the `xprec`_ package, which allows to compute the IR basis functions
-with greater accuracy.  If you do not want to do this, simply remove the string
-``[xprec]`` from the above command.
-
-.. _xprec: https://github.com/tuwien-cms/xprec
-
+installs the `xprec <https://github.com/tuwien-cms/xprec>`_ package, which
+allows one to compute the IR basis functions with greater accuracy.  If you do
+not want to do this, simply remove the string ``[xprec]`` from the above command.
 
 Install via `conda <https://anaconda.org/spm-lab/sparse-ir>`_::
 
     conda install -c spm-lab sparse-ir xprec
 
+Other than the optional xprec dependency, sparse-ir requires only
+`numpy <https://numpy.org/>`_ and `scipy <https://scipy.org/>`_.
+
 
 Quick start
 -----------
-Check out our comprehensive `tutorial <https://SpM-lab.github.io/sparse-ir-tutorial>`_!
+Check out our comprehensive tutorial: `<https://spm-lab.github.io/sparse-ir-tutorial>`_!
 
 Here is some python code illustrating the API::
 
