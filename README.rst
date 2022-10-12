@@ -37,8 +37,8 @@ lines of Python code::
     # Construct the IR basis and sparse sampling for fermionic propagators
     import sparse_ir, numpy as np
     basis = sparse_ir.FiniteTempBasis('F', beta=10, wmax=8, eps=1e-6)
-    stau = ir.TauSampling(basis)
-    siw = ir.MatsubaraSampling(basis, positive_only=True)
+    stau = sparse_ir.TauSampling(basis)
+    siw = sparse_ir.MatsubaraSampling(basis, positive_only=True)
 
     # Solve the single impurity Anderson model coupled to a bath with a
     # semicircular states with unit half bandwidth.
