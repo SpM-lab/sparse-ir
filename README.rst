@@ -29,24 +29,40 @@ Other than the optional xprec dependency, sparse-ir requires only
 
 Quick start
 -----------
-Check out our comprehensive tutorial: `<https://spm-lab.github.io/sparse-ir-tutorial>`_!
+Check out our comprehensive `tutorial <https://spm-lab.github.io/sparse-ir-tutorial>`_!
 
-Here is some python code illustrating the API::
+Here is a full second-order perturbation theory solver (GF(2)) in a few
+lines of Python code::
 
-    # Compute IR basis for fermions and β = 10, W <= 4.2
-    import sparse_ir, numpy
-    basis = sparse_ir.FiniteTempBasis(statistics='F', beta=10, wmax=4.2)
+    # Construct the IR basis and sparse sampling for fermionic propagators
+    import sparse_ir, numpy as np
+    basis = sparse_ir.FiniteTempBasis('F', beta=10, wmax=8, eps=1e-6)
+    stau = ir.TauSampling(basis)
+    siw = ir.MatsubaraSampling(basis, positive_only=True)
 
-    # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
-    # on the first few Matsubara frequencies. (Fermionic/bosonic Matsubara
-    # frequencies are denoted by odd/even integers.)
-    gl = basis.s * basis.v(2.5)
-    giw = gl @ basis.uhat([1, 3, 5, 7])
+    # Solve the single impurity Anderson model coupled to a bath with a
+    # semicircular states with unit half bandwidth.
+    U = 1.2
+    def rho0w(w):
+        return np.sqrt(1-w.clip(-1,1)**2) * 2/np.pi
 
-    # Reconstruct same coefficients from sparse sampling on the Matsubara axis:
-    smpl_iw = sparse_ir.MatsubaraSampling(basis)
-    giw = -1/(1j * numpy.pi/basis.beta * smpl_iw.wn - 2.5)
-    gl_rec = smpl_iw.fit(giw)
+    # Compute the IR basis coefficients for the non-interacting propagator
+    rho0l = basis.v.overlap(rho0w)
+    G0l = -basis.s * rho0l
+
+    # Self-consistency loop: alternate between second-order expression for the
+    # self-energy and the Dyson equation until convergence.
+    Gl = G0l
+    Gl_prev = 0
+    while np.linalg.norm(Gl - Gl_prev) > 1e-6:
+        Gl_prev = Gl
+        Gtau = stau.evaluate(Gl)
+        Sigmatau = U**2 * Gtau**3
+        Sigmal = stau.fit(Sigmatau)
+        Sigmaiw = siw.evaluate(Sigmal)
+        G0iw = siw.evaluate(G0l)
+        Giw = 1/(1/G0iw - Sigmaiw)
+        Gl = siw.fit(Giw)
 
 You may want to start with reading up on the `intermediate representation`_.
 It is tied to the analytic continuation of bosonic/fermionic spectral
