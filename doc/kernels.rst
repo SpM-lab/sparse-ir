@@ -4,11 +4,14 @@ The IR basis is nothing but the `singular value expansion`_ of a suitable
 integral kernel `K` mediating the change from real frequencies to imaginary
 times:
 
-    G(τ) = - ∫ dω  K(τ, ω) w(ω) ρ(ω),
+.. math::       G(τ) = - \int d\omega  K(τ, \omega) w(\omega) \rho(\omega),
 
-where ρ(ω) = - (1/π) Im G(ω+iδ) and w(ω) is a weight function.
-The integral ∫ is defined on the interval [-ωmax, ωmax], where
-ωmax (=Λ/β) is a frequency cutoff.
+where:
+
+.. math::       \rho(ω) = -\frac 1\pi \Im G(ω + i\delta)
+
+is the spectral function and w(ω) is a weight function. The integral is defined
+on the interval [-ωmax, ωmax], where ωmax(=Λ/β) is a frequency cutoff.
 
 Different kernels yield different IR basis functions.  The `sparse-ir` library
 defines two kernels:

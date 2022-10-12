@@ -22,7 +22,7 @@ class DiscreteLehmannRepresentation(abstract.AbstractBasis):
 
         G(iv) == sum(a[i] / (iv - w[i]) for i in range(L))
 
-    Warning
+    Warning:
         The poles on the real-frequency axis selected for the DLR are based
         on a rank-revealing decomposition, which offers accuracy guarantees.
         Here, we instead select the pole locations based on the zeros of the IR

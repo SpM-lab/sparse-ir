@@ -5,22 +5,22 @@ from typing import Callable
 
 
 class AbstractKernel:
-    """Integral kernel ``K(x, y)``.
+    r"""Integral kernel ``K(x, y)``.
 
     Abstract base class for an integral kernel, i.e., a real binary function
     ``K(x, y)`` used in a Fredhold integral equation of the first kind:
 
-                        u(x) = ∫ K(x, y) v(y) dy
+    .. math::           u(x) = \int K(x, y) v(y) dy
 
     where ``x ∈ [xmin, xmax]`` and ``y ∈ [ymin, ymax]``.  For its SVE to exist,
     the kernel must be square-integrable, for its singular values to decay
     exponentially, it must be smooth.
 
-    In general, the kernel is applied to a scaled spectral function rho'(y) as:
+    In general, the kernel is applied to a scaled spectral function ρ'(y) as:
 
-                        ∫ K(x, y) rho'(y) dy,
+    .. math::            \int K(x, y) \rho'(y) dy,
 
-    where rho'(y) = w(y) rho(y).
+    where ρ'(y) = w(y) ρ(y).
     """
     def __call__(self, x, y, x_plus=None, x_minus=None):
         """Evaluate kernel at point (x, y)
@@ -136,27 +136,25 @@ class AbstractSVEHints:
 
 
 class LogisticKernel(AbstractKernel):
-    """Fermionic/bosonic analytical continuation kernel.
+    r"""Fermionic/bosonic analytical continuation kernel.
 
     In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``,
-    the integral kernel is a function on ``[-1, 1] x [-1, 1]``::
+    the integral kernel is a function on ``[-1, 1] x [-1, 1]``:
 
-        K(x, y) == exp(-Λ * y * (x + 1)/2) / (1 + exp(-Λ*y))
+    .. math::  K(x, y) = \frac{\exp(-\Lambda y(x + 1)/2)}{1 + \exp(-\Lambda y)}
 
     LogisticKernel is a fermionic analytic continuation kernel.
     Nevertheless, one can model the τ dependence of
     a bosonic correlation function as follows:
 
-        ∫ exp(-Λ * y * (x + 1)/2) / (1 - exp(-Λ*y)) ρ(y) dy
-        = ∫ K(x, y) ρ'(y) dy,
+    .. math::
 
-    with
+        \int \frac{\exp(-\Lambda y(x + 1)/2)}{1 - \exp(-\Lambda y)} \rho(y) dy
+            = \int K(x, y) \frac{\rho'(y)}{\tanh(\Lambda y/2)} dy
 
-        ρ'(y) == w(y) * ρ(y),
+    i.e., a rescaling of the spectral function with the weight function:
 
-    where the weight function is given by
-
-        w(y) = 1/tanh(Λ*y/2).
+    .. math::  w(y) = \frac1{\tanh(\Lambda y/2)}.
     """
     def __init__(self, lambda_):
         self.lambda_ = lambda_
@@ -251,12 +249,14 @@ class _SVEHintsLogistic(AbstractSVEHints):
 
 
 class RegularizedBoseKernel(AbstractKernel):
-    """Regularized bosonic analytical continuation kernel.
+    r"""Regularized bosonic analytical continuation kernel.
 
     In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
-    integral kernel is a function on ``[-1, 1] x [-1, 1]``::
+    integral kernel is a function on ``[-1, 1] x [-1, 1]``:
 
-        K(x, y) == y exp(-Λ * y * (x + 1)/2) / (exp(-Λ * y) - 1)
+    .. math::
+
+        K(x, y) = \frac{y \exp(-\Lambda y(x + 1)/2)}{\exp(-\Lambda y) - 1}
 
     Care has to be taken in evaluating this expression around ``y == 0``.
     """

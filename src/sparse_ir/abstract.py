@@ -2,22 +2,30 @@
 # SPDX-License-Identifier: MIT
 
 class AbstractBasis:
-    """Abstract base class for bases on the imaginary-time axis.
+    r"""Abstract base class for bases on the imaginary-time axis.
 
-    Let `basis` be an abstract basis.  Then we can expand a two-point
-    propagator  `G(τ)`, where `τ` is imaginary time, into a set of basis
-    functions::
+    This class stores a set of basis functions.  We can then expand a two-point
+    propagator  `G(τ)`, where `τ` is imaginary time:
 
-        G(τ) == sum(basis.u[l](τ) * g[l] for l in range(basis.size)) + ϵ(τ),
+    .. math::    G(\tau) \approx \sum_{l=0}^{L-1} g_l U_l(\tau)
 
-    where `basis.u[l]` is the `l`-th basis function, `g[l]` is the associated
-    expansion coefficient and `ϵ(τ)` is an error term.  Similarly, the Fourier
-    transform `Ĝ(n)`, where `n` is now a Matsubara frequency, can be expanded
-    as follows:
+    where `U` is now the `l`-th basis function, stored in :py:attr:`u` and
+    `g` denote the expansion coefficients. Similarly, the Fourier transform
+    `Ĝ(n)`, where `n` is a reduced Matsubara frequency, can be expanded as
+    follows:
 
-        Ĝ(n) == sum(basis.uhat[l](n) * g[l] for l in range(basis.size)) + ϵ(n),
+    .. math::    \hat G(n) \approx \sum_{l=0}^{L-1} g_l \hat U_l(n)
 
-    where `basis.uhat[l]` is now the Fourier transform of the basis function.
+    where `Û` is the Fourier transform of the `l`-th basis function, stored
+    in :py:attr:`uhat`.
+
+    Assuming that ``basis`` is an instance of some abstract basis, ``g``
+    is a vector of expansion coefficients, ``tau`` is some imaginary time and
+    ``n`` some frequency, we can write this in the library as follows::
+
+        G_tau = basis.u(tau).T @ gl
+        G_n = basis.uhat(n).T @ gl
+
     """
     @property
     def u(self):

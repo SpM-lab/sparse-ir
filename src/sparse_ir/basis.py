@@ -11,16 +11,21 @@ from . import sve
 
 
 class FiniteTempBasis(abstract.AbstractBasis):
-    """Intermediate representation (IR) basis for given temperature.
+    r"""Intermediate representation (IR) basis for given temperature.
 
-    For a continuation kernel from real frequencies, ω ∈ [-ωmax, ωmax], to
-    imaginary time, τ ∈ [0, beta], this class stores the truncated singular
-    value expansion or IR basis::
+    For a continuation kernel from real frequencies, `ω` ∈ [-ωmax, ωmax], to
+    imaginary time, `τ` ∈ [0, beta], this class stores the truncated singular
+    value expansion or IR basis:
 
-        K(τ, ω) ≈ sum(u[l](τ) * s[l] * v[l](ω) for l in range(L))
+    .. math::
 
-    This basis is inferred from a reduced form by appropriate scaling of
-    the variables.
+        K(\tau, \omega) \approx \sum_{l=0}^{L-1} U_l(\tau) S_l V_l(\omega),
+
+    where `U` are the IR basis functions on the imaginary-time axis, stored
+    in :py:attr:`u`, `S` are the singular values, stored in :py:attr:`s`,
+    and `V` are the IR basis functions on the real-frequency axis, stored
+    in :py:attr:`V`.  The IR basis functions in Matsubara frequency are
+    stored in :py:attr:`uhat`.
 
     Example:
         The following example code assumes the spectral function is a single
