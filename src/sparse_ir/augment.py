@@ -20,8 +20,17 @@ class AugmentedBasis(abstract.AbstractBasis):
     through augmentation.  Similar expressions hold for Matsubara frequencies.
 
     Augmentation is useful in constructing bases for vertex-like quantities
-    such as self-energies `[1]`_ and when constructing a two-point kernel
-    that serves as a base for multi-point functions `[2]`_.
+    such as self-energies `[1]`_.  It is also useful when constructing a
+    two-point kernel that serves as a base for multi-point functions `[2]`_.
+
+    Example:
+        For constructing the vertex basis and the augmented basis, one can
+        use::
+
+            import sparse_ir, sparse_ir.augment as aug
+            basis = sparse_ir.FiniteTempBasis('B', beta=10, wmax=2.0)
+            vertex_basis = aug.AugmentedBasis(basis, aug.MatsubaraConst)
+            aug_basis = aug.AugmentedBasis(basis, aug.TauConst, aug.TauLinear)
 
     Warning:
         Bases augmented with `TauConst` and `TauLinear` tend to be poorly
