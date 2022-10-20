@@ -22,7 +22,7 @@ def extract_varvals(*varnames):
 
 
 REPO_URL = "https://github.com/SpM-lab/sparse-ir"
-VERSION = extract_varvals('__version__')
+VERSION, = extract_varvals('__version__')
 LONG_DESCRIPTION = readfile('README.rst')
 
 setup(
