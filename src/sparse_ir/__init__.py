@@ -1,21 +1,18 @@
+
 """
 Intermediate representation (IR) for many-body propagators
 ==========================================================
+
+This library provides routines for constructing and working with the
+intermediate representation of correlation functions.  It provides:
+
+ - on-the-fly computation of basis functions for arbitrary cutoff Λ
+ - basis functions and singular values are accurate to full precision
+ - routines for sparse sampling
 """
 __copyright__ = "2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others"
 __license__ = "MIT"
-__version__ = "0.96.0"
-
-min_xprec_version = "1.0"
-
-try:
-    import xprec as xprec
-    from pkg_resources import parse_version
-    from warnings import warn
-    if parse_version(xprec.__version__) < parse_version(min_xprec_version):
-        warn(f"xprec is too old! Please use xprec>={min_xprec_version}.")
-except ImportError:
-    pass
+__version__ = "0.97.0"
 
 from .kernel import RegularizedBoseKernel, LogisticKernel
 from .sve import compute as compute_sve, SVEResult
