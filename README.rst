@@ -26,6 +26,12 @@ Install via `conda <https://anaconda.org/spm-lab/sparse-ir>`_::
 Other than the optional xprec dependency, sparse-ir requires only
 `numpy <https://numpy.org/>`_ and `scipy <https://scipy.org/>`_.
 
+To manually install the current development version, you can use the following::
+
+   # Only recommended for developers - no automatic updates!
+   git clone https://github.com/SpM-lab/sparse-ir
+   pip install -e sparse-ir/[xprec]
+
 Documentation and tutorial
 --------------------------
 Check out our `comprehensive tutorial`_, where we self-contained
