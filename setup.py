@@ -22,7 +22,7 @@ def extract_varvals(*varnames):
 
 
 REPO_URL = "https://github.com/SpM-lab/sparse-ir"
-VERSION, MIN_XPREC_VERSION = extract_varvals('__version__', 'min_xprec_version')
+VERSION = extract_varvals('__version__')
 LONG_DESCRIPTION = readfile('README.rst')
 
 setup(
@@ -64,7 +64,7 @@ setup(
     extras_require={
         'test': ['pytest', 'irbasis', 'xprec'],
         'doc': ['sphinx>=2.1', 'sphinx_rtd_theme'],
-        'xprec': [f'xprec>={MIN_XPREC_VERSION}'],
+        'xprec': [f'xprec>=1.0'],
         },
 
     package_dir={'': 'src'},
