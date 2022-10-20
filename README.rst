@@ -26,11 +26,25 @@ Install via `conda <https://anaconda.org/spm-lab/sparse-ir>`_::
 Other than the optional xprec dependency, sparse-ir requires only
 `numpy <https://numpy.org/>`_ and `scipy <https://scipy.org/>`_.
 
+Documentation and tutorial
+--------------------------
+Check out our `comprehensive tutorial`_, where we self-contained
+notebooks for several many-body methods - GF(2), GW, Eliashberg equations,
+Lichtenstein formula, FLEX, ... - are presented.
 
-Quick start
------------
-Check out our comprehensive `tutorial <https://spm-lab.github.io/sparse-ir-tutorial>`_!
+Refer to the `API documentation`_ for more details on how to work
+with the python library.
 
+There is also a `Julia library`_ and (currently somewhat restricted)
+`Fortran library`_ available for the IR basis and sparse sampling.
+
+.. _comprehensive tutorial: https://spm-lab.github.io/sparse-ir-tutorial
+.. _API documentation: https://sparse-ir.readthedocs.io
+.. _Julia library: https://github.com/SpM-lab/SparseIR.jl
+.. _Fortran library: https://github.com/SpM-lab/sparse-ir-fortran
+
+Getting started
+---------------
 Here is a full second-order perturbation theory solver (GF(2)) in a few
 lines of Python code::
 
@@ -80,15 +94,11 @@ imaginary (Euclidean) time ``tau``, together with a "coupling" strength
 By this construction, the imaginary time basis can be shown to be *optimal* in
 terms of compactness.
 
-Refer to the `online documentation`_ for more details.
-
-.. _online documentation: https://sparse-ir.readthedocs.io
 .. _intermediate representation: https://arxiv.org/abs/2106.12685
 .. _singular value expansion: https://w.wiki/3poQ
 
-
 License and citation
--------------------------------
+--------------------
 This software is released under the MIT License.  See LICENSE.txt for details.
 
 If you find the intermediate representation, sparse sampling, or this software
