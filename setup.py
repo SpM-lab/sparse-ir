@@ -34,10 +34,10 @@ setup(
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/x-rst',
     keywords=' '.join([
-        'irbasis'
+        'irbasis', 'many-body', 'propagator', 'svd'
         ]),
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Physics',
