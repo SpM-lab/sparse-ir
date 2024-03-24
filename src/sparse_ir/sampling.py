@@ -26,7 +26,12 @@ class AbstractSampling:
 
     def fit(self, ax, axis=None):
         """Fit basis coefficients from the sparse sampling points"""
-        return self.matrix.lstsq(ax, axis)
+        matrix = self.matrix
+        if self.basis.is_well_conditioned and not (matrix.cond <= 1e8):
+            warn(f"Sampling matrix is poorly conditioned "
+                 f"(kappa = {matrix.cond:.2g})", ConditioningWarning)
+
+        return matrix.lstsq(ax, axis)
 
     @property
     def cond(self):
@@ -68,9 +73,6 @@ class TauSampling(AbstractSampling):
         self._sampling_points = sampling_points
         self._matrix = DecomposedMatrix(matrix)
 
-        if basis.is_well_conditioned and self._matrix.cond > 1e8:
-            warn(f"Sampling matrix is poorly conditioned "
-                 f"(kappa = {self._matrix.cond:.2g})", ConditioningWarning)
 
     @property
     def basis(self): return self._basis
@@ -124,10 +126,6 @@ class MatsubaraSampling(AbstractSampling):
             self._matrix = SplitDecomposedMatrix(matrix, ssvd_result)
         else:
             self._matrix = DecomposedMatrix(matrix)
-
-        if basis.is_well_conditioned and self._matrix.cond > 1e8:
-            warn(f"Sampling matrix is poorly conditioned "
-                 f"(kappa = {self._matrix.cond:.2g})", ConditioningWarning)
 
     @property
     def basis(self): return self._basis
@@ -314,6 +312,13 @@ class SplitDecomposedMatrix:
 
 
 class ConditioningWarning(RuntimeWarning):
+    """Warns about a poorly conditioned problem.
+
+    This warning is issued if the library detects a poorly conditioned fitting
+    problem.  This essentially means there is a high degree of ambiguity in how
+    to choose the solution.  One must therefore expect to lose significant
+    precision in the parameter values.
+    """
     pass
 
 

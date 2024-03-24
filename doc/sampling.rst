@@ -50,3 +50,9 @@ Base classes
 
 .. autoclass:: sparse_ir.sampling.DecomposedMatrix
     :members:
+
+.. autoclass:: sparse_ir.sampling.SplitDecomposedMatrix
+    :members:
+
+.. autoclass:: sparse_ir.sampling.ConditioningWarning
+    :members:
