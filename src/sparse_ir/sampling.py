@@ -20,12 +20,64 @@ class AbstractSampling:
             |________________|      fit        |___________________|
 
     """
-    def evaluate(self, al, axis=None):
-        """Evaluate the basis coefficients at the sparse sampling points"""
+    def evaluate(self, al, axis=None, *, points=None):
+        """Evaluate the basis coefficients at sampling points.
+
+        Arguments:
+            al (array):
+                Array where the `l`-th item along `axis` corresponds to the
+                `l`-th basis coefficient
+            axis (integer):
+                Axis or dimension of `al` along which to evaluate the function.
+                Defaults to the last, i.e., rightmost axis.
+            points (vector):
+                Points on which the results should be evaluated.  Defaults
+                to the sampling points for which the sampling objects was
+                created.
+
+        Return:
+            Array where the `n`-th item along `axis` corresponds to the
+            value on the `n`-th sampling point (or value on `point[n]`, if
+            given.)
+
+        Note:
+            If `points` is given, a new sampling is created at each invocation,
+            which can result in a performance hit.  Consider caching sampling
+            objects or simply using the `.u()` and `.uhat()` methods of the
+            underlying basis.
+        """
+        if points is not None:
+            return self._for_sampling_points(points).evaluate(al, axis)
+
         return self.matrix.matmul(al, axis)
 
-    def fit(self, ax, axis=None):
-        """Fit basis coefficients from the sparse sampling points"""
+    def fit(self, ax, axis=None, *, points=None):
+        """Fit the basis coefficients from the sampling points.
+
+        Arguments:
+            ax (array):
+                Array where the `n`-th item along `axis` corresponds to the
+                value on the `n`-th sampling point (or value on `point[n]`, if
+                given.)
+            axis (integer):
+                Axis or dimension of `ax` along which to fit the function.
+                Defaults to the last, i.e., rightmost axis.
+            points (vector):
+                Points on which the `ax` is given.  Defaults to the sampling
+                points for which the sampling objects was created.
+
+        Return:
+            Array where the `l`-th item along `axis` corresponds to the
+            `l`-th basis coefficient
+
+        Note:
+            If `points` is given, a new sampling is created at each invocation,
+            which can result in a performance hit.  Consider caching sampling
+            objects.
+        """
+        if points is not None:
+            return self._for_sampling_points(points).fit(ax, axis)
+
         matrix = self.matrix
         if self.basis.is_well_conditioned and not (matrix.cond <= 1e8):
             warn(f"Sampling matrix is poorly conditioned "
@@ -53,6 +105,9 @@ class AbstractSampling:
         """Basis instance"""
         raise NotImplementedError()
 
+    def _for_sampling_points(self, x):
+        raise RuntimeError("Changing sampling points is not possible")
+
 
 class TauSampling(AbstractSampling):
     """Sparse sampling in imaginary time.
@@ -73,7 +128,6 @@ class TauSampling(AbstractSampling):
         self._sampling_points = sampling_points
         self._matrix = DecomposedMatrix(matrix)
 
-
     @property
     def basis(self): return self._basis
 
@@ -87,6 +141,10 @@ class TauSampling(AbstractSampling):
     def tau(self):
         """Sampling points in (reduced) imaginary time"""
         return self._sampling_points
+
+    def _for_sampling_points(self, x):
+        x = np.asarray(x)
+        return TauSampling(self._basis, x)
 
 
 class MatsubaraSampling(AbstractSampling):
@@ -145,6 +203,11 @@ class MatsubaraSampling(AbstractSampling):
     def wn(self):
         """Sampling points as (reduced) Matsubara frequencies"""
         return self._sampling_points
+
+    def _for_sampling_points(self, x):
+        x = np.asarray(x)
+        return MatsubaraSampling(self._basis, x,
+                                 positive_only=self._positive_only)
 
 
 class DecomposedMatrix:

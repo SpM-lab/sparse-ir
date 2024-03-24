@@ -100,3 +100,36 @@ def test_wn_noise(sve_logistic, stat, lambda_, positive_only):
     Gl_n = smpl.fit(Giw_n)
     np.testing.assert_allclose(Gl, Gl_n,
                 atol=12 * np.sqrt(1 + positive_only) * noise * Gl_magn, rtol=0)
+
+
+@pytest.mark.parametrize("stat, lambda_", [('F', 42)])
+@pytest.mark.parametrize("positive_only", [False, True])
+def test_wn_eval_other(sve_logistic, stat, lambda_, positive_only):
+    basis = sparse_ir.FiniteTempBasis(stat, 1, lambda_,
+                                      sve_result=sve_logistic[lambda_])
+    smpl = sparse_ir.MatsubaraSampling(basis, positive_only=positive_only)
+
+    n2 = [1, 3, 7]
+    smpl2 = sparse_ir.MatsubaraSampling(basis, sampling_points=n2)
+
+    rhol = basis.v([+.998, -.01, .5]) @ [0.8, -.2, 0.5]
+    Gl = basis.s * rhol
+    Gl_magn = np.linalg.norm(Gl)
+    np.testing.assert_allclose(smpl.evaluate(Gl, points=n2), smpl2.evaluate(Gl),
+                               rtol=1e-15 * Gl_magn)
+
+
+@pytest.mark.parametrize("stat, lambda_", [('F', 42)])
+def test_tau_eval_other(sve_logistic, stat, lambda_):
+    basis = sparse_ir.FiniteTempBasis(stat, 1, lambda_,
+                                      sve_result=sve_logistic[lambda_])
+    smpl = sparse_ir.TauSampling(basis)
+
+    n2 = (0.1, 0.4)
+    smpl2 = sparse_ir.TauSampling(basis, sampling_points=n2)
+
+    rhol = basis.v([+.998, -.01, .5]) @ [0.8, -.2, 0.5]
+    Gl = basis.s * rhol
+    Gl_magn = np.linalg.norm(Gl)
+    np.testing.assert_allclose(smpl.evaluate(Gl, points=n2), smpl2.evaluate(Gl),
+                               rtol=1e-15 * Gl_magn)
