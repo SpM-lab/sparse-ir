@@ -10,9 +10,9 @@ intermediate representation of correlation functions.  It provides:
  - basis functions and singular values are accurate to full precision
  - routines for sparse sampling
 """
-__copyright__ = "2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others"
+__copyright__ = "2020-2024 Markus Wallerberger, Hiroshi Shinaoka, and others"
 __license__ = "MIT"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 from .kernel import RegularizedBoseKernel, LogisticKernel
 from .sve import compute as compute_sve, SVEResult
