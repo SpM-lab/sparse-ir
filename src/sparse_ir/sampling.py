@@ -34,6 +34,7 @@ class AbstractSampling:
                 Points on which the results should be evaluated.  Defaults
                 to the sampling points for which the sampling objects was
                 created.
+                .. versionadded:: 1.1
 
         Return:
             Array where the `n`-th item along `axis` corresponds to the
@@ -65,6 +66,7 @@ class AbstractSampling:
             points (vector):
                 Points on which the `ax` is given.  Defaults to the sampling
                 points for which the sampling objects was created.
+                .. versionadded:: 1.1
 
         Return:
             Array where the `l`-th item along `axis` corresponds to the
