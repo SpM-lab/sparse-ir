@@ -150,14 +150,26 @@ class AbstractBasis:
         """Real frequency cutoff or `None` if not present"""
         raise NotImplementedError()
 
-    def default_tau_sampling_points(self):
-        """Default sampling points on the imaginary time axis"""
+    def default_tau_sampling_points(self, *, npoints=None):
+        """Default sampling points on the imaginary time axis
+
+        Arguments:
+            npoints (int):
+                Minimum number of sampling points to return.
+
+                .. versionadded: 1.1
+        """
         raise NotImplementedError()
 
-    def default_matsubara_sampling_points(self, *, positive_only=False):
+    def default_matsubara_sampling_points(self, *, npoints=None,
+                                          positive_only=False):
         """Default sampling points on the imaginary frequency axis
 
         Arguments:
+            npoints (int):
+                Minimum number of sampling points to return.
+
+                .. versionadded: 1.1
             positive_only (bool):
                 Only return non-negative frequencies.  This is useful if the
                 object to be fitted is symmetric in Matsubura frequency,

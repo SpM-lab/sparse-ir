@@ -106,13 +106,21 @@ class AugmentedBasis(abstract.AbstractBasis):
     def wmax(self):
         return self._basis.wmax
 
-    def default_tau_sampling_points(self):
-        x = basis._default_sampling_points(self._basis.sve_result.u, self.size)
-        return self.beta/2 * (x + 1)
+    def default_tau_sampling_points(self, *, npoints=None):
+        if npoints is None:
+            npoints = self.size
 
-    def default_matsubara_sampling_points(self, *, positive_only=False):
-        return basis._default_matsubara_sampling_points(
-                    self._basis._uhat_full, self.size, positive_only=positive_only)
+        # Return the sampling points of the underlying basis, but since we
+        # use the size of self, we add two further points.  One then has to
+        # hope that these give good sampling points.
+        return self._basis.default_tau_sampling_points(npoints=npoints)
+
+    def default_matsubara_sampling_points(self, *, npoints=None,
+                                          positive_only=False):
+        if npoints is None:
+            npoints = self.size
+        return self._basis.default_matsubara_sampling_points(
+                                npoints=npoints, positive_only=positive_only)
 
     @property
     def is_well_conditioned(self):

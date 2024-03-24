@@ -169,16 +169,31 @@ class FiniteTempBasis(abstract.AbstractBasis):
     def sve_result(self):
         return self._sve_result
 
-    def default_tau_sampling_points(self):
-        x = _default_sampling_points(self._sve_result.u, self.size)
+    def default_tau_sampling_points(self, *, npoints=None):
+        if npoints is None:
+            npoints = self.size
+        x = _default_sampling_points(self._sve_result.u, npoints)
         return self._beta/2 * (x + 1)
 
-    def default_matsubara_sampling_points(self, *, positive_only=False):
-        return _default_matsubara_sampling_points(self._uhat_full, self.size,
+    def default_matsubara_sampling_points(self, *, npoints=None,
+                                          positive_only=False):
+        if npoints is None:
+            npoints = self.size
+        return _default_matsubara_sampling_points(self._uhat_full, npoints,
                                                   positive_only=positive_only)
 
-    def default_omega_sampling_points(self):
-        y = _default_sampling_points(self._sve_result.v, self.size)
+    def default_omega_sampling_points(self, *, npoints=None):
+        """Return default sampling points in imaginary time.
+
+        Arguments:
+            npoints (int):
+                Minimum number of sampling points to return.
+
+                .. versionadded: 1.1
+        """
+        if npoints is None:
+            npoints = self.size
+        y = _default_sampling_points(self._sve_result.v, npoints)
         return self._wmax * y
 
     def rescale(self, new_beta):
