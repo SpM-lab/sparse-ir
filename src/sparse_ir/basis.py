@@ -61,7 +61,7 @@ class FiniteTempBasis(abstract.AbstractBasis):
             # TODO: check for the kernel type/name or eps?
             new_kernel_lambda = self._kernel.lambda_
             sve_kernel_lambda = sve_result.K.lambda_
-            if not np.allclose(new_kernel_lambda, sve_kernel_lambda, 
+            if not np.allclose(new_kernel_lambda, sve_kernel_lambda,
                                atol=1e-12, rtol=4e-16):
                 raise ValueError("Kernel mismatch:\n"
                                  "provided SVE result is incompatible with "
