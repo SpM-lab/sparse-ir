@@ -16,10 +16,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
-            numpy: "1.16"
-            scipy: "1.4"
-            python: "3.6"
           - os: ubuntu-latest
             numpy: auto
             scipy: auto
