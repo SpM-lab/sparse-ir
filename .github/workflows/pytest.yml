@@ -16,6 +16,10 @@ jobs:
     strategy:
       matrix:
         include:
+          - os: mac-latest
+            numpy: auto
+            scipy: auto
+            python: "3.10"
           - os: ubuntu-latest
             numpy: auto
             scipy: auto
