@@ -56,6 +56,16 @@ class FiniteTempBasis(abstract.AbstractBasis):
         self._kernel = _get_kernel(statistics, beta * wmax, kernel)
         if sve_result is None:
             sve_result = sve.compute(self._kernel, eps)
+        else:
+            # Sanity check of provided sve_result
+            # TODO: check for the kernel type/name or eps?
+            new_kernel_lambda = self._kernel.lambda_
+            sve_kernel_lambda = sve_result.K.lambda_
+            if not np.allclose(new_kernel_lambda, sve_kernel_lambda,
+                               atol=1e-12, rtol=4e-16):
+                raise ValueError("Kernel mismatch:\n"
+                                 "provided SVE result is incompatible with "
+                                 "kernel parameters (lambda_ == beta*wmax)")
 
         self._sve_result = sve_result
         self._statistics = statistics

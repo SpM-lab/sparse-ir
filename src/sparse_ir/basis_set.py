@@ -87,3 +87,15 @@ class FiniteTempBasisSet:
     def wn_b(self):
         """Sampling bosonic frequencies"""
         return self.smpl_wn_b.sampling_points
+
+    def rescale(self, new_beta):
+        """Return a basis set for a different temperature.
+
+        Uses the same kernel with the same ``eps``, but a different
+        temperature.  Note that this implies a different UV cutoff ``wmax``,
+        since ``lambda_ == beta * wmax`` stays constant.
+        """
+        new_wmax = self.basis_f.lambda_ / new_beta
+        return FiniteTempBasisSet(new_beta, new_wmax,
+                                  eps=self.basis_f.sve_result.eps,
+                                  sve_result=self.basis_f.sve_result)

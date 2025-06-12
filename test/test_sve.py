@@ -25,7 +25,8 @@ def _check_smooth(u, s, uscale, fudge_factor):
 
 @pytest.mark.parametrize("lambda_", [10, 42, 10_000])
 def test_smooth(sve_logistic, lambda_):
-    basis = sparse_ir.FiniteTempBasis('F', 1, lambda_,
+    beta = 1
+    basis = sparse_ir.FiniteTempBasis('F', beta, lambda_/beta,
                                       sve_result=sve_logistic[lambda_])
     _check_smooth(basis.u, basis.s, 2*basis.u(1).max(), 24)
     _check_smooth(basis.v, basis.s, 50, 20)
@@ -33,7 +34,8 @@ def test_smooth(sve_logistic, lambda_):
 
 @pytest.mark.parametrize("lambda_", [10, 42, 10_000])
 def test_num_roots_u(sve_logistic, lambda_):
-    basis = sparse_ir.FiniteTempBasis('F', 1, lambda_,
+    beta = 1
+    basis = sparse_ir.FiniteTempBasis('F', beta, lambda_/beta,
                                       sve_result=sve_logistic[lambda_])
     for i in range(basis.u.size):
         ui_roots = basis.u[i].roots()
@@ -43,7 +45,8 @@ def test_num_roots_u(sve_logistic, lambda_):
 @pytest.mark.parametrize("stat", ['F', 'B'])
 @pytest.mark.parametrize("lambda_", [10, 42, 10_000])
 def test_num_roots_uhat(sve_logistic, stat, lambda_):
-    basis = sparse_ir.FiniteTempBasis(stat, 1, lambda_,
+    beta = 1
+    basis = sparse_ir.FiniteTempBasis(stat, beta, lambda_/beta,
                                       sve_result=sve_logistic[lambda_])
     for i in [0, 1, 7, 10]:
         x0 = basis.uhat[i].extrema()
@@ -53,7 +56,8 @@ def test_num_roots_uhat(sve_logistic, stat, lambda_):
 @pytest.mark.parametrize("stat", ['F', 'B'])
 @pytest.mark.parametrize("lambda_", [10, 42, 10_000])
 def test_accuracy(sve_logistic, stat, lambda_):
-    basis = sparse_ir.FiniteTempBasis(stat, 4, lambda_,
+    beta = 4
+    basis = sparse_ir.FiniteTempBasis(stat, beta, lambda_/beta,
                                       sve_result=sve_logistic[lambda_])
 
     assert 0 < basis.accuracy <= basis.significance[-1]
