@@ -4,22 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**pysparseir** is a Python wrapper for the libsparseir C++ library, providing sparse intermediate representation (IR) methods for many-body physics calculations. This is part of the broader **spm-lab** ecosystem that includes:
+**sparse-ir** is a Python library providing sparse intermediate representation (IR) methods for many-body physics calculations. This is part of the broader **SpM-lab** ecosystem that includes:
 
-- **libsparseir**: High-performance C++ core library with C API (embedded as git submodule)
-- **LibSparseIR.jl**: Julia wrapper (separate repository)
-- **pysparseir**: This Python wrapper
+- **sparse-ir**: This Python implementation (pure Python with optional C++ acceleration)
+- **SparseIR.jl**: Julia implementation (separate repository) 
+- **libsparseir**: High-performance C++ core library (separate repository)
+- **pylibsparseir**: Python bindings for libsparseir (dependency of this project)
 
 ## Development Commands
 
 ### Core Development Workflow
 
 ```bash
-# Install dependencies and build C++ library
+# Install dependencies
 uv sync
 
 # Run basic import test
-uv run python -c "import pylibsparseir; print('✓ Installation successful!')"
+uv run python -c "import sparse_ir; print('✓ Installation successful!')"
 
 # Run Python tests
 uv run pytest
@@ -31,76 +32,51 @@ uv run pytest -v
 uv run pytest tests/test_basis.py -v
 
 # Run tests and show coverage
-uv run pytest --cov=pylibsparseir
+uv run pytest --cov=sparse_ir
 
 # Install in development mode with force rebuild
 uv sync --reinstall
 
-# Quick functionality test
-uv run python test_compare.py
-```
-
-### C++ Library Build (libsparseir submodule)
-
-```bash
-# Build C API only (default)
-cd libsparseir && ./build_capi.sh
-
-# Build with Fortran bindings
-cd libsparseir && ./build_fortran.sh  
-
-# Build with tests
-cd libsparseir && ./build_with_tests.sh
-
-# Manual build with all options
-cd libsparseir && mkdir -p build && cd build
-cmake .. -DSPARSEIR_BUILD_FORTRAN=ON -DSPARSEIR_BUILD_TESTING=ON
-cmake --build . -j
-ctest --output-on-failure
-cmake --install .
+# Run development environment setup
+uv sync --group dev
 ```
 
 ## Architecture Overview
 
 ### Core Components
 
-- **src/pylibsparseir/core.py**: Main Python wrapper functions that interface with C library
-- **src/pylibsparseir/ctypes_wrapper.py**: ctypes type definitions for C interop
-- **src/pylibsparseir/constants.py**: Constants and enums
-- **setup.py**: Custom CMakeBuild class that builds the C++ submodule during Python package installation
+- **src/sparse_ir/__init__.py**: Main module with public API exports
+- **src/sparse_ir/basis.py**: Basis functions and finite temperature basis classes
+- **src/sparse_ir/sampling.py**: Sampling methods for tau and Matsubara frequencies
+- **src/sparse_ir/kernel.py**: Kernel functions for different physics models
+- **src/sparse_ir/sve.py**: Singular value expansion implementation
+- **src/sparse_ir/dlr.py**: Discrete Lehmann Representation methods
+- **src/sparse_ir/augment.py**: Augmentation methods for basis sets
+- **src/sparse_ir/poly.py**: Polynomial interpolation utilities
+- **src/sparse_ir/basis_set.py**: Basis set management and operations
 
-### Library Loading Architecture
+### Package Structure
 
-The Python package uses a multi-step library discovery process:
-1. Searches for platform-specific shared library (`libsparseir.dylib` on macOS, `.so` on Linux, `.dll` on Windows)
-2. Searches in: package directory, `../build`, `../../build`
-3. Sets up ctypes function prototypes for all C API functions
-4. Provides Pythonic wrapper functions with error handling
-
-### Key API Pattern
-
-All wrapper functions follow this pattern:
-```python
-def function_name(args):
-    status = c_int()
-    result = _lib.spir_function_name(args, byref(status))
-    if status.value != COMPUTATION_SUCCESS:
-        raise RuntimeError(f"Function failed: {status.value}")
-    return result
-```
+This is a pure Python implementation with optional acceleration via the `pylibsparseir` dependency:
+1. Primary implementation uses numpy/scipy for numerical operations
+2. Can optionally use `pylibsparseir` C++ bindings for performance-critical operations
+3. Provides consistent API regardless of backend used
+4. Supports both sparse-ir legacy interface and modern sparse_ir interface
 
 ### Testing Architecture
 
-- **tests/test_basis.py**: Tests for `FiniteTempBasis` class and basis function evaluation
-- **tests/test_sampling.py**: Tests for `TauSampling` and `MatsubaraSampling` classes
-- **tests/test_core.py**: Tests for low-level C API wrapper functions
-- **tests/c_api/**: Comprehensive C API interface tests (corresponding to LibSparseIR.jl/test/C_API/)
-  - **core_tests.py**: Core C API functionality tests (kernels, SVE, basis functions)
-  - **sampling_tests.py**: C API sampling functionality tests (tau/Matsubara sampling)
-  - **dlr_tests.py**: C API DLR (Discrete Lehmann Representation) tests
-  - **integration_tests.py**: C API integration workflow tests
-  - **comprehensive_tests.py**: Comprehensive C API validation tests
-- **test_compare.py**: Comparison test with sparse-ir reference implementation
+- **tests/test_basis.py**: Tests for basis functions and finite temperature basis classes  
+- **tests/test_sampling.py**: Tests for tau and Matsubara frequency sampling methods
+- **tests/test_core.py**: Tests for core functionality and numerical operations
+- **tests/test_kernel.py**: Tests for kernel function implementations
+- **tests/test_sve.py**: Tests for singular value expansion methods
+- **tests/test_dlr.py**: Tests for Discrete Lehmann Representation functionality
+- **tests/test_augment.py**: Tests for basis augmentation methods
+- **tests/test_poly.py**: Tests for polynomial interpolation utilities
+- **tests/test_basis_set.py**: Tests for basis set management operations
+- **tests/test_advanced_features.py**: Tests for advanced features and edge cases
+- **tests/test_sve_advanced.py**: Advanced SVE functionality tests
+- **tests/test_sampling_advanced.py**: Advanced sampling method tests
 
 Key test patterns:
 - Roundtrip accuracy tests (evaluate → fit cycles should be near-perfect)
@@ -110,11 +86,19 @@ Key test patterns:
 
 ## Mission
 
-The goal is to recreate the functionality of the pure Python `sparse-ir` library using the high-performance C++ `libsparseir` backend, similar to how `LibSparseIR.jl` provides a Julia interface to the same C++ library.
+Provide a comprehensive Python implementation of sparse intermediate representation methods for many-body physics calculations. The library offers both pure Python implementations and optional C++ acceleration through `pylibsparseir` bindings for optimal performance across different use cases.
 
 ## Common Issues
 
-- **CMake Error**: Run `git submodule init && git submodule update`
-- **ModuleNotFoundError**: Run `uv sync --reinstall`  
-- **Symbol not found**: Verify shared libraries exist in `src/pylibsparseir/`
-- **Import errors**: Ensure Python >= 3.12 and numpy is installed
+- **ModuleNotFoundError**: Run `uv sync --reinstall` or `uv sync --group dev`
+- **Import errors**: Ensure Python >= 3.10 and dependencies are installed via `uv sync`
+- **Missing pylibsparseir**: Check that `pylibsparseir>=0.1.0,<0.2.0` is properly installed
+- **Test failures**: Run specific test files with `uv run pytest tests/test_<module>.py -v` for detailed output
+- **Dependency conflicts**: Clear environment and reinstall with `uv sync --reinstall`
+
+# Important Instruction Reminders
+
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
