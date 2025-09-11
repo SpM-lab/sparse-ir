@@ -1,5 +1,4 @@
 include README.md
-recursive-include src/pylibsparseir *.py
-recursive-include libsparseir *
+recursive-include src/sparse_ir *.py
 global-exclude *.pyc
 global-exclude __pycache__
