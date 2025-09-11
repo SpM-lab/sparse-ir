@@ -8,6 +8,7 @@ dependencies = [
     "numpy",
     "scipy",
     "pylibsparseir>=0.1.0,<0.2.0",
+    "sphinx-rtd-theme>=3.0.2",
 ]
 authors = [
     {name = "SpM-lab"}
@@ -43,6 +44,8 @@ dev = [
     "jupytext>=1.17.2",
     "matplotlib>=3.10.3",
     "pytest>=8.4.1",
+    "sphinx>=8.0.0",
+    "sphinx-rtd-theme>=3.0.0",
 ]
 
 [tool.pytest.ini_options]

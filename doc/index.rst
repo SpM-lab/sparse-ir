@@ -14,8 +14,6 @@ Contents
    sve
    augment
    otherbases
-   porting
-   hacking
 
 
 Indices and tables

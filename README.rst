@@ -32,6 +32,18 @@ To manually install the current development version, you can use the following::
 Note: `uv` is a fast Python package manager. If you don't have it installed,
 you can install it with ``pip install uv`` or use ``pip install -e .`` instead.
 
+Building documentation
+----------------------
+To build the documentation locally, first install the development dependencies::
+
+   uv sync --group dev
+
+Then build the documentation::
+
+   uv run sphinx-build -M html doc _build/html
+
+The documentation will be available in ``_build/html/html/index.html``.
+
 Documentation and tutorial
 --------------------------
 Check out our `comprehensive tutorial`_, where we self-contained
@@ -42,7 +54,7 @@ Refer to the `API documentation`_ for more details on how to work
 with the python library.
 
 There is also a `Julia library`_ and (currently somewhat restricted)
-`Fortran library`_ available for the IR basis and sparse sampling.
+`C library with Fortran bindings`_ available for the IR basis and sparse sampling.
 
 .. _comprehensive tutorial: https://spm-lab.github.io/sparse-ir-tutorial
 .. _API documentation: https://sparse-ir.readthedocs.io

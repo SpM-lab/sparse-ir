@@ -12,5 +12,6 @@ Expansion module
 Singular value decomposition
 ----------------------------
 
-.. automodule:: sparse_ir.svd
-    :members:
+.. note::
+   The SVD module is currently being refactored.
+   Please refer to the SVE classes above for the current API.
