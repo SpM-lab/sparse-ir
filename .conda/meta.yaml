@@ -1,0 +1,45 @@
+{% set name = "sparse-ir" %}
+{% set version = load_file_regex(load_file="../pyproject.toml", regex_pattern="version = \"(.*)\"", from_recipe_dir=True).group(1) %}
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  git_url: ../
+
+build:
+  number: 0
+  noarch: python
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - numpy
+    - pip
+    - python
+    - scipy
+    - setuptools
+    - wheel
+  run:
+    - numpy
+    - python
+    - scipy
+    - pylibsparseir >=0.1.0,<0.2.0
+
+#test:
+#  imports:
+#    - sparse_ir
+
+about:
+  home: "https://github.com/SpM-lab/sparse-ir"
+  license: MIT
+  license_family: MIT
+  license_file:
+  summary: "intermediate representation (IR) basis for electronic propagator"
+  doc_url:
+  dev_url:
+
+extra:
+  recipe-maintainers:
+    - shinaoka
