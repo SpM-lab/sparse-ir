@@ -8,7 +8,7 @@ from .abstract import AbstractBasis
 from .basis import FiniteTempBasis, finite_temp_bases
 from .sampling import TauSampling, MatsubaraSampling
 from .kernel import LogisticKernel, RegularizedBoseKernel
-from .sve import SVEResult, compute_sve
+from .sve import SVEResult, compute
 from .basis_set import FiniteTempBasisSet
 
 # New augmented functionality
@@ -28,7 +28,7 @@ __all__ = [
     'AbstractBasis', 'FiniteTempBasis', 'finite_temp_bases',
     'TauSampling', 'MatsubaraSampling', 'FiniteTempBasisSet',
     'LogisticKernel', 'RegularizedBoseKernel',
-    'SVEResult', 'compute_sve',
+    'SVEResult', 'compute',
 
     # Augmented functionality
     'AugmentedBasis', 'AugmentedTauFunction', 'AugmentedMatsubaraFunction',

@@ -122,18 +122,10 @@ class AugmentedBasis(abstract.AbstractBasis):
         return basis_get_default_tau_sampling_points_ext(self._basis._ptr, npoints)
 
     def default_matsubara_sampling_points(self, *, positive_only=False):
-        """julia-impl
-        function default_matsubara_sampling_points(basis::AugmentedBasis; positive_only=false)
-            n_points = Ref{Cint}(0)
-            status = spir_basis_get_n_default_matsus_ext(_get_ptr(basis.basis), positive_only, length(basis), n_points)
-            status == SPIR_COMPUTATION_SUCCESS || error("Failed to get number of default Matsubara sampling points")
-            points = Vector{Int64}(undef, n_points[])
-            n_points_returned = Ref{Cint}(0)
-            status = spir_basis_get_default_matsus_ext(_get_ptr(basis.basis), positive_only, length(basis), points, n_points_returned)
-            status == SPIR_COMPUTATION_SUCCESS || error("Failed to get default Matsubara sampling points")
-            n_points_returned[] == n_points[] || error("n_points_returned=$(n_points_returned[]) != n_points=$(n_points[])")
-            return points
-        end
+        """Get default Matsubara sampling points for augmented basis.
+        
+        This method provides default sampling points for Matsubara frequencies
+        when using an augmented basis.
         """
         n_points_returned = basis_get_n_default_matsus_ext(self._basis._ptr, self.size, positive_only)
         points = np.zeros(n_points_returned, dtype=np.int64)

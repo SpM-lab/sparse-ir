@@ -36,7 +36,7 @@ Building documentation
 ----------------------
 To build the documentation locally, first install the development dependencies::
 
-   uv sync --group dev
+   uv sync --group doc
 
 Then build the documentation::
 

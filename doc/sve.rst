@@ -1,7 +1,7 @@
 Singular value expansion
 ========================
 
-.. autofunction:: sparse_ir.compute_sve
+.. autofunction:: sparse_ir.compute
 
 Expansion module
 ----------------
