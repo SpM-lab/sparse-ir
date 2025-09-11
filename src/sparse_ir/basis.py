@@ -235,6 +235,6 @@ def finite_temp_bases(beta, wmax, eps=None, sve_result=None):
     Construct FiniteTempBasis objects for fermion and bosons using
     the same LogisticKernel instance.
     """
-    fermion_basis = FiniteTempBasis('F', beta, wmax, eps, **kwargs)
-    boson_basis = FiniteTempBasis('B', beta, wmax, eps, **kwargs)
+    fermion_basis = FiniteTempBasis('F', beta, wmax, eps, sve_result=sve_result)
+    boson_basis = FiniteTempBasis('B', beta, wmax, eps, sve_result=sve_result)
     return fermion_basis, boson_basis
