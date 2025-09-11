@@ -26,7 +26,11 @@ To manually install the current development version, you can use the following::
 
    # Only recommended for developers - no automatic updates!
    git clone https://github.com/SpM-lab/sparse-ir
-   pip install -e sparse-ir
+   cd sparse-ir
+   uv sync
+
+Note: `uv` is a fast Python package manager. If you don't have it installed,
+you can install it with ``pip install uv`` or use ``pip install -e .`` instead.
 
 Documentation and tutorial
 --------------------------
