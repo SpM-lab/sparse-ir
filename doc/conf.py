@@ -1,28 +1,21 @@
 # Configuration file for the Sphinx documentation builder.
 # Run build as:
 #   sphinx-build -M html . build
-import io
+import tomllib
 import os
-import re
 
-
-def extract_varval(*varnames):
-    """Return contents of file with path relative to script directory"""
-    herepath = os.path.abspath(os.path.dirname(__file__))
-    fullpath = os.path.join(herepath, '..', 'src', 'sparse_ir', '__init__.py')
-    with io.open(fullpath, 'r') as f:
-        contents = f.read()
-    for varname in varnames:
-        var_re = re.compile(rf"(?m)^{varname}\s*=\s*['\"]([^'\"]*)['\"]")
-        match = var_re.search(contents)
-        yield match.group(1)
-
+# Read version from pyproject.toml
+def get_version():
+    with open(os.path.join(os.path.dirname(__file__), '..', 'pyproject.toml'), 'rb') as f:
+        data = tomllib.load(f)
+    return data['project']['version']
 
 # === Project information
 
 project = 'sparse-ir'
-copyright, version = extract_varval('__copyright__', '__version__')
+version = get_version()
 release = version
+copyright = '2024, SpM-lab'
 author = ', '.join([
     'Markus Wallerberger',
     'Hiroshi Shinaoka',

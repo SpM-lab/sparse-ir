@@ -45,14 +45,6 @@ Sparse sampling transformers
 Base classes
 -------------
 
-.. autoclass:: sparse_ir.sampling.AbstractSampling
-    :members:
-
-.. autoclass:: sparse_ir.sampling.DecomposedMatrix
-    :members:
-
-.. autoclass:: sparse_ir.sampling.SplitDecomposedMatrix
-    :members:
-
-.. autoclass:: sparse_ir.sampling.ConditioningWarning
-    :members:
+.. note::
+   The base classes for sampling are currently being refactored.
+   Please refer to the concrete sampling classes above for the current API.

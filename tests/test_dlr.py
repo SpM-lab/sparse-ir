@@ -1,8 +1,7 @@
 # Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
-import sparse_ir
-from sparse_ir.dlr import DiscreteLehmannRepresentation
-from sparse_ir.sampling import MatsubaraSampling, TauSampling
+from sparse_ir import DiscreteLehmannRepresentation
+from sparse_ir import FiniteTempBasis, MatsubaraSampling, TauSampling
 import numpy as np
 import pytest
 
@@ -19,12 +18,12 @@ where
             with w_p = tanh(0.5*β*ω_p)
 """
 @pytest.mark.parametrize("stat", ["F", "B"])
-def test_compression(sve_logistic, stat):
+def test_compression(stat):
     beta = 10_000
     wmax = 1
     eps = 1e-12
-    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax, eps=eps,
-                                      sve_result=sve_logistic[beta*wmax])
+    basis = FiniteTempBasis(stat, beta, wmax, eps=eps)
+
     dlr = DiscreteLehmannRepresentation(basis)
 
     np.random.seed(4711)
@@ -58,20 +57,21 @@ def test_compression(sve_logistic, stat):
     np.testing.assert_allclose(gtau, gtau2, atol=300*eps, rtol=0)
 
 
-def test_boson(sve_logistic):
+def test_boson():
     beta = 2
     wmax = 21
     eps = 1e-7
-    basis_b = sparse_ir.FiniteTempBasis("B", beta, wmax, eps=eps,
-                                        sve_result=sve_logistic[beta * wmax])
+    basis_b = FiniteTempBasis("B", beta, wmax, eps=eps)
 
     # G(iw) = sum_p coeff_p U^{SPR}(iw, omega_p)
     coeff = np.array([1.1, 2.0])
     omega_p = np.array([2.2, -1.0])
 
     rhol_pole = np.einsum('lp,p->l', basis_b.v(omega_p), coeff)
+    print(rhol_pole)
     gl_pole = - basis_b.s * rhol_pole
-
+    print(basis_b.s)
+    print(gl_pole)
     sp = DiscreteLehmannRepresentation(basis_b, omega_p)
     gl_pole2 = sp.to_IR(coeff)
 

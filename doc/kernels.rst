@@ -102,9 +102,6 @@ Base classes
     :members:
     :special-members: __call__
 
-.. autoclass:: sparse_ir.kernel.ReducedKernel
-    :members:
-    :special-members: __call__
-
-.. autoclass:: sparse_ir.kernel.AbstractSVEHints
-    :members:
+.. note::
+   Additional kernel classes are currently being refactored.
+   Please refer to the concrete kernel classes above for the current API.

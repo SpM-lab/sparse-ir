@@ -12,25 +12,37 @@ Installation
 ------------
 Install via `pip <https://pypi.org/project/sparse-ir>`_::
 
-    pip install sparse-ir[xprec]
-
-The above line is the recommended way to install `sparse-ir`.  It automatically
-installs the `xprec <https://github.com/tuwien-cms/xprec>`_ package, which
-allows one to compute the IR basis functions with greater accuracy.  If you do
-not want to do this, simply remove the string ``[xprec]`` from the above command.
+    pip install sparse-ir
 
 Install via `conda <https://anaconda.org/spm-lab/sparse-ir>`_::
 
-    conda install -c spm-lab sparse-ir xprec
+    conda install -c spm-lab sparse-ir
 
-Other than the optional xprec dependency, sparse-ir requires only
-`numpy <https://numpy.org/>`_ and `scipy <https://scipy.org/>`_.
+sparse-ir requires `numpy <https://numpy.org/>`_, `scipy <https://scipy.org/>`_,
+and `pylibsparseir <https://pypi.org/project/pylibsparseir>`_ (a thin Python wrapper
+for the `libsparseir <https://github.com/SpM-lab/libsparseir>`_ C API).
 
 To manually install the current development version, you can use the following::
 
    # Only recommended for developers - no automatic updates!
    git clone https://github.com/SpM-lab/sparse-ir
-   pip install -e sparse-ir/[xprec]
+   cd sparse-ir
+   uv sync
+
+Note: `uv` is a fast Python package manager. If you don't have it installed,
+you can install it with ``pip install uv`` or use ``pip install -e .`` instead.
+
+Building documentation
+----------------------
+To build the documentation locally, first install the development dependencies::
+
+   uv sync --group doc
+
+Then build the documentation::
+
+   uv run sphinx-build -M html doc _build/html
+
+The documentation will be available in ``_build/html/html/index.html``.
 
 Documentation and tutorial
 --------------------------
@@ -42,12 +54,12 @@ Refer to the `API documentation`_ for more details on how to work
 with the python library.
 
 There is also a `Julia library`_ and (currently somewhat restricted)
-`Fortran library`_ available for the IR basis and sparse sampling.
+`C library with Fortran bindings`_ available for the IR basis and sparse sampling.
 
 .. _comprehensive tutorial: https://spm-lab.github.io/sparse-ir-tutorial
 .. _API documentation: https://sparse-ir.readthedocs.io
 .. _Julia library: https://github.com/SpM-lab/SparseIR.jl
-.. _Fortran library: https://github.com/SpM-lab/sparse-ir-fortran
+.. _C library with Fortran bindings: https://github.com/SpM-lab/libsparseir
 
 Getting started
 ---------------

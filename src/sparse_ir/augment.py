@@ -1,11 +1,12 @@
 # Copyright (C) 2020-2021 Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
-import numpy as np
-
 from . import _util
+import numpy as np
+from ctypes import c_int, byref
 from . import abstract
 from . import basis
-
+from pylibsparseir.core import basis_get_default_tau_sampling_points_ext, basis_get_n_default_matsus_ext, basis_get_default_matsus_ext
+from pylibsparseir.core import COMPUTATION_SUCCESS
 
 class AugmentedBasis(abstract.AbstractBasis):
     """Augmented basis on the imaginary-time/frequency axis.
@@ -60,6 +61,10 @@ class AugmentedBasis(abstract.AbstractBasis):
                         self._basis.uhat, [aug.hat for aug in augmentations])
 
     @property
+    def basis(self):
+        return self._basis
+
+    @property
     def u(self):
         return self._u
 
@@ -69,7 +74,7 @@ class AugmentedBasis(abstract.AbstractBasis):
 
     @property
     def statistics(self):
-        raise self._basis.statistics
+        return self._basis.statistics
 
     def __getitem__(self, index):
         stop = basis._slice_to_size(index)
@@ -113,14 +118,19 @@ class AugmentedBasis(abstract.AbstractBasis):
         # Return the sampling points of the underlying basis, but since we
         # use the size of self, we add two further points.  One then has to
         # hope that these give good sampling points.
-        return self._basis.default_tau_sampling_points(npoints=npoints)
 
-    def default_matsubara_sampling_points(self, *, npoints=None,
-                                          positive_only=False):
-        if npoints is None:
-            npoints = self.size
-        return self._basis.default_matsubara_sampling_points(
-                                npoints=npoints, positive_only=positive_only)
+        return basis_get_default_tau_sampling_points_ext(self._basis._ptr, npoints)
+
+    def default_matsubara_sampling_points(self, *, positive_only=False):
+        """Get default Matsubara sampling points for augmented basis.
+        
+        This method provides default sampling points for Matsubara frequencies
+        when using an augmented basis.
+        """
+        n_points_returned = basis_get_n_default_matsus_ext(self._basis._ptr, self.size, positive_only)
+        points = np.zeros(n_points_returned, dtype=np.int64)
+        basis_get_default_matsus_ext(self._basis._ptr, positive_only, points)
+        return points
 
     @property
     def is_well_conditioned(self):
@@ -132,8 +142,8 @@ class AugmentedBasis(abstract.AbstractBasis):
 
 class _AugmentedFunction:
     def __init__(self, fbasis, faug):
-        if fbasis.ndim != 1:
-            raise ValueError("must have vector of functions as fbasis")
+        #if fbasis.ndim != 1:
+        #    raise ValueError("must have vector of functions as fbasis")
         self._fbasis = fbasis
         self._faug = faug
         self._naug = len(faug)
@@ -236,7 +246,7 @@ class TauConst(AbstractAugmentation):
         self._beta = beta
 
     def __call__(self, tau):
-        tau = _util.check_range(tau, 0, self._beta)
+        tau = _util.check_range(tau, -self._beta, self._beta)
         return np.broadcast_to(1 / np.sqrt(self._beta), tau.shape)
 
     def deriv(self, n=1):
@@ -264,7 +274,7 @@ class TauLinear(AbstractAugmentation):
         self._norm = np.sqrt(3/beta)
 
     def __call__(self, tau):
-        tau = _util.check_range(tau, 0, self._beta)
+        tau = _util.check_range(tau, -self._beta, self._beta)
         x = 2/self._beta * tau - 1
         return self._norm * x
 
@@ -296,7 +306,7 @@ class MatsubaraConst(AbstractAugmentation):
         self._beta = beta
 
     def __call__(self, tau):
-        tau = _util.check_range(tau, 0, self._beta)
+        tau = _util.check_range(tau, -self._beta, self._beta)
         return np.broadcast_to(np.nan, tau.shape)
 
     def deriv(self, n=1):

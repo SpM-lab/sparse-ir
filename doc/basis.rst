@@ -11,6 +11,6 @@ Piecewise polynomials
     :members:
     :special-members: __call__, __getitem__
 
-.. autoclass:: sparse_ir.poly.PiecewiseLegendreFT
-    :members:
-    :special-members: __call__, __getitem__
+.. note::
+   Additional polynomial classes are currently being refactored.
+   Please refer to the concrete polynomial classes above for the current API.
