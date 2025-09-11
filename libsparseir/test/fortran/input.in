@@ -1,0 +1,7 @@
+&input
+    lambda = 1.0D5,
+    beta = 1.0D3,
+    eps = 1.0D-7,
+    nk_lin = 256,
+    hubbardu = 2.0D0,
+/

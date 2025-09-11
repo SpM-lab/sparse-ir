@@ -1,21 +1,39 @@
-
 """
-Intermediate representation (IR) for many-body propagators
-==========================================================
+SparseIR Python bindings
 
-This library provides routines for constructing and working with the
-intermediate representation of correlation functions.  It provides:
-
- - on-the-fly computation of basis functions for arbitrary cutoff Λ
- - basis functions and singular values are accurate to full precision
- - routines for sparse sampling
+This package provides Python bindings for the SparseIR C library.
 """
-__copyright__ = "2020-2025 Markus Wallerberger, Hiroshi Shinaoka, and others"
-__license__ = "MIT"
-__version__ = "1.1.7"
 
-from .kernel import RegularizedBoseKernel, LogisticKernel
-from .sve import compute as compute_sve, SVEResult
+from .abstract import AbstractBasis
 from .basis import FiniteTempBasis, finite_temp_bases
-from .basis_set import FiniteTempBasisSet
 from .sampling import TauSampling, MatsubaraSampling
+from .kernel import LogisticKernel, RegularizedBoseKernel
+from .sve import SVEResult, compute_sve
+from .basis_set import FiniteTempBasisSet
+
+# New augmented functionality
+from .augment import (
+    AugmentedBasis, AugmentedTauFunction, AugmentedMatsubaraFunction,
+    AbstractAugmentation, TauConst, TauLinear, MatsubaraConst
+)
+
+# DLR functionality
+from .dlr import (
+    DiscreteLehmannRepresentation
+)
+
+# Export list for better documentation
+__all__ = [
+    # Core functionality
+    'AbstractBasis', 'FiniteTempBasis', 'finite_temp_bases',
+    'TauSampling', 'MatsubaraSampling', 'FiniteTempBasisSet',
+    'LogisticKernel', 'RegularizedBoseKernel',
+    'SVEResult', 'compute_sve',
+
+    # Augmented functionality
+    'AugmentedBasis', 'AugmentedTauFunction', 'AugmentedMatsubaraFunction',
+    'AbstractAugmentation', 'TauConst', 'TauLinear', 'MatsubaraConst',
+
+    # DLR functionality
+    'DiscreteLehmannRepresentation', 'TauPoles', 'MatsubaraPoles',
+]

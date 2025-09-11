@@ -1,0 +1,57 @@
+SUBROUTINE NAME(obj, statistics, target_dim, arr, res)
+  TYPE(IR), INTENT(IN) :: obj
+  INTEGER, INTENT(IN) :: statistics
+  INTEGER, INTENT(IN) :: target_dim
+  COMPLEX(KIND=DP), INTENT(IN) :: arr SHAPE_
+#ifdef ZD
+  COMPLEX(KIND=DP), INTENT(OUT) :: res SHAPE_
+#else
+  REAL(KIND=DP), INTENT(OUT) :: res SHAPE_
+#endif
+  COMPLEX(KIND=c_double), ALLOCATABLE, TARGET :: arr_c(:), res_c(:)
+  INTEGER(KIND=c_int) :: ndim_c, target_dim_c, status_c
+  INTEGER(KIND=c_int), TARGET :: input_dims_c(NDIM), output_dims_c(NDIM)
+  input_dims_c = SHAPE(arr)
+  output_dims_c = SHAPE(res)
+  ndim_c = NDIM
+  IF (target_dim < 1 .or. target_dim > NDIM) THEN
+    CALL errore('NAME', 'Target dimension is out of range', 1)
+  ENDIF
+  SELECT CASE (statistics)
+  CASE (SPIR_STATISTICS_FERMIONIC)
+    IF (input_dims_c(target_dim) /= obj%nfreq_f) THEN
+      CALL errore('NAME', 'Target dimension is not the same as the number of Matsubara frequencies', 1)
+    ENDIF
+  CASE (SPIR_STATISTICS_BOSONIC)
+    IF (input_dims_c(target_dim) /= obj%nfreq_b) THEN
+      CALL errore('NAME', 'Target dimension is not the same as the number of Matsubara frequencies', 1)
+    ENDIF
+  CASE DEFAULT
+    CALL errore('NAME', 'Invalid statistics', 1)
+    RETURN
+  END SELECT
+  IF (output_dims_c(target_dim) /= obj%size) THEN
+    CALL errore('NAME', 'Target dimension is not the same as the basis size', 1)
+  ENDIF
+  IF (.NOT. check_output_dims(target_dim, input_dims_c, output_dims_c)) THEN
+    CALL errore('NAME', &
+        'Output dimensions are not the same as the input dimensions except for the TARGET dimension', 1)
+  ENDIF
+  target_dim_c = target_dim - 1
+  ALLOCATE(arr_c(SIZE(arr)))
+  arr_c = FLAT
+  ALLOCATE(res_c(PRODUCT(output_dims_c)))
+  SELECT CASE (statistics)
+  CASE (SPIR_STATISTICS_FERMIONIC)
+    status_c = c_spir_sampling_fit_zz(obj%matsu_f_smpl_ptr, SPIR_ORDER_COLUMN_MAJOR, &
+      ndim_c, c_loc(input_dims_c), target_dim_c, c_loc(arr_c), c_loc(res_c))
+  CASE (SPIR_STATISTICS_BOSONIC)
+    status_c = c_spir_sampling_fit_zz(obj%matsu_b_smpl_ptr, SPIR_ORDER_COLUMN_MAJOR, &
+      ndim_c, c_loc(input_dims_c), target_dim_c, c_loc(arr_c), c_loc(res_c))
+  END SELECT
+  IF (status_c /= 0) THEN
+    CALL errore('NAME', 'Error fitting on Matsubara frequencies', status_c)
+  ENDIF
+  res = RESHAPE_RES
+  DEALLOCATE(arr_c, res_c)
+END SUBROUTINE

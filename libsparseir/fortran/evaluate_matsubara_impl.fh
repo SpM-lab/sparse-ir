@@ -1,0 +1,69 @@
+SUBROUTINE NAME(obj, statistics, target_dim, arr, res)
+  TYPE(IR), INTENT(IN) :: obj
+  INTEGER, INTENT(IN) :: statistics
+  INTEGER, INTENT(IN) :: target_dim
+#ifdef DZ
+  REAL(KIND=DP), INTENT(IN) :: arr SHAPE_
+  REAL(KIND=c_double), ALLOCATABLE, TARGET :: arr_c(:)
+#else
+  COMPLEX(KIND=DP), INTENT(IN) :: arr SHAPE_
+  COMPLEX(KIND=c_double), ALLOCATABLE, TARGET :: arr_c(:)
+#endif
+  COMPLEX(KIND=DP), INTENT(OUT) :: res SHAPE_
+  COMPLEX(KIND=c_double), ALLOCATABLE, TARGET :: res_c(:)
+  INTEGER(KIND=c_int) :: ndim_c, target_dim_c, status_c
+  INTEGER(KIND=c_int), TARGET :: input_dims_c(NDIM), output_dims_c(NDIM)
+  input_dims_c = SHAPE(arr)
+  output_dims_c = SHAPE(res)
+  ndim_c = NDIM
+  IF (target_dim < 1 .or. target_dim > NDIM) THEN
+    CALL errore('NAME', 'Target dimension is out of range', 1)
+  ENDIF
+  IF (input_dims_c(target_dim) /= obj%size) THEN
+    CALL errore('NAME', 'Target dimension is not the same as the basis size', 1)
+  ENDIF
+  SELECT CASE (statistics)
+  CASE (SPIR_STATISTICS_FERMIONIC)
+    IF (output_dims_c(target_dim) /= obj%nfreq_f) THEN
+      CALL errore('NAME', 'Target dimension is not the same as the number of Matsubara frequencies', 1)
+    ENDIF
+  CASE (SPIR_STATISTICS_BOSONIC)
+    IF (output_dims_c(target_dim) /= obj%nfreq_b) THEN
+      CALL errore('NAME', 'Target dimension is not the same as the number of Matsubara frequencies', 1)
+    ENDIF
+  END SELECT
+  IF (.NOT. check_output_dims(target_dim, input_dims_c, output_dims_c)) THEN
+    CALL errore('NAME', &
+        'Output dimensions are not the same as the input dimensions except for the TARGET dimension', 1)
+  ENDIF
+  target_dim_c = target_dim - 1
+  ALLOCATE(arr_c(SIZE(arr)))
+  arr_c = FLAT
+  ALLOCATE(res_c(PRODUCT(output_dims_c)))
+  SELECT CASE (statistics)
+  CASE (SPIR_STATISTICS_FERMIONIC)
+#ifdef DZ
+    status_c = c_spir_sampling_eval_dz(obj%matsu_f_smpl_ptr, SPIR_ORDER_COLUMN_MAJOR, &
+      ndim_c, c_loc(input_dims_c), target_dim_c, c_loc(arr_c), c_loc(res_c))
+#else
+    status_c = c_spir_sampling_eval_zz(obj%matsu_f_smpl_ptr, SPIR_ORDER_COLUMN_MAJOR, &
+      ndim_c, c_loc(input_dims_c), target_dim_c, c_loc(arr_c), c_loc(res_c))
+#endif
+  CASE (SPIR_STATISTICS_BOSONIC)
+#ifdef DZ
+    status_c = c_spir_sampling_eval_dz(obj%matsu_b_smpl_ptr, SPIR_ORDER_COLUMN_MAJOR, &
+      ndim_c, c_loc(input_dims_c), target_dim_c, c_loc(arr_c), c_loc(res_c))
+#else
+    status_c = c_spir_sampling_eval_zz(obj%matsu_b_smpl_ptr, SPIR_ORDER_COLUMN_MAJOR, &
+      ndim_c, c_loc(input_dims_c), target_dim_c, c_loc(arr_c), c_loc(res_c))
+#endif
+  CASE DEFAULT
+    CALL errore('NAME', 'Invalid statistics', 1)
+    RETURN
+  END SELECT
+  IF (status_c /= 0) THEN
+    CALL errore('NAME', 'Error evaluating on Matsubara frequencies', status_c)
+  ENDIF
+  res = RESHAPE_RES
+  DEALLOCATE(arr_c, res_c)
+END SUBROUTINE 

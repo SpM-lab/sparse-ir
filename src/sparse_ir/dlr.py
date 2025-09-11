@@ -1,69 +1,45 @@
-# Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
-# SPDX-License-Identifier: MIT
+"""
+Discrete Lehmann Representation (DLR) functionality for SparseIR.
+
+This module implements DLR basis with poles at IR extrema, providing
+an alternative representation that can be more efficient for certain calculations.
+"""
+
+import ctypes
 import numpy as np
+from .abstract import AbstractBasis
+from pylibsparseir.core import basis_get_default_omega_sampling_points
+from pylibsparseir.core import _lib, COMPUTATION_SUCCESS
+from pylibsparseir.constants import SPIR_ORDER_ROW_MAJOR
 
-from . import abstract
-from . import kernel
-from . import sampling
-from . import basis as _basis
-from . import _util
-from . import svd
-
-
-class DiscreteLehmannRepresentation(abstract.AbstractBasis):
-    """Discrete Lehmann representation (DLR), with poles being extrema of IR.
-
-    This class implements a variant of the discrete Lehmann representation
-    (`DLR`_).  Instead of a truncated singular value expansion of the analytic
-    continuation kernel ``K`` like the IR, the discrete Lehmann representation
-    is based on a "sketching" of ``K``.  The resulting basis is a
-    linear combination of discrete set of poles on the real-frequency axis,
-    continued to the imaginary-frequency axis::
-
-        G(iv) == sum(a[i] / (iv - w[i]) for i in range(L))
-
-    Warning:
-        The poles on the real-frequency axis selected for the DLR are based
-        on a rank-revealing decomposition, which offers accuracy guarantees.
-        Here, we instead select the pole locations based on the zeros of the IR
-        basis functions on the real axis, which is a heuristic.  We do not
-        expect that difference to matter, but please don't blame the DLR
-        authors if we were wrong :-)
-
-    .. _DLR: https://doi.org/10.1103/PhysRevB.105.235115
+class DiscreteLehmannRepresentation(AbstractBasis):
     """
-    def __init__(self, basis: _basis.FiniteTempBasis, sampling_points=None):
-        if sampling_points is None:
-            sampling_points = basis.default_omega_sampling_points()
-        if not isinstance(basis.kernel, kernel.LogisticKernel):
-            raise ValueError("DLR supports only LogisticKernel")
+    Discrete Lehmann Representation basis.
 
+    The DLR provides an alternative representation of Green's functions
+    using poles at the IR sampling points. This can be more efficient
+    than the standard IR basis for certain applications.
+    """
+
+    def __init__(self, basis: AbstractBasis, poles=None):
+        status = ctypes.c_int()
+        if poles is None:
+            poles = basis_get_default_omega_sampling_points(basis._ptr)
         self._basis = basis
-        self._poles = np.asarray(sampling_points)
-        self._y_sampling_points = self._poles/basis.wmax
-
-        self._u = TauPoles(basis.statistics, basis.beta, self._poles)
-        self._uhat = MatsubaraPoles(basis.statistics, basis.beta, self._poles)
-
-        # Fitting matrix from IR
-        F = -basis.s[:, None] * basis.v(self._poles)
-
-        # Now, here we *know* that F is ill-conditioned in very particular way:
-        # it is a product A * B * C, where B is well conditioned and A, C are
-        # scalings.  This is handled with guaranteed relative accuracy by a
-        # Jacobi SVD, implied by the 'accurate' strategy.
-        uF, sF, vF = svd.compute(F, strategy='accurate')
-        self.matrix = sampling.DecomposedMatrix(F, svd_result=(uF, sF, vF.T))
+        self._poles = poles
+        self._ptr = _lib.spir_dlr_new_with_poles(basis._ptr, len(poles), poles.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), status)
+        if status.value != COMPUTATION_SUCCESS:
+            raise RuntimeError(f"Failed to create DLR basis: {status.value}")
 
     @property
-    def u(self): return self._u
+    def u(self): return self._basis._u
 
     @property
-    def uhat(self): return self._uhat
+    def uhat(self): return self._basis._uhat
 
     @property
     def statistics(self):
-        return self.basis.statistics
+        return self._basis.statistics
 
     @property
     def sampling_points(self):
@@ -73,24 +49,24 @@ class DiscreteLehmannRepresentation(abstract.AbstractBasis):
     def shape(self): return self.size,
 
     @property
-    def size(self): return self._poles.size
+    def size(self): return len(self._poles)
 
     @property
-    def basis(self) -> _basis.FiniteTempBasis:
+    def basis(self) -> AbstractBasis:
         """ Underlying basis """
         return self._basis
 
     @property
     def lambda_(self):
-        return self.basis.lambda_
+        return self._basis.lambda_
 
     @property
     def beta(self):
-        return self.basis.beta
+        return self._basis.beta
 
     @property
     def wmax(self):
-        return self.basis.wmax
+        return self._basis.wmax
 
     @property
     def significance(self):
@@ -98,7 +74,7 @@ class DiscreteLehmannRepresentation(abstract.AbstractBasis):
 
     @property
     def accuracy(self):
-        return self.basis.accuracy
+        return self._basis.accuracy
 
     def from_IR(self, gl: np.ndarray, axis=0) -> np.ndarray:
         """
@@ -107,7 +83,44 @@ class DiscreteLehmannRepresentation(abstract.AbstractBasis):
         gl:
             Expansion coefficients in IR
         """
-        return self.matrix.lstsq(gl, axis)
+        if gl.shape[axis] != self.basis.size:
+            raise ValueError(f"Input array has wrong size along dimension {axis}")
+
+        output_dims = list(gl.shape)
+        output_dims[axis] = self.size
+        output = np.zeros(output_dims, dtype=gl.dtype)
+
+        ndim = len(gl.shape)
+        input_dims = np.asarray(gl.shape, dtype=np.int32)
+        target_dim = axis
+        order = SPIR_ORDER_ROW_MAJOR
+
+        if gl.dtype.kind == 'f':
+            ret = _lib.spir_ir2dlr_dd(
+                self._ptr,
+                order,
+                ndim,
+                input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                target_dim,
+                gl.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            )
+        elif gl.dtype.kind == 'c':
+            ret = _lib.spir_ir2dlr_zz(
+                self._ptr,
+                order,
+                ndim,
+                input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                target_dim,
+                # TODO: use complex data
+                gl.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            )
+        else:
+            raise ValueError(f"Unsupported dtype: {gl.dtype}")
+        if ret != COMPUTATION_SUCCESS:
+            raise RuntimeError(f"Failed to convert IR to DLR: {ret}")
+        return output
 
     def to_IR(self, g_dlr: np.ndarray, axis=0) -> np.ndarray:
         """
@@ -116,53 +129,49 @@ class DiscreteLehmannRepresentation(abstract.AbstractBasis):
         g_dlr:
             Expansion coefficients in DLR
         """
-        return self.matrix.matmul(g_dlr, axis)
+        if g_dlr.shape[axis] != self.size:
+            raise ValueError(f"Input array has wrong size along dimension {axis}")
+        output_dims = np.asarray(g_dlr.shape, dtype=np.int32)
+        output_dims[axis] = self.basis.size
+        output = np.zeros(output_dims, dtype=g_dlr.dtype)
+        ndim = len(g_dlr.shape)
+        input_dims = np.asarray(g_dlr.shape, dtype=np.int32)
+        target_dim = axis
+        order = SPIR_ORDER_ROW_MAJOR
+
+        if g_dlr.dtype.kind == 'f':
+            ret = _lib.spir_dlr2ir_dd(
+                self._ptr,
+                order,
+                ndim,
+                input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+                target_dim,
+                g_dlr.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            )
+        elif g_dlr.dtype.kind == 'c':
+            ret = _lib.spir_dlr2ir_zz(
+                self._ptr,
+                order,
+                ndim,
+                input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+                target_dim,
+                # TODO: use complex data
+                g_dlr.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            )
+        else:
+            raise ValueError(f"Unsupported dtype: {g_dlr.dtype}")
+        if ret != COMPUTATION_SUCCESS:
+            raise RuntimeError(f"Failed to convert DLR to IR: {ret}")
+        return output
 
     def default_tau_sampling_points(self):
-        return self.basis.default_tau_sampling_points()
+        return self._basis.default_tau_sampling_points()
 
     def default_matsubara_sampling_points(self, **kwargs):
-        return self.basis.default_matsubara_sampling_points(**kwargs)
+        return self._basis.default_matsubara_sampling_points(**kwargs)
 
     @property
     def is_well_conditioned(self):
         return False
-
-
-class MatsubaraPoles:
-    def __init__(self, statistics: str, beta: float, poles: np.ndarray):
-        self._statistics = statistics
-        self._beta = beta
-        self._poles = np.array(poles)
-
-    @_util.ravel_argument(last_dim=True)
-    def __call__(self, n):
-        """Evaluate basis functions at given frequency n"""
-        iv = 1j*n * np.pi/self._beta
-        if self._statistics == 'F':
-            return 1 /(iv[None, :] - self._poles[:, None])
-        else:
-            return np.tanh(0.5 * self._beta * self._poles)[:, None]\
-                /(iv[None, :] - self._poles[:, None])
-
-
-class TauPoles:
-    def __init__(self, statistics: str, beta: float, poles: np.ndarray):
-        self._beta = beta
-        self._statistics = statistics
-        self._poles = np.array(poles)
-        self._wmax = np.abs(poles).max()
-
-    @_util.ravel_argument(last_dim=True)
-    def __call__(self, tau):
-        """ Evaluate basis functions at tau """
-        tau = np.asarray(tau)
-        if (tau < 0).any() or (tau > self._beta).any():
-            raise RuntimeError("tau must be in [0, beta]!")
-
-        x = 2 * tau/self._beta - 1
-        y = self._poles/self._wmax
-        lambda_ = self._beta * self._wmax
-
-        res = -kernel.LogisticKernel(lambda_)(x[:, None], y[None, :])
-        return res.T

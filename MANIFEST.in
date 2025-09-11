@@ -1,0 +1,5 @@
+include README.md
+recursive-include src/pylibsparseir *.py
+recursive-include libsparseir *
+global-exclude *.pyc
+global-exclude __pycache__

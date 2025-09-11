@@ -1,0 +1,119 @@
+# Directories
+SRC_DIR = src
+INCLUDE_DIR = include
+FORTRAN_DIR = fortran
+DEPS_DIR = deps
+PREFIX ?= $(HOME)/opt/libsparseir
+
+# Include paths
+INCLUDES = -I$(INCLUDE_DIR) -I$(DEPS_DIR)/eigen3 -I$(DEPS_DIR)/xprec/include
+
+# Compiler settings
+CXX ?= g++
+CXXFLAGS = -O2 -Wall -std=c++11 $(INCLUDES)
+CXXFLAGS_PIC = $(CXXFLAGS) -fPIC
+FC ?= gfortran
+FFLAGS = -O2 -Wall
+FFLAGS_PIC = $(FFLAGS) -fPIC
+
+# Library settings
+LIB_NAME = libsparseir
+STATIC_LIB = $(LIB_NAME).a
+
+# Determine shared library extension based on OS
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    SHARED_EXT = .dylib
+else ifeq ($(UNAME_S),Linux)
+    SHARED_EXT = .so
+else ifneq (,$(findstring CYGWIN,$(UNAME_S)))
+    SHARED_EXT = .dll
+else ifneq (,$(findstring MINGW,$(UNAME_S)))
+    SHARED_EXT = .dll
+else ifneq (,$(findstring MSYS,$(UNAME_S)))
+    SHARED_EXT = .dll
+else
+    SHARED_EXT = .so
+endif
+
+SHARED_LIB = $(LIB_NAME)$(SHARED_EXT)
+FORTRAN_LIB = $(LIB_NAME)_fortran.a
+FORTRAN_SHARED_LIB = $(LIB_NAME)_fortran$(SHARED_EXT)
+
+# Source files
+SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+OBJS = $(SRCS:.cpp=.o)
+OBJS_PIC = $(SRCS:.cpp=.pic.o)
+
+# Fortran source files
+F90SRCS = $(FORTRAN_DIR)/sparseir.f90 $(FORTRAN_DIR)/sparseir_ext.f90
+F90OBJS = $(F90SRCS:.f90=.o)
+F90OBJS_PIC = $(F90SRCS:.f90=.pic.o)
+MOD_FILES = sparseir.mod sparseir_ext.mod
+
+# Header files to install
+HEADERS = $(INCLUDE_DIR)/sparseir/sparseir.h \
+          $(INCLUDE_DIR)/sparseir/spir_status.h \
+          $(INCLUDE_DIR)/sparseir/version.h
+
+.PHONY: all clean install fortran shared shared-fortran install-shared install-shared-fortran
+
+all: $(STATIC_LIB) $(SHARED_LIB)
+
+shared: $(SHARED_LIB)
+
+fortran: $(FORTRAN_LIB)
+
+shared-fortran: $(FORTRAN_SHARED_LIB)
+
+$(STATIC_LIB): $(OBJS)
+	ar rcs $@ $^
+
+$(SHARED_LIB): $(OBJS_PIC)
+	$(CXX) -shared -o $@ $^
+
+$(FORTRAN_LIB): $(F90OBJS)
+	ar rcs $@ $^
+
+$(FORTRAN_SHARED_LIB): $(F90OBJS_PIC)
+	$(FC) -shared -o $@ $^
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.pic.o: %.cpp
+	$(CXX) $(CXXFLAGS_PIC) -c $< -o $@
+
+%.o: %.f90
+	$(FC) $(FFLAGS) -c $< -o $@
+
+%.pic.o: %.f90
+	$(FC) $(FFLAGS_PIC) -c $< -o $@
+
+install: $(STATIC_LIB) $(SHARED_LIB)
+	@mkdir -p $(PREFIX)/include/sparseir
+	@mkdir -p $(PREFIX)/lib
+	cp $(HEADERS) $(PREFIX)/include/sparseir/
+	cp $(STATIC_LIB) $(PREFIX)/lib/
+	cp $(SHARED_LIB) $(PREFIX)/lib/
+
+install-shared: $(SHARED_LIB)
+	@mkdir -p $(PREFIX)/include/sparseir
+	@mkdir -p $(PREFIX)/lib
+	cp $(HEADERS) $(PREFIX)/include/sparseir/
+	cp $(SHARED_LIB) $(PREFIX)/lib/
+
+install-fortran: fortran
+	@mkdir -p $(PREFIX)/include/sparseir
+	@mkdir -p $(PREFIX)/lib
+	cp $(MOD_FILES) $(PREFIX)/include/sparseir/
+	cp $(FORTRAN_LIB) $(PREFIX)/lib/
+
+install-shared-fortran: shared-fortran
+	@mkdir -p $(PREFIX)/include/sparseir
+	@mkdir -p $(PREFIX)/lib
+	cp $(MOD_FILES) $(PREFIX)/include/sparseir/
+	cp $(FORTRAN_SHARED_LIB) $(PREFIX)/lib/
+
+clean:
+	rm -f $(OBJS) $(OBJS_PIC) $(F90OBJS) $(F90OBJS_PIC) $(STATIC_LIB) $(SHARED_LIB) $(FORTRAN_LIB) $(FORTRAN_SHARED_LIB) $(MOD_FILES)

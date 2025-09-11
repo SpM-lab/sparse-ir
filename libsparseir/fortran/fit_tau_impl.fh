@@ -1,0 +1,77 @@
+SUBROUTINE NAME(obj, target_dim, arr, res)
+  TYPE(IR), intent(in) :: obj
+  INTEGER, intent(in) :: target_dim
+#ifdef DD
+  REAL(KIND=DP), intent(in) :: arr SHAPE_
+  REAL(KIND=DP), INTENT(OUT) :: res SHAPE_
+  REAL(KIND=c_double), ALLOCATABLE, TARGET :: arr_c(:), res_c(:)
+#elif defined DZ
+  REAL(KIND=DP), intent(in) :: arr SHAPE_
+  COMPLEX(KIND=DP), INTENT(OUT) :: res SHAPE_
+  REAL(KIND=c_double), ALLOCATABLE, TARGET :: arr_c(:), res_c(:)
+#elif defined ZD
+  COMPLEX(KIND=DP), intent(in) :: arr SHAPE_
+  REAL(KIND=DP), INTENT(OUT) :: res SHAPE_
+  REAL(KIND=c_double), ALLOCATABLE, TARGET :: arr_c(:), res_c(:)
+#else
+  COMPLEX(KIND=DP), intent(in) :: arr SHAPE_
+  COMPLEX(KIND=DP), INTENT(OUT) :: res SHAPE_
+  REAL(KIND=c_double), ALLOCATABLE, TARGET :: arr_c(:), res_c(:)
+  COMPLEX(KIND=c_double), ALLOCATABLE, TARGET :: arr_cz(:), res_cz(:)
+#endif
+  INTEGER(KIND=c_int) :: ndim_c, target_dim_c, status_c
+  INTEGER(KIND=c_int), TARGET :: input_dims_c(NDIM), output_dims_c(NDIM)
+  input_dims_c = SHAPE(arr)
+  output_dims_c = SHAPE(res)
+  ndim_c = NDIM
+  IF (target_dim < 1 .or. target_dim > NDIM) THEN
+    CALL errore('NAME', 'Target dimension is out of range', 1)
+  ENDIF
+  IF (input_dims_c(target_dim) /= obj%ntau) THEN
+    CALL errore('NAME', 'Target dimension is not the same as the number of tau sampling points', 1)
+  ENDIF
+  IF (output_dims_c(target_dim) /= obj%size) THEN
+    CALL errore('NAME', 'Target dimension is not the same as the basis size', 1)
+  ENDIF
+  IF (.NOT. check_output_dims(target_dim, input_dims_c, output_dims_c)) THEN
+    CALL errore('NAME', &
+        'Output dimensions are not the same as the input dimensions except for the TARGET dimension', 1)
+  ENDIF
+  target_dim_c = target_dim - 1
+#if defined DD || defined DZ || defined ZD
+  ALLOCATE(arr_c(SIZE(arr)))
+  arr_c = FLAT
+  ALLOCATE(res_c(PRODUCT(output_dims_c)))
+  status_c = c_spir_sampling_fit_dd(obj%tau_smpl_ptr, SPIR_ORDER_COLUMN_MAJOR, &
+    ndim_c, c_loc(input_dims_c), target_dim_c, c_loc(arr_c), c_loc(res_c))
+  IF (status_c /= 0) THEN
+    CALL errore('NAME', 'Error fitting on tau sampling points', status_c)
+  ENDIF
+  res = RESHAPE_RES
+  DEALLOCATE(arr_c, res_c)
+#else
+  IF (obj%positive_only) THEN
+    ALLOCATE(arr_c(SIZE(arr)))
+    arr_c = FLAT
+    ALLOCATE(res_c(PRODUCT(output_dims_c)))
+    status_c = c_spir_sampling_fit_dd(obj%tau_smpl_ptr, SPIR_ORDER_COLUMN_MAJOR, &
+      ndim_c, c_loc(input_dims_c), target_dim_c, c_loc(arr_c), c_loc(res_c))
+    IF (status_c /= 0) THEN
+      CALL errore('NAME', 'Error fitting on tau sampling points', status_c)
+    ENDIF
+    res = RESHAPE_RES
+    DEALLOCATE(arr_c, res_c)
+  ELSE
+    ALLOCATE(arr_cz(SIZE(arr)))
+    arr_cz = FLAT2
+    ALLOCATE(res_cz(PRODUCT(output_dims_c)))
+    status_c = c_spir_sampling_fit_zz(obj%tau_smpl_ptr, SPIR_ORDER_COLUMN_MAJOR, &
+      ndim_c, c_loc(input_dims_c), target_dim_c, c_loc(arr_cz), c_loc(res_cz))
+    IF (status_c /= 0) THEN
+      CALL errore('NAME', 'Error fitting on tau sampling points', status_c)
+    ENDIF
+    res = RESHAPE_RES2
+    DEALLOCATE(arr_cz, res_cz)
+  ENDIF
+#endif
+END SUBROUTINE
