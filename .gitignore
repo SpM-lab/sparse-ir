@@ -18,3 +18,5 @@ doc/*build*/
 !/.dev/
 !/.editorconfig
 !/.readthedocs.yaml
+
+uv.lock
