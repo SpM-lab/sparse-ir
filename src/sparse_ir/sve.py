@@ -52,20 +52,32 @@ class SVEResult:
             _lib.spir_sve_result_release(self._ptr)
 
 
-def compute_sve(kernel, epsilon):
-    """
-    Compute singular value expansion of a kernel.
+def compute(kernel, epsilon):
+    """Perform truncated singular value expansion of a kernel.
 
-    Parameters
-    ----------
-    kernel : LogisticKernel or RegularizedBoseKernel
-        Kernel to compute SVE for
-    epsilon : float
-        Desired accuracy of the expansion
+    Perform a truncated singular value expansion (SVE) of an integral
+    kernel ``K : [xmin, xmax] x [ymin, ymax] -> R``::
 
-    Returns
-    -------
-    SVEResult
-        Result of the singular value expansion
+        K(x, y) == sum(s[l] * u[l](x) * v[l](y) for l in (0, 1, 2, ...)),
+
+    where ``s[l]`` are the singular values, which are ordered in non-increasing
+    fashion, ``u[l](x)`` are the left singular functions, which form an
+    orthonormal system on ``[xmin, xmax]``, and ``v[l](y)`` are the right
+    singular functions, which form an orthonormal system on ``[ymin, ymax]``.
+
+    The SVE is mapped onto the singular value decomposition (SVD) of a matrix
+    by expanding the kernel in piecewise Legendre polynomials (by default by
+    using a collocation).
+
+    Arguments:
+        kernel (kernel.AbstractKernel):
+            Integral kernel to take SVE from
+        epsilon (float):
+            Accuracy target for the basis: attempt to have singular values down
+            to a relative magnitude of ``epsilon``, and have each singular value
+            and singular vector be accurate to ``epsilon``.
+
+    Returns:
+        An ``SVEResult`` containing the truncated singular value expansion.
     """
     return SVEResult(kernel, epsilon)

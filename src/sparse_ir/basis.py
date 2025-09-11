@@ -11,7 +11,35 @@ from .sve import SVEResult
 from .poly import PiecewiseLegendrePolyVector, PiecewiseLegendrePolyFTVector, FunctionSet, FunctionSetFT
 
 class FiniteTempBasis(AbstractBasis):
-    """Finite temperature basis for intermediate representation."""
+    r"""Intermediate representation (IR) basis for given temperature.
+
+    For a continuation kernel from real frequencies, `ω` ∈ [-ωmax, ωmax], to
+    imaginary time, `τ` ∈ [0, beta], this class stores the truncated singular
+    value expansion or IR basis:
+
+    .. math::
+
+        K(\tau, \omega) \approx \sum_{l=0}^{L-1} U_l(\tau) S_l V_l(\omega),
+
+    where `U` are the IR basis functions on the imaginary-time axis, stored
+    in :py:attr:`u`, `S` are the singular values, stored in :py:attr:`s`,
+    and `V` are the IR basis functions on the real-frequency axis, stored
+    in :py:attr:`V`.  The IR basis functions in Matsubara frequency are
+    stored in :py:attr:`uhat`.
+
+    Example:
+        The following example code assumes the spectral function is a single
+        pole at ω = 2.5::
+
+            # Compute IR basis for fermions and β = 10, W <= 4.2
+            import sparse_ir
+            basis = sparse_ir.FiniteTempBasis(statistics='F', beta=10, wmax=4.2)
+
+            # Assume spectrum is a single pole at ω = 2.5, compute G(iw)
+            # on the first few Matsubara frequencies
+            gl = basis.s * basis.v(2.5)
+            giw = gl @ basis.uhat([1, 3, 5, 7])
+    """
 
     def __init__(self, statistics: str, beta: float, wmax: float, eps: float, sve_result: Optional[SVEResult] = None, max_size: int =-1):
         """
@@ -84,7 +112,7 @@ class FiniteTempBasis(AbstractBasis):
 
     @property
     def s(self):
-        """Singular values."""
+        """Vector of singular values of the continuation kernel"""
         if self._s is None:
             self._s = basis_get_svals(self._ptr)
         return self._s
@@ -95,6 +123,29 @@ class FiniteTempBasis(AbstractBasis):
 
     @property
     def v(self):
+        r"""Basis functions on the real frequency axis.
+
+        Set of IR basis functions on the real frequency (omega) axis, where
+        omega is a real number of magnitude less than :py:attr:`wmax`.  To get
+        the ``l``-th basis function at real frequency ``omega`` of some basis
+        ``basis``, use::
+
+            ulomega = basis.v[l](omega)    # l-th basis function at freq. omega
+
+        Note that ``v`` supports vectorization both over ``l`` and ``omega``.
+        In particular, omitting the subscript yields a vector with all basis
+        functions, evaluated at that position::
+
+            basis.v(omega) == [basis.v[l](omega) for l in range(basis.size)]
+
+        Similarly, supplying a vector of `omega` points yields a matrix ``A``,
+        where ``A[l,n]`` corresponds to the ``l``-th basis function evaluated
+        at ``omega[n]``::
+
+            omega = [0.5, 1.0]
+            basis.v(omega) == \
+                [[basis.v[l](t) for t in omega] for l in range(basis.size)]
+        """
         return self._v
 
     @property
@@ -121,21 +172,13 @@ class FiniteTempBasis(AbstractBasis):
         return basis_get_default_tau_sampling_points(self._ptr)
 
     def default_omega_sampling_points(self, npoints=None):
-        """
-        Get default omega (real frequency) sampling points.
+        """Return default sampling points in imaginary time.
 
-        Returns the extrema of the highest-order basis function in real frequency.
-        These points provide near-optimal conditioning for the basis.
+        Arguments:
+            npoints (int):
+                Minimum number of sampling points to return.
 
-        Parameters
-        ----------
-        npoints : int, optional
-            Ignored (for compatibility with sparse-ir API)
-
-        Returns
-        -------
-        ndarray
-            Default omega sampling points
+                .. versionadded:: 1.1
         """
         from pylibsparseir.core import basis_get_default_omega_sampling_points
         return basis_get_default_omega_sampling_points(self._ptr)
@@ -167,18 +210,12 @@ class FiniteTempBasis(AbstractBasis):
         """The singular value expansion result."""
         return self._sve
 
-    def rescale(self, new_lambda):
-        """Return a basis for different lambda while keeping the same eps.
+    def rescale(self, new_beta):
+        """Return a basis for different temperature.
 
-        Parameters
-        ----------
-        new_lambda : float
-            The new lambda value (must equal new_beta * new_wmax)
-
-        Returns
-        -------
-        FiniteTempBasis
-            A new basis with the rescaled parameters
+        Uses the same kernel with the same ``eps``, but a different
+        temperature.  Note that this implies a different UV cutoff ``wmax``,
+        since ``lambda_ == beta * wmax`` stays constant.
         """
         # Calculate new beta and wmax that give the desired lambda
         # We keep the ratio beta/wmax constant
@@ -192,14 +229,11 @@ class FiniteTempBasis(AbstractBasis):
         return FiniteTempBasis(self.statistics, new_beta, new_wmax, eps)
 
 
-def finite_temp_bases(beta, wmax, eps=None, **kwargs):
-    """
-    Construct both fermion and boson bases.
+def finite_temp_bases(beta, wmax, eps=None, sve_result=None):
+    """Construct FiniteTempBasis objects for fermion and bosons
 
-    Returns:
-    --------
-    tuple
-        (fermion_basis, boson_basis)
+    Construct FiniteTempBasis objects for fermion and bosons using
+    the same LogisticKernel instance.
     """
     fermion_basis = FiniteTempBasis('F', beta, wmax, eps, **kwargs)
     boson_basis = FiniteTempBasis('B', beta, wmax, eps, **kwargs)

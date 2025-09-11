@@ -30,15 +30,25 @@ def kernel_domain(kernel: AbstractKernel):
     return xmin.value, xmax.value, ymin.value, ymax.value
 
 class LogisticKernel(AbstractKernel):
-    """
-    Fermionic/logistic imaginary-time kernel.
+    r"""Fermionic/bosonic analytical continuation kernel.
 
-    This kernel treats a fermionic spectral function at finite temperature.
-    The definition is:
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``,
+    the integral kernel is a function on ``[-1, 1] x [-1, 1]``:
 
-        K(τ, ω) = exp(-τ ω) / (1 + exp(-β ω))
+    .. math::  K(x, y) = \frac{\exp(-\Lambda y(x + 1)/2)}{1 + \exp(-\Lambda y)}
 
-    with τ ∈ [0, β] and ω ∈ [-ωmax, ωmax].
+    LogisticKernel is a fermionic analytic continuation kernel.
+    Nevertheless, one can model the τ dependence of
+    a bosonic correlation function as follows:
+
+    .. math::
+
+        \int \frac{\exp(-\Lambda y(x + 1)/2)}{1 - \exp(-\Lambda y)} \rho(y) dy
+            = \int K(x, y) \frac{\rho'(y)}{\tanh(\Lambda y/2)} dy
+
+    i.e., a rescaling of the spectral function with the weight function:
+
+    .. math::  w(y) = \frac1{\tanh(\Lambda y/2)}.
 
     Parameters
     ----------
@@ -63,16 +73,16 @@ class LogisticKernel(AbstractKernel):
 
 
 class RegularizedBoseKernel(AbstractKernel):
-    """
-    Bosonic imaginary-time kernel.
+    r"""Regularized bosonic analytical continuation kernel.
 
-    This kernel treats a bosonic spectral function at finite temperature.
-    The definition is:
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
+    integral kernel is a function on ``[-1, 1] x [-1, 1]``:
 
-        K(τ, ω) = ω exp(-τ ω) / (1 - exp(-β ω))
+    .. math::
 
-    with τ ∈ [0, β] and ω ∈ [-ωmax, ωmax]. The kernel is regularized
-    at ω = 0 to avoid the singularity.
+        K(x, y) = \frac{y \exp(-\Lambda y(x + 1)/2)}{\exp(-\Lambda y) - 1}
+
+    Care has to be taken in evaluating this expression around ``y == 0``.
 
     Parameters
     ----------

@@ -9,7 +9,11 @@ from pylibsparseir.constants import COMPUTATION_SUCCESS, SPIR_ORDER_ROW_MAJOR
 from . import augment
 
 class TauSampling:
-    """Sparse sampling in imaginary time."""
+    """Sparse sampling in imaginary time.
+
+    Allows the transformation between the IR basis and a set of sampling points
+    in (scaled/unscaled) imaginary time.
+    """
 
     def __init__(self, basis, sampling_points=None, use_positive_taus=False):
         """
@@ -159,7 +163,20 @@ class TauSampling:
 
 
 class MatsubaraSampling:
-    """Sparse sampling in Matsubara frequencies."""
+    """Sparse sampling in Matsubara frequencies.
+
+    Allows the transformation between the IR basis and a set of sampling points
+    in (scaled/unscaled) imaginary frequencies.
+
+    By setting ``positive_only=True``, one assumes that functions to be fitted
+    are symmetric in Matsubara frequency, i.e.::
+
+        Ghat(iv) == Ghat(-iv).conj()
+
+    or equivalently, that they are purely real in imaginary time.  In this
+    case, sparse sampling is performed over non-negative frequencies only,
+    cutting away half of the necessary sampling space.
+    """
 
     def __init__(self, basis, sampling_points=None, positive_only=False):
         """

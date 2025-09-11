@@ -135,7 +135,12 @@ class FunctionSetFT:
             self.release()
 
 class PiecewiseLegendrePoly:
-    """Piecewise Legendre polynomial."""
+    """Piecewise Legendre polynomial.
+
+    Models a function on the interval ``[-1, 1]`` as a set of segments on the
+    intervals ``S[i] = [a[i], a[i+1]]``, where on each interval the function
+    is expanded in scaled Legendre polynomials.
+    """
 
     def __init__(self, funcs: FunctionSet, xmin: float, xmax: float):
         self._funcs = funcs
@@ -148,7 +153,7 @@ class PiecewiseLegendrePoly:
 
 
 class PiecewiseLegendrePolyVector:
-    """Piecewise Legendre polynomial."""
+    """Piecewise Legendre polynomial vector."""
 
     def __init__(self, funcs: FunctionSet, xmin: float, xmax: float):
         self._funcs = funcs
@@ -164,8 +169,24 @@ class PiecewiseLegendrePolyVector:
         return PiecewiseLegendrePoly(self._funcs[index], self._xmin, self._xmax)
 
     def overlap(self, f):
-        """
-        Compute the overlap of the basis functions with a function.
+        r"""Evaluate overlap integral of this polynomial with function ``f``.
+
+        Given the function ``f``, evaluate the integral::
+
+            ∫ dx * f(x) * self(x)
+
+        using piecewise Gauss-Legendre quadrature, where ``self`` are the
+        polynomials.
+
+        Arguments:
+            f (callable):
+                function that is called with a point ``x`` and returns ``f(x)``
+                at that position.
+
+        Return:
+            array-like object with shape (poly_dims, f_dims)
+            poly_dims are the shape of the polynomial and f_dims are those
+            of the function f(x).
 
         WARNING: This is a safe fallback implementation that avoids memory issues
         but may not be as accurate as the full roots-based integration.
@@ -188,7 +209,17 @@ class PiecewiseLegendrePolyVector:
 
 
 class PiecewiseLegendrePolyFT:
-    """Piecewise Legendre polynomial Fourier transform."""
+    """Fourier transform of a piecewise Legendre polynomial.
+
+    For a given frequency index ``n``, the Fourier transform of the Legendre
+    function is defined as::
+
+            phat(n) == ∫ dx exp(1j * pi * n * x / (xmax - xmin)) p(x)
+
+    The polynomial is continued either periodically (``freq='even'``), in which
+    case ``n`` must be even, or antiperiodically (``freq='odd'``), in which case
+    ``n`` must be odd.
+    """
 
     def __init__(self, funcs: FunctionSetFT):
         assert isinstance(funcs, FunctionSetFT), "funcs must be a FunctionSetFT"
@@ -199,7 +230,7 @@ class PiecewiseLegendrePolyFT:
         return self._funcs(x)
 
 class PiecewiseLegendrePolyFTVector:
-    """Piecewise Legendre polynomial Fourier transform."""
+    """Fourier transform of a piecewise Legendre polynomial vector."""
 
     def __init__(self, funcs: FunctionSetFT):
         assert isinstance(funcs, FunctionSetFT), "funcs must be a FunctionSetFT"
