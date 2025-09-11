@@ -14,7 +14,6 @@ import threading
 from pylibsparseir.core import _lib
 from pylibsparseir.core import funcs_eval_single_float64, funcs_eval_single_complex128
 from pylibsparseir.core import funcs_get_size, funcs_get_roots
-import scipy.integrate as integrate
 
 # Global registry to track pointer usage
 _pointer_registry = weakref.WeakSet()
@@ -168,7 +167,7 @@ class PiecewiseLegendrePolyVector:
         """Get a single basis function."""
         return PiecewiseLegendrePoly(self._funcs[index], self._xmin, self._xmax)
 
-    def overlap(self, f):
+    def overlap(self, f, n_points=100):
         r"""Evaluate overlap integral of this polynomial with function ``f``.
 
         Given the function ``f``, evaluate the integral::
@@ -182,29 +181,55 @@ class PiecewiseLegendrePolyVector:
             f (callable):
                 function that is called with a point ``x`` and returns ``f(x)``
                 at that position.
+            n_points (int):
+                Number of quadrature points per integration segment.
 
         Return:
             array-like object with shape (poly_dims, f_dims)
             poly_dims are the shape of the polynomial and f_dims are those
             of the function f(x).
-
-        WARNING: This is a safe fallback implementation that avoids memory issues
-        but may not be as accurate as the full roots-based integration.
         """
+        from scipy.integrate import fixed_quad
 
         xmin = self._xmin
         xmax = self._xmax
         roots = funcs_get_roots(self._funcs._ptr).tolist()
         roots.sort()
 
-        test_x = (xmin + xmax) / 2
-        test_out = self._funcs(test_x)
-        output = np.zeros(len(test_out))
-        for i in range(len(test_out)):
-            for j in range(len(roots) - 1):
-                output[i] += integrate.quad(lambda x: self._funcs(x)[i] * f(x), roots[j], roots[j+1], epsabs=1e-10, epsrel=1e-10)[0]
-            output[i] += integrate.quad(lambda x: self._funcs(x)[i] * f(x), roots[-1], xmax, epsabs=1e-10, epsrel=1e-10)[0]
-            output[i] += integrate.quad(lambda x: self._funcs(x)[i] * f(x), xmin, roots[0], epsabs=1e-10, epsrel=1e-10)[0]
+        # Create integration segments
+        segments = [xmin] + roots + [xmax]
+        segments = sorted(list(set(segments)))  # Remove duplicates and sort
+
+        # Collect all quadrature points and weights
+        all_x = []
+        all_weights = []
+        
+        for j in range(len(segments) - 1):
+            a, b = segments[j], segments[j+1]
+            if abs(b - a) < 1e-14:  # Skip zero-length segments
+                continue
+            
+            # Get Gauss-Legendre quadrature points and weights
+            from scipy.special import roots_legendre
+            x_quad, w_quad = roots_legendre(n_points)
+            # Scale to actual interval
+            x_scaled = (b - a) / 2 * x_quad + (a + b) / 2
+            w_scaled = w_quad * (b - a) / 2
+            
+            all_x.extend(x_scaled)
+            all_weights.extend(w_scaled)
+
+        # Convert to numpy arrays for batch processing
+        all_x = np.array(all_x)
+        all_weights = np.array(all_weights)
+
+        # Evaluate function and polynomials at all points
+        f_values = f(all_x)  # This should work with array input
+        poly_values = self._funcs(all_x)  # Shape: (n_polys, n_points)
+
+        # Compute overlap integrals
+        output = np.sum(poly_values * f_values * all_weights, axis=1)
+
         return output
 
 
