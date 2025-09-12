@@ -5,12 +5,9 @@ SVE (Singular Value Expansion) functionality for SparseIR.
 
 This module provides Python wrappers for SVE computation and results.
 """
-
-import ctypes
-from ctypes import c_int, byref
+import numpy as np
 
 from pylibsparseir.core import _lib, sve_result_new, sve_result_get_svals, sve_result_get_size
-from pylibsparseir.constants import COMPUTATION_SUCCESS, SPIR_ORDER_ROW_MAJOR
 from .abstract import AbstractKernel
 from .kernel import LogisticKernel, RegularizedBoseKernel
 
@@ -22,7 +19,7 @@ class SVEResult:
     the SVE of an integral kernel.
     """
 
-    def __init__(self, kernel: AbstractKernel, epsilon: float):
+    def __init__(self, kernel: AbstractKernel, eps: float, cutoff: float=-1, n_sv: int=-1):
         """
         Compute SVE of the given kernel.
 
@@ -30,16 +27,24 @@ class SVEResult:
         ----------
         kernel : LogisticKernel or RegularizedBoseKernel
             Kernel to compute SVE for
-        epsilon : float
+        eps : float
             Desired accuracy of the expansion
+        cutoff : float
+            Relative cutoff for the singular values.
+        n_sv : int
+            Maximum basis size. If given, only at most the ``n_sv`` most
+            significant singular values and associated singular functions are
+            returned.
         """
         if not isinstance(kernel, (LogisticKernel, RegularizedBoseKernel)):
             raise TypeError("kernel must be LogisticKernel or RegularizedBoseKernel")
 
         self._kernel = kernel  # Store kernel for later use
-        self._epsilon = epsilon
+        self._eps = eps
+        self._cutoff = cutoff
+        self._n_sv = n_sv
 
-        self._ptr = sve_result_new(kernel._ptr, epsilon)
+        self._ptr = sve_result_new(kernel._ptr, eps, cutoff=cutoff, lmax=n_sv)
 
     def __len__(self):
         return sve_result_get_size(self._ptr)
@@ -54,7 +59,7 @@ class SVEResult:
             _lib.spir_sve_result_release(self._ptr)
 
 
-def compute(kernel, epsilon):
+def compute(kernel, eps=np.finfo(np.float64).eps, n_sv=-1):
     """Perform truncated singular value expansion of a kernel.
 
     Perform a truncated singular value expansion (SVE) of an integral
@@ -72,14 +77,25 @@ def compute(kernel, epsilon):
     using a collocation).
 
     Arguments:
-        kernel (kernel.AbstractKernel):
+        K (kernel.AbstractKernel):
             Integral kernel to take SVE from
-        epsilon (float):
-            Accuracy target for the basis: attempt to have singular values down
-            to a relative magnitude of ``epsilon``, and have each singular value
-            and singular vector be accurate to ``epsilon``.
+        eps (float):
+            Relative truncation threshold for the singular values,
+            defaulting to the machine epsilon (2.2e-16)
+        n_sv (int):
+            Maximum basis size. If given, only at most the ``n_sv`` most
+            significant singular values and associated singular functions are
+            returned.
+            Defaulting to -1, which means all singular values are returned.
 
     Returns:
         An ``SVEResult`` containing the truncated singular value expansion.
     """
-    return SVEResult(kernel, epsilon)
+
+    if eps is None:
+        eps = np.finfo(np.float64).eps
+    return SVEResult(kernel, eps=eps, cutoff=-1, n_sv=n_sv)
+
+
+# Backward compatibility
+compute_sve = compute

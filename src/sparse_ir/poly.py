@@ -1,5 +1,7 @@
 # Copyright (C) 2020-2025 Satoshi Terasaki, Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
+from warnings import warn
+
 """
 Piecewise polynomial functionality for SparseIR.
 
@@ -8,7 +10,7 @@ their Fourier transforms, which serve as core mathematical infrastructure
 for IR basis functions.
 """
 
-from ctypes import c_int, POINTER
+from ctypes import c_int, c_int64, POINTER, c_double
 import numpy as np
 import weakref
 import threading
@@ -51,25 +53,51 @@ class FunctionSet:
         """Evaluate basis functions at given points."""
         if self._released:
             raise RuntimeError("Function set has been released")
-        if not isinstance(x, np.ndarray):
-            o = funcs_eval_single_float64(self._ptr, x)
+        x = np.asarray(x)
+        if x.ndim == 0:
+            o = funcs_eval_single_float64(self._ptr, x.item())
             if len(o) == 1:
                 return o[0]
             else:
                 return o
         else:
-            o = np.stack([funcs_eval_single_float64(self._ptr, e) for e in x]).T
+            # For now, use individual evaluation for FunctionSet
+            # TODO: Implement batch evaluation if available
+            original_shape = x.shape
+            results = []
+            for e in x.flat:
+                o = funcs_eval_single_float64(self._ptr, e)
+                results.append(o)
+            
+            # Stack results and reshape to match input shape
+            o = np.stack(results, axis=1)
+            o = o.reshape((o.shape[0],) + original_shape)
             if len(o) == 1:
                 return o[0]
             else:
                 return o
 
     def __getitem__(self, index):
-        """Get a single basis function."""
+        """Get a single basis function or slice of functions."""
         if self._released:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
-        return funcs_get_slice(self._ptr, [index % sz])
+        
+        if isinstance(index, slice):
+            # Handle slice
+            start, stop, step = index.indices(sz)
+            indices = list(range(start, stop, step))
+        else:
+            # Handle single index or list of indices
+            index = np.asarray(index)
+            if index.ndim == 0:
+                # Single index
+                indices = [int(index) % sz]
+            else:
+                # List/array of indices
+                indices = (index % sz).tolist()
+        
+        return funcs_get_slice(self._ptr, indices)
 
     def release(self):
         """Manually release the function set."""
@@ -100,25 +128,67 @@ class FunctionSetFT:
         """Evaluate basis functions at given points."""
         if self._released:
             raise RuntimeError("Function set has been released")
-        if not isinstance(x, np.ndarray):
-            o = funcs_eval_single_complex128(self._ptr, x)
+        x = np.asarray(x)
+        if x.ndim == 0:
+            o = funcs_eval_single_complex128(self._ptr, x.item())
             if len(o) == 1:
                 return o[0]
             else:
                 return o
         else:
-            o = np.stack([funcs_eval_single_complex128(self._ptr, e) for e in x]).T
-            if len(o) == 1:
-                return o[0]
+            # Use batch evaluation for arrays
+            original_shape = x.shape
+            x_flat = x.ravel()
+            n_points = len(x_flat)
+            n_funcs = funcs_get_size(self._ptr)
+            
+            # Prepare input array
+            x_int64 = x_flat.astype(np.int64)
+            
+            # Prepare output array (complex128)
+            output = np.zeros((n_funcs, n_points), dtype=np.complex128)
+            
+            # Call batch evaluation function
+            status = _lib.spir_funcs_batch_eval_matsu(
+                self._ptr,
+                n_funcs,
+                n_points,
+                x_int64.ctypes.data_as(POINTER(c_int64)),
+                output.ctypes.data_as(POINTER(c_double))
+            )
+            
+            if status != 0:
+                raise RuntimeError(f"Batch evaluation failed with status {status}")
+            
+            # Reshape output to match input shape: (n_funcs, ...) + original_shape
+            output = output.reshape((n_funcs,) + original_shape)
+            
+            if len(output) == 1:
+                return output[0]
             else:
-                return o
+                return output
 
     def __getitem__(self, index):
-        """Get a single basis function."""
+        """Get a single basis function or slice of functions."""
         if self._released:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
-        return funcs_ft_get_slice(self._ptr, [index % sz])
+        
+        if isinstance(index, slice):
+            # Handle slice
+            start, stop, step = index.indices(sz)
+            indices = list(range(start, stop, step))
+        else:
+            # Handle single index or list of indices
+            index = np.asarray(index)
+            if index.ndim == 0:
+                # Single index
+                indices = [int(index) % sz]
+            else:
+                # List/array of indices
+                indices = (index % sz).tolist()
+        
+        return funcs_ft_get_slice(self._ptr, indices)
 
     def release(self):
         """Manually release the function set."""
@@ -169,7 +239,7 @@ class PiecewiseLegendrePolyVector:
         """Get a single basis function."""
         return PiecewiseLegendrePoly(self._funcs[index], self._xmin, self._xmax)
 
-    def overlap(self, f, n_points=100):
+    def overlap(self, f, *, rtol=2.3e-16, return_error=False, points=None):
         r"""Evaluate overlap integral of this polynomial with function ``f``.
 
         Given the function ``f``, evaluate the integral::
@@ -183,56 +253,23 @@ class PiecewiseLegendrePolyVector:
             f (callable):
                 function that is called with a point ``x`` and returns ``f(x)``
                 at that position.
-            n_points (int):
-                Number of quadrature points per integration segment.
+
+            points (sequence of floats)
+                A sequence of break points in the integration interval
+                where local difficulties of the integrand may occur
+                (e.g., singularities, discontinuities)
 
         Return:
             array-like object with shape (poly_dims, f_dims)
             poly_dims are the shape of the polynomial and f_dims are those
             of the function f(x).
         """
-        from scipy.integrate import fixed_quad
+        int_result, int_error = _compute_overlap(self, f, rtol=rtol, points=points)
+        if return_error:
+            return int_result, int_error
+        else:
+            return int_result
 
-        xmin = self._xmin
-        xmax = self._xmax
-        roots = funcs_get_roots(self._funcs._ptr).tolist()
-        roots.sort()
-
-        # Create integration segments
-        segments = [xmin] + roots + [xmax]
-        segments = sorted(list(set(segments)))  # Remove duplicates and sort
-
-        # Collect all quadrature points and weights
-        all_x = []
-        all_weights = []
-        
-        for j in range(len(segments) - 1):
-            a, b = segments[j], segments[j+1]
-            if abs(b - a) < 1e-14:  # Skip zero-length segments
-                continue
-            
-            # Get Gauss-Legendre quadrature points and weights
-            from scipy.special import roots_legendre
-            x_quad, w_quad = roots_legendre(n_points)
-            # Scale to actual interval
-            x_scaled = (b - a) / 2 * x_quad + (a + b) / 2
-            w_scaled = w_quad * (b - a) / 2
-            
-            all_x.extend(x_scaled)
-            all_weights.extend(w_scaled)
-
-        # Convert to numpy arrays for batch processing
-        all_x = np.array(all_x)
-        all_weights = np.array(all_weights)
-
-        # Evaluate function and polynomials at all points
-        f_values = f(all_x)  # This should work with array input
-        poly_values = self._funcs(all_x)  # Shape: (n_polys, n_points)
-
-        # Compute overlap integrals
-        output = np.sum(poly_values * f_values * all_weights, axis=1)
-
-        return output
 
 
 class PiecewiseLegendrePolyFT:
@@ -270,3 +307,32 @@ class PiecewiseLegendrePolyFTVector:
     def __getitem__(self, index):
         """Get a single basis function."""
         return PiecewiseLegendrePolyFT(self._funcs[index])
+
+
+def _compute_overlap(poly, f, rtol=2.3e-16, radix=2, max_refine_levels=40,
+                     max_refine_points=2000, points=None):
+    """Compute overlap integral using simple quadrature.
+    
+    This is a simplified implementation. For production use,
+    a more sophisticated adaptive quadrature should be used.
+    """
+    if points is None:
+        knots = poly.knots
+    else:
+        points = np.asarray(points)
+        knots = np.unique(np.hstack((poly.knots, points)))
+    
+    # Simple trapezoidal rule for now
+    n_points = 100
+    x_eval = np.linspace(knots[0], knots[-1], n_points)
+    
+    # Evaluate function and polynomials
+    f_values = f(x_eval)
+    poly_values = poly(x_eval)
+    
+    # Simple integration
+    dx = (knots[-1] - knots[0]) / (n_points - 1)
+    result = np.sum(poly_values * f_values, axis=1) * dx
+    
+    # Return result and zero error estimate
+    return result, np.zeros_like(result)

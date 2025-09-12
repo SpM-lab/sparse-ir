@@ -34,6 +34,9 @@ def test_augmented_bosonic_basis():
     # Now do the fit properly
     gl_fit = tau_smpl.fit(gtau)
     gtau_reconst = tau_smpl.evaluate(gl_fit)
+    print(gtau_reconst)
+    print(gtau)
+    print(gtau_reconst - gtau)
     np.testing.assert_allclose(gtau_reconst, gtau, atol=1e-14 * magn, rtol=0)
 
 
