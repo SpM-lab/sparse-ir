@@ -6,7 +6,8 @@ High-level Python classes for sparse sampling
 
 import numpy as np
 from ctypes import POINTER, c_double, c_int, byref, c_bool, c_int64
-from pylibsparseir.core import c_double_complex, tau_sampling_new, tau_sampling_new_with_matrix, matsubara_sampling_new, matsubara_sampling_new_with_matrix, _lib, _statistics_to_c
+from pylibsparseir.core import c_double_complex, tau_sampling_new
+from pylibsparseir.core import matsubara_sampling_new, _lib, _statistics_to_c
 from pylibsparseir.constants import COMPUTATION_SUCCESS, SPIR_ORDER_ROW_MAJOR
 from . import augment
 
@@ -138,12 +139,12 @@ class TauSampling:
             status = _lib.spir_sampling_fit_dd(
                 self._ptr,
                 SPIR_ORDER_ROW_MAJOR,
-            ndim,
-            input_dims.ctypes.data_as(POINTER(c_int)),
-            axis,
-            ax.ctypes.data_as(POINTER(c_double)),
-            output.ctypes.data_as(POINTER(c_double))
-        )
+                ndim,
+                input_dims.ctypes.data_as(POINTER(c_int)),
+                axis,
+                ax.ctypes.data_as(POINTER(c_double)),
+                output.ctypes.data_as(POINTER(c_double))
+            )
         elif ax.dtype.kind == "c":
             output = np.zeros(output_dims, dtype=c_double_complex)
             status = _lib.spir_sampling_fit_zz(
@@ -218,14 +219,6 @@ class MatsubaraSampling:
             # Create sampling object
             matrix = basis.uhat(self.sampling_points).T
             matrix = np.ascontiguousarray(matrix, dtype=np.complex128)
-
-            #self._ptr = matsubara_sampling_new_with_matrix(
-                #basis.statistics,
-                #basis.size,
-                #positive_only,
-                #self.sampling_points,
-                #matrix
-            #)
 
             status = c_int()
             sampling = _lib.spir_matsu_sampling_new_with_matrix(
