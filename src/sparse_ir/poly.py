@@ -17,7 +17,7 @@ import threading
 
 from pylibsparseir.core import _lib
 from pylibsparseir.core import funcs_eval_single_float64, funcs_eval_single_complex128
-from pylibsparseir.core import funcs_get_size, funcs_get_roots
+from pylibsparseir.core import funcs_get_size, funcs_get_roots, SPIR_ORDER_COLUMN_MAJOR
 
 # Global registry to track pointer usage
 _pointer_registry = weakref.WeakSet()
@@ -49,33 +49,67 @@ class FunctionSet:
         with _registry_lock:
             _pointer_registry.add(self)
 
+    """
+    Size of returned array is (n_funcs, n_points).
+    """
     def __call__(self, x):
         """Evaluate basis functions at given points."""
         if self._released:
             raise RuntimeError("Function set has been released")
-        x = np.asarray(x)
+        x = np.ascontiguousarray(x)
         if x.ndim == 0:
             o = funcs_eval_single_float64(self._ptr, x.item())
             if len(o) == 1:
                 return o[0]
             else:
                 return o
+
+        o = self.__call_batch(x)
+
+        if len(o) == 1:
+            return o[0]
         else:
-            # For now, use individual evaluation for FunctionSet
-            # TODO: Implement batch evaluation if available
-            original_shape = x.shape
-            results = []
-            for e in x.flat:
-                o = funcs_eval_single_float64(self._ptr, e)
-                results.append(o)
+            return o
+    
+    def __call_batch(self, x: np.ndarray):
+        # Use batch evaluation for arrays
+        x = np.ascontiguousarray(x)
+        original_shape = x.shape
+        x_flat = x.ravel()
+        n_points = len(x_flat)
+        n_funcs = funcs_get_size(self._ptr)
+        
+        # Prepare input array (double)
+        x_double = x_flat.astype(np.float64)
+        
+        # Prepare output array (double)
+        buffer = np.zeros(4 * n_funcs * n_points, dtype=np.float64)
+        buffer[n_funcs * n_points:] = 1.0
+        output = np.zeros((n_funcs, n_points), dtype=np.float64)
             
-            # Stack results and reshape to match input shape
-            o = np.stack(results, axis=1)
-            o = o.reshape((o.shape[0],) + original_shape)
-            if len(o) == 1:
-                return o[0]
-            else:
-                return o
+        # Call batch evaluation function
+        status = _lib.spir_funcs_batch_eval(
+            self._ptr,
+            SPIR_ORDER_COLUMN_MAJOR,
+            n_points,
+            x_double.ctypes.data_as(POINTER(c_double)),
+            buffer.ctypes.data_as(POINTER(c_double))
+        )
+
+        # Check memory overflow
+        if np.abs(buffer[n_funcs * n_points:] - 1.0).max() > 0:
+            raise RuntimeError("Memory overflow")
+
+        output = buffer[:n_funcs * n_points].reshape((n_funcs, n_points))
+        
+        if status != 0:
+            raise RuntimeError(f"Batch evaluation failed with status {status}")
+        
+        # Reshape output to match input shape: (n_funcs, ...) + original_shape
+        output = output.reshape((n_funcs,) + original_shape)
+
+        return output
+
 
     def __getitem__(self, index):
         """Get a single basis function or slice of functions."""
@@ -128,7 +162,7 @@ class FunctionSetFT:
         """Evaluate basis functions at given points."""
         if self._released:
             raise RuntimeError("Function set has been released")
-        x = np.asarray(x)
+        x = np.ascontiguousarray(x)
         if x.ndim == 0:
             o = funcs_eval_single_complex128(self._ptr, x.item())
             if len(o) == 1:
@@ -151,7 +185,7 @@ class FunctionSetFT:
             # Call batch evaluation function
             status = _lib.spir_funcs_batch_eval_matsu(
                 self._ptr,
-                n_funcs,
+                SPIR_ORDER_COLUMN_MAJOR,
                 n_points,
                 x_int64.ctypes.data_as(POINTER(c_int64)),
                 output.ctypes.data_as(POINTER(c_double))

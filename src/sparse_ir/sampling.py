@@ -5,8 +5,8 @@ High-level Python classes for sparse sampling
 """
 
 import numpy as np
-from ctypes import POINTER, c_double, c_int, byref
-from pylibsparseir.core import c_double_complex, tau_sampling_new, tau_sampling_new_with_matrix, matsubara_sampling_new, matsubara_sampling_new_with_matrix, _lib
+from ctypes import POINTER, c_double, c_int, byref, c_bool, c_int64
+from pylibsparseir.core import c_double_complex, tau_sampling_new, tau_sampling_new_with_matrix, matsubara_sampling_new, matsubara_sampling_new_with_matrix, _lib, _statistics_to_c
 from pylibsparseir.constants import COMPUTATION_SUCCESS, SPIR_ORDER_ROW_MAJOR
 from . import augment
 
@@ -46,8 +46,21 @@ class TauSampling:
         self.sampling_points = np.sort(self.sampling_points)
         if isinstance(basis, augment.AugmentedBasis):
             # Create sampling object
-            matrix = basis.u(self.sampling_points).T
-            self._ptr = tau_sampling_new_with_matrix(basis, basis.statistics, self.sampling_points, matrix)
+            # matrix: (n_points, n_funcs)
+            matrix = np.ascontiguousarray(basis.u(self.sampling_points).T)
+            status = c_int()
+            sampling = _lib.spir_tau_sampling_new_with_matrix(
+                SPIR_ORDER_ROW_MAJOR,
+                _statistics_to_c(basis.statistics),   
+                basis.size,
+                self.sampling_points.size,
+                self.sampling_points.ctypes.data_as(POINTER(c_double)),
+                matrix.ctypes.data_as(POINTER(c_double)),
+                byref(status)
+            )
+            if status.value != COMPUTATION_SUCCESS:
+                raise RuntimeError(f"Failed to create tau sampling: {status.value}")
+            self._ptr = sampling
         else:
             # Create sampling object
             self._ptr = tau_sampling_new(basis._ptr, self.sampling_points)
@@ -206,13 +219,28 @@ class MatsubaraSampling:
             matrix = basis.uhat(self.sampling_points).T
             matrix = np.ascontiguousarray(matrix, dtype=np.complex128)
 
-            self._ptr = matsubara_sampling_new_with_matrix(
-                basis.statistics,
-                basis.size,
-                positive_only,
-                self.sampling_points,
-                matrix
+            #self._ptr = matsubara_sampling_new_with_matrix(
+                #basis.statistics,
+                #basis.size,
+                #positive_only,
+                #self.sampling_points,
+                #matrix
+            #)
+
+            status = c_int()
+            sampling = _lib.spir_matsu_sampling_new_with_matrix(
+                SPIR_ORDER_ROW_MAJOR,                           # order
+                _statistics_to_c(basis.statistics),                   # statistics
+                c_int(basis.size),                              # basis_size
+                c_bool(positive_only),                          # positive_only
+                c_int(len(self.sampling_points)),                    # num_points
+                self.sampling_points.ctypes.data_as(POINTER(c_int64)), # points
+                matrix.ctypes.data_as(POINTER(c_double_complex)), # matrix
+                byref(status)                                   # status
             )
+            if status.value != COMPUTATION_SUCCESS:
+                raise RuntimeError(f"Failed to create matsubara sampling: {status.value}")
+            self._ptr = sampling
         else:
             # Create sampling object
             self._ptr = matsubara_sampling_new(basis._ptr, positive_only, self.sampling_points)
