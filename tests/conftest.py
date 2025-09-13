@@ -1,3 +1,6 @@
+# Copyright (C) 2020-2025 Satoshi Terasaki, Markus Wallerberger, Hiroshi Shinaoka, and others
+# SPDX-License-Identifier: MIT
+
 """
 Configuration and fixtures for pysparseir tests.
 
@@ -9,34 +12,29 @@ import pytest
 import numpy as np
 import pylibsparseir
 
-from sparse_ir.kernel import LogisticKernel, RegularizedBoseKernel
+import sparse_ir
+from sparse_ir import LogisticKernel, RegularizedBoseKernel
+
 
 @pytest.fixture(scope="session")
 def sve_logistic():
-    """Precomputed SVE results for logistic kernels with different Lambda values."""
+    """SVE of the logistic kernel for Lambda = 42"""
     print("Precomputing SVEs for logistic kernel ...")
-    kernels = {}
-    for lambda_ in [10, 42, 1000]:
-        try:
-            kernel = LogisticKernel(lambda_)
-            kernels[lambda_] = pylibsparseir.sve_result_new(kernel, 1e-12)
-        except Exception as e:
-            print(f"Failed to create SVE for lambda={lambda_}: {e}")
-    return kernels
+    return {
+        10:     sparse_ir.compute_sve(sparse_ir.LogisticKernel(10)),
+        42:     sparse_ir.compute_sve(sparse_ir.LogisticKernel(42)),
+        10_000: sparse_ir.compute_sve(sparse_ir.LogisticKernel(10_000))
+        }
 
 
 @pytest.fixture(scope="session")
 def sve_reg_bose():
-    """Precomputed SVE results for regularized Bose kernels."""
+    """SVE of the logistic kernel for Lambda = 42"""
     print("Precomputing SVEs for regularized Bose kernel ...")
-    kernels = {}
-    for lambda_ in [10, 1000]:
-        try:
-            kernel = RegularizedBoseKernel(lambda_)
-            kernels[lambda_] = pylibsparseir.sve_result_new(kernel, 1e-12)
-        except Exception as e:
-            print(f"Failed to create Bose SVE for lambda={lambda_}: {e}")
-    return kernels
+    return {
+        10:     sparse_ir.compute_sve(sparse_ir.RegularizedBoseKernel(10)),
+        10_000: sparse_ir.compute_sve(sparse_ir.RegularizedBoseKernel(10_000))
+        }
 
 
 @pytest.fixture(scope="session")

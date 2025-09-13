@@ -43,7 +43,7 @@ class FiniteTempBasis(AbstractBasis):
             giw = gl @ basis.uhat([1, 3, 5, 7])
     """
 
-    def __init__(self, statistics: str, beta: float, wmax: float, eps: float, sve_result: Optional[SVEResult] = None, max_size: int =-1):
+    def __init__(self, statistics: str, beta: float, wmax: float, eps: float = np.finfo(np.float64).eps, sve_result: Optional[SVEResult] = None, max_size: int =-1):
         """
         Initialize finite temperature basis.
 
@@ -56,7 +56,8 @@ class FiniteTempBasis(AbstractBasis):
         wmax : float
             Frequency cutoff
         eps : float
-            Accuracy threshold
+            Relative truncation threshold for the singular values,
+            defaulting to the machine epsilon (2.2e-16)
         """
         self._statistics = statistics
         self._beta = beta

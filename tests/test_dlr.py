@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2022 Markus Wallerberger, Hiroshi Shinaoka, and others
+# Copyright (C) 2020-2025 Satoshi Terasaki, Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
 from sparse_ir import DiscreteLehmannRepresentation
 from sparse_ir import FiniteTempBasis, MatsubaraSampling, TauSampling

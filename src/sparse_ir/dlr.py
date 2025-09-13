@@ -42,7 +42,7 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         if poles is None:
             poles = basis_get_default_omega_sampling_points(basis._ptr)
         self._basis = basis
-        self._poles = poles
+        self._poles = np.ascontiguousarray(poles)
         self._ptr = _lib.spir_dlr_new_with_poles(basis._ptr, len(poles), poles.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), status)
         if status.value != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Failed to create DLR basis: {status.value}")
@@ -109,6 +109,7 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         array_like
             Expansion coefficients in DLR
         """
+        gl = np.ascontiguousarray(gl)
         if gl.shape[axis] != self.basis.size:
             raise ValueError(f"Input array has wrong size along dimension {axis}")
 
@@ -165,6 +166,7 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         array_like
             Expansion coefficients in IR
         """
+        g_dlr = np.ascontiguousarray(g_dlr)
         if g_dlr.shape[axis] != self.size:
             raise ValueError(f"Input array has wrong size along dimension {axis}")
         output_dims = np.asarray(g_dlr.shape, dtype=np.int32)

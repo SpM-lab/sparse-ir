@@ -10,7 +10,7 @@ from .abstract import AbstractBasis
 from .basis import FiniteTempBasis, finite_temp_bases
 from .sampling import TauSampling, MatsubaraSampling
 from .kernel import LogisticKernel, RegularizedBoseKernel
-from .sve import SVEResult, compute
+from .sve import SVEResult, compute, compute_sve
 from .basis_set import FiniteTempBasisSet
 
 # New augmented functionality
