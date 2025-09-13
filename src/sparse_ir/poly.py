@@ -45,9 +45,13 @@ class FunctionSet:
     def __init__(self, funcs_ptr):
         self._ptr = funcs_ptr
         self._released = False
+        self._size = funcs_get_size(funcs_ptr)
         # Register this object for safe cleanup
         with _registry_lock:
             _pointer_registry.add(self)
+    
+    def size(self):
+        return self._size
 
     """
     Size of returned array is (n_funcs, n_points).
@@ -66,8 +70,12 @@ class FunctionSet:
 
         o = self.__call_batch(x)
 
-        if len(o) == 1:
-            return o[0]
+        if x.size == 1 and self._size == 1:
+            return o.flat[0]
+        elif x.size == 1 and self._size > 1:
+            return o.flat
+        elif x.size > 1 and self._size == 1:
+            return o.flat
         else:
             return o
     
@@ -77,14 +85,12 @@ class FunctionSet:
         original_shape = x.shape
         x_flat = x.ravel()
         n_points = len(x_flat)
-        n_funcs = funcs_get_size(self._ptr)
+        n_funcs = self._size
         
         # Prepare input array (double)
         x_double = x_flat.astype(np.float64)
         
         # Prepare output array (double)
-        buffer = np.zeros(4 * n_funcs * n_points, dtype=np.float64)
-        buffer[n_funcs * n_points:] = 1.0
         output = np.zeros((n_funcs, n_points), dtype=np.float64)
             
         # Call batch evaluation function
@@ -93,15 +99,9 @@ class FunctionSet:
             SPIR_ORDER_COLUMN_MAJOR,
             n_points,
             x_double.ctypes.data_as(POINTER(c_double)),
-            buffer.ctypes.data_as(POINTER(c_double))
+            output.ctypes.data_as(POINTER(c_double))
         )
 
-        # Check memory overflow
-        if np.abs(buffer[n_funcs * n_points:] - 1.0).max() > 0:
-            raise RuntimeError("Memory overflow")
-
-        output = buffer[:n_funcs * n_points].reshape((n_funcs, n_points))
-        
         if status != 0:
             raise RuntimeError(f"Batch evaluation failed with status {status}")
         
@@ -154,9 +154,13 @@ class FunctionSetFT:
     def __init__(self, funcs_ptr):
         self._ptr = funcs_ptr
         self._released = False
+        self._size = funcs_get_size(funcs_ptr)
         # Register this object for safe cleanup
         with _registry_lock:
             _pointer_registry.add(self)
+    
+    def size(self):
+        return self._size
 
     def __call__(self, x):
         """Evaluate basis functions at given points."""
@@ -174,7 +178,7 @@ class FunctionSetFT:
             original_shape = x.shape
             x_flat = x.ravel()
             n_points = len(x_flat)
-            n_funcs = funcs_get_size(self._ptr)
+            n_funcs = self._size
             
             # Prepare input array
             x_int64 = x_flat.astype(np.int64)
@@ -197,8 +201,12 @@ class FunctionSetFT:
             # Reshape output to match input shape: (n_funcs, ...) + original_shape
             output = output.reshape((n_funcs,) + original_shape)
             
-            if len(output) == 1:
-                return output[0]
+            if x.size == 1 and self._size == 1:
+                return output.flat[0]
+            elif x.size == 1 and self._size > 1:
+                return output.flat
+            elif x.size > 1 and self._size == 1:
+                return output.flat
             else:
                 return output
 
