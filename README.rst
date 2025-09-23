@@ -117,25 +117,8 @@ terms of compactness.
 
 License and citation
 --------------------
-Development
------------
-For developers, this repository includes tools to ensure consistency between
-different package managers:
-
-- **Version Consistency Check**: Ensures that ``pylibsparseir`` version
-  specifications in ``pyproject.toml`` and ``.conda/meta.yaml`` are consistent.
-
-  Run the check manually::
-
-      python check_version_consistency.py
-
-  Or install as a pre-commit hook::
-
-      pip install pre-commit
-      pre-commit install
 
 This software is released under the MIT License.  See LICENSE.txt for details.
-
 If you find the intermediate representation, sparse sampling, or this software
 useful in your research, please consider citing the following papers:
 
@@ -152,3 +135,33 @@ MINIMAX isometry method (Merzuk Kaltak and Georg Kresse,
 .. _Phys. Rev. B 101, 035144: https://doi.org/10.1103/PhysRevB.101.035144
 .. _SoftwareX 21, 101266: https://doi.org/10.1016/j.softx.2022.101266
 .. _Phys. Rev. B 101, 205145: https://doi.org/10.1103/PhysRevB.101.205145
+
+
+Development
+-----------
+For developers, this repository includes tools to ensure consistency between
+different package managers:
+
+- **Version Consistency Check**: Ensures that ``pylibsparseir`` version
+  specifications in ``pyproject.toml`` and ``.conda/meta.yaml`` are consistent.
+
+  Run the check manually::
+
+      python check_libsparseir_version_consistency.py
+
+  Or install as a pre-commit hook::
+
+      pip install pre-commit
+      pre-commit install
+
+The project uses an automated release workflow triggered by changes to ``pyproject.toml``:
+
+1. **Version Update**: When the version in ``pyproject.toml`` is updated and pushed to the ``mainline`` branch
+2. **Automatic Tagging**: A GitHub Actions workflow automatically creates a Git tag (e.g., ``v2.0.0``)
+3. **Package Building**: The tag triggers separate workflows that build and publish packages to:
+   - **PyPI**: Python package distribution via wheel and source distributions
+   - **Conda**: Package distribution via conda-forge channel
+
+This ensures that version updates in ``pyproject.toml`` automatically propagate to all package repositories without manual intervention.
+
+

@@ -1,0 +1,49 @@
+name: Create Tag and Release from pyproject.toml
+on:
+  push:
+    branches: [mainline]
+
+# https://stackoverflow.com/questions/69063452/github-actions-on-release-created-workflow-trigger-not-working
+# GITHUB_TOKEN is not enough to trigger the wheel build and publish workflow.
+# Use personal access token for "actions" and "contents" read-write permissions.
+
+jobs:
+  tag-and-release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.DEPLOY }}
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Extract version from pyproject.toml
+      id: version
+      run: |
+        VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/' | sed 's/^/v/')
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "Version: $VERSION"
+
+        # Check if remote tag exists
+        git fetch --tags
+        if git tag -l | grep -q "^$VERSION$"; then
+          echo "Tag $VERSION already exists"
+          echo "should_create=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "should_create=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Create Release
+      if: steps.version.outputs.should_create == 'true'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        name: Release ${{ steps.version.outputs.version }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.DEPLOY }}
