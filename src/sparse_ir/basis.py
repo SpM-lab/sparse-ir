@@ -63,6 +63,7 @@ class FiniteTempBasis(AbstractBasis):
         self._beta = beta
         self._wmax = wmax
         self._lambda = beta * wmax
+        self._eps = eps
 
         # Create kernel
         if statistics == 'F' or statistics == 'B':
@@ -78,7 +79,7 @@ class FiniteTempBasis(AbstractBasis):
 
         # Create basis
         stats_int = SPIR_STATISTICS_FERMIONIC if statistics == 'F' else SPIR_STATISTICS_BOSONIC
-        self._ptr = basis_new(stats_int, self._beta, self._wmax, self._kernel._ptr, self._sve._ptr, max_size)
+        self._ptr = basis_new(stats_int, self._beta, self._wmax, self._eps, self._kernel._ptr, self._sve._ptr, max_size)
 
         u_funcs = FunctionSet(basis_get_u(self._ptr))
         v_funcs = FunctionSet(basis_get_v(self._ptr))

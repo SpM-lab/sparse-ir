@@ -29,10 +29,11 @@ jobs:
       run: |
         conda install conda-build anaconda-client -y
 
-    - name: Bulid and upload
+    - name: Build and upload
       env:
         ANACONDA_API_TOKEN: ${{secrets.ANACONDA_TOKEN}}
+        CONDA_PY: "312"
       run: |
         python3 --version
         conda config --set anaconda_upload yes
-        conda build .conda --user SpM-lab
+        conda build .conda --user SpM-lab -c spm-lab -c conda-forge --numpy 2.1

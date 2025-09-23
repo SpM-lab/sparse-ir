@@ -117,6 +117,23 @@ terms of compactness.
 
 License and citation
 --------------------
+Development
+-----------
+For developers, this repository includes tools to ensure consistency between
+different package managers:
+
+- **Version Consistency Check**: Ensures that ``pylibsparseir`` version
+  specifications in ``pyproject.toml`` and ``.conda/meta.yaml`` are consistent.
+
+  Run the check manually::
+
+      python check_version_consistency.py
+
+  Or install as a pre-commit hook::
+
+      pip install pre-commit
+      pre-commit install
+
 This software is released under the MIT License.  See LICENSE.txt for details.
 
 If you find the intermediate representation, sparse sampling, or this software

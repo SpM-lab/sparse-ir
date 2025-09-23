@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: version-consistency-check
+        name: Check version consistency between pyproject.toml and .conda/meta.yaml
+        entry: python check_version_consistency.py
+        language: system
+        files: ^(pyproject\.toml|\.conda/meta\.yaml)$
+        pass_filenames: false
