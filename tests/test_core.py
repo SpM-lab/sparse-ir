@@ -52,12 +52,13 @@ class TestCoreAPI:
 
     def test_basis_creation(self):
         """Test basis creation and properties."""
+        eps = 1e-6
         kernel = logistic_kernel_new(80.0)
-        sve = sve_result_new(kernel, 1e-6)
+        sve = sve_result_new(kernel, eps)
 
         # Test fermion basis
         max_size = -1
-        basis_f = basis_new(1, 10.0, 8.0, kernel, sve, max_size)  # 1 = fermion
+        basis_f = basis_new(1, 10.0, 8.0, eps, kernel, sve, max_size)  # 1 = fermion
         assert basis_f is not None
 
         size_f = basis_get_size(basis_f)
@@ -70,16 +71,17 @@ class TestCoreAPI:
         assert len(svals_f) == size_f
 
         # Test boson basis
-        basis_b = basis_new(0, 10.0, 8.0, kernel, sve, max_size)  # 0 = boson
+        basis_b = basis_new(0, 10.0, 8.0, eps, kernel, sve, max_size)  # 0 = boson
         stats_b = basis_get_stats(basis_b)
         assert stats_b == 0  # Boson
 
     def test_basis_functions(self):
         """Test basis function objects."""
         kernel = logistic_kernel_new(80.0)
-        sve = sve_result_new(kernel, 1e-6)
+        eps = 1e-6
+        sve = sve_result_new(kernel, eps)
         max_size = -1
-        basis = basis_new(1, 10.0, 8.0, kernel, sve, max_size)
+        basis = basis_new(1, 10.0, 8.0, eps, kernel, sve, max_size)
 
         # Test getting function objects
         u_funcs = basis_get_u(basis)
@@ -94,9 +96,10 @@ class TestCoreAPI:
     def test_default_sampling_points(self):
         """Test default sampling point functions."""
         kernel = logistic_kernel_new(80.0)
-        sve = sve_result_new(kernel, 1e-6)
+        eps = 1e-6
+        sve = sve_result_new(kernel, eps)
         max_size = -1
-        basis = basis_new(1, 10.0, 8.0, kernel, sve, max_size)
+        basis = basis_new(1, 10.0, 8.0, eps, kernel, sve, max_size)
 
         # Test tau sampling points
         tau_points = basis_get_default_tau_sampling_points(basis)
@@ -114,9 +117,10 @@ class TestCoreAPI:
     def test_sampling_objects(self):
         """Test sampling object creation."""
         kernel = logistic_kernel_new(80.0)
-        sve = sve_result_new(kernel, 1e-6)
+        eps = 1e-6
+        sve = sve_result_new(kernel, eps)
         max_size = -1
-        basis = basis_new(1, 10.0, 8.0, kernel, sve, max_size)
+        basis = basis_new(1, 10.0, 8.0, eps, kernel, sve, max_size)
 
         # Test tau sampling
         tau_points = basis_get_default_tau_sampling_points(basis)
