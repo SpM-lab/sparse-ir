@@ -73,6 +73,34 @@ def test_overlap(sve_logistic, lambda_, atol):
     beta = lambda_/wmax
     basis = sparse_ir.FiniteTempBasis('F', beta, wmax, sve_result=sve_result)
 
+    assert isinstance(basis.u[0].overlap(basis.u[1], 0.0, beta), float)
+    assert basis.u[0:2].overlap(basis.u[1], 0.0, beta).shape == (2,)
+    assert basis.u[0].overlap(basis.u[0:2], 0.0, beta).shape == (2,)
+
+    u_overlap = basis.u.overlap(basis.u, 0.0, beta)
+    assert u_overlap.shape == (basis.size, basis.size)
+    np.testing.assert_allclose(u_overlap, np.eye(basis.size), rtol=0.0, atol=atol)
+
+    np.testing.assert_allclose(basis.u[0].overlap(basis.u[1], 0.0, beta), 0, rtol=0.0, atol=atol)
+    np.testing.assert_allclose(basis.u[0].overlap(basis.u[0], 0.0, beta), 1, rtol=0.0, atol=atol)
+    np.testing.assert_allclose(basis.u[-1].overlap(basis.u[-1], 0.0, beta), 1, rtol=0.0, atol=atol)
+
+
+
+@pytest.mark.parametrize("fn", ["u", "v"])
+def test_broadcast_uv(sve_logistic, fn):
+    sve_result = sve_logistic[42]
+    basis = sparse_ir.FiniteTempBasis('F', 4.2, 10, sve_result=sve_result)
+
+    f = getattr(basis, fn)
+
+    u_overlap = basis.u[0:2].overlap(basis.u[0:2], 0.0, beta)
+    print(u_overlap)
+
+    u_overlap = basis.u.overlap(basis.u, 0.0, beta)
+    assert u_overlap.shape == (basis.size, basis.size)
+    np.testing.assert_allclose(u_overlap, np.eye(basis.size), rtol=0.0, atol=atol)
+
     np.testing.assert_allclose(basis.u[0].overlap(basis.u[1], 0.0, beta), 0, rtol=0.0, atol=atol)
     np.testing.assert_allclose(basis.u[0].overlap(basis.u[0], 0.0, beta), 1, rtol=0.0, atol=atol)
     np.testing.assert_allclose(basis.u[-1].overlap(basis.u[-1], 0.0, beta), 1, rtol=0.0, atol=atol)

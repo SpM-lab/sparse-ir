@@ -269,6 +269,10 @@ class PiecewiseLegendrePoly:
     """
 
     def __init__(self, funcs: FunctionSet, xmin: float, xmax: float, period: float):
+        if not isinstance(funcs, FunctionSet):
+            raise ValueError("funcs must be a FunctionSet")
+        if funcs.size() != 1:
+            raise ValueError("funcs must have size 1")
         self._funcs = funcs
         self._xmin = xmin
         self._xmax = xmax
@@ -286,24 +290,23 @@ class PiecewiseLegendrePoly:
         If ``f`` returns an array, the result is an array with the same shape.
         """
 
-        # Check if f returns a scalar or an array
-        f_result = f(0.5*xmin + 0.5*xmax)
-        if hasattr(f_result, 'shape'):
-            # NumPy array or similar - check if it's scalar-like
-            is_scalar = f_result.shape == ()
+        polyvec = PiecewiseLegendrePolyVector(self._funcs, self._xmin, self._xmax, self._period)
+
+        int_result, int_error = polyvec.overlap(f, xmin, xmax, rtol=rtol, return_error=True, points=points)
+
+        int_result = int_result.reshape(int_result.shape[1:])
+        int_error = int_error.reshape(int_error.shape[1:])
+
+        print(type(int_result), type(int_error))
+
+        if int_result.shape == ():
+            int_result = int_result.item()
+            int_error = int_error.item()
+
+        if return_error:
+            return int_result, int_error
         else:
-            # Python built-in float type only
-            is_scalar = isinstance(f_result, float)
-            
-        if is_scalar:
-            # For scalar functions, compute overlap directly
-            int_result, int_error = _compute_overlap(self, f, xmin, xmax, rtol=rtol, points=points)
-            if return_error:
-                return int_result, int_error
-            else:
-                return int_result
-        else:
-            return self.overlap_vector(f, xmin, xmax, rtol=rtol, return_error=return_error, points=points)
+            return int_result
             
 
 class PiecewiseLegendrePolyVector:
@@ -322,10 +325,12 @@ class PiecewiseLegendrePolyVector:
 
     def __getitem__(self, index):
         """Get a single basis function or slice of functions."""
-        if isinstance(index, slice):
-            return PiecewiseLegendrePolyVector(self._funcs[index], self._xmin, self._xmax, self._period)
+        funcs_slice = self._funcs[index]
+        if funcs_slice.size() == 1:
+            return PiecewiseLegendrePoly(funcs_slice, self._xmin, self._xmax, self._period)
         else:
-            return PiecewiseLegendrePoly(self._funcs[index], self._xmin, self._xmax, self._period)
+            return PiecewiseLegendrePolyVector(funcs_slice, self._xmin, self._xmax, self._period)
+
 
     def overlap(self, f, xmin: float, xmax: float, *, rtol=2.3e-16, return_error=False, points=None):
         r"""Evaluate overlap integral of this polynomial with function ``f``.
@@ -364,7 +369,32 @@ class PiecewiseLegendrePolyVector:
             if xmax > self._xmax:
                 raise ValueError(f"xmax ({xmax}) must be less than or equal to the upper bound of the polynomial domain ({self._xmax})")
 
-        int_result, int_error = _compute_overlap(self, f, xmin, xmax, rtol=rtol, points=points)
+        f_res = f(0.5*xmin + 0.5*xmax)
+
+        f_ = f
+        if hasattr(f_res, 'shape'):
+            if f_res.dtype != np.float64:
+                raise ValueError("f must return a float64 array")
+            f_shape = f_res.shape
+            f_length = f_res.size
+            f_ = lambda x: f(x).ravel()
+        elif isinstance(f_res, float) or isinstance(f_res, np.float64):
+            if f_res.dtype != np.float64:
+                raise ValueError("f must return a float64 scalar")
+            f_shape = ()
+            f_length = 1
+            f_ = lambda x: np.array([f(x)])
+        else:
+            raise ValueError("f must return a scalar of float64 or an array")
+
+        knots = funcs_get_knots(self._funcs._ptr)
+        knots = _cover_domain(knots, self._period, xmin, xmax, self._xmin, self._xmax, points)
+
+        int_result, int_error = _compute_overlap_internal(self, self._funcs.size(), f_, f_length, xmin, xmax, knots, rtol=rtol)
+
+        int_result = int_result.reshape(self.shape + f_shape)
+        int_error = int_error.reshape(self.shape + f_shape)
+
         if return_error:
             return int_result, int_error
         else:
@@ -412,18 +442,19 @@ class PiecewiseLegendrePolyFTVector:
             return PiecewiseLegendrePolyFT(self._funcs[index])
 
 
-def _generate_knots(poly, xmin: float, xmax: float, points=None):
-    # Get knots from poly and add integration boundaries
-    knots = funcs_get_knots(poly._funcs._ptr)
+def _cover_domain(
+    knots, period, xmin: float, xmax: float,
+    poly_xmin: float, poly_xmax: float, points=None):
+
+    # Add integration boundaries
     knots = np.unique(np.hstack([knots, [xmin, xmax]]))
     
     if points is not None:
         points = np.asarray(points)
         knots = np.unique(np.hstack((knots, points)))
     
-    if poly._period != 0.0:
+    if period != 0.0:
         # Shift points to cover the entire domain
-        period = poly._period
         extended_knots = list(knots)
         
         # Extend in positive direction
@@ -431,7 +462,7 @@ def _generate_knots(poly, xmin: float, xmax: float, points=None):
         while True:
             offset = i * period
             new_knots = knots + offset
-            if np.any(new_knots > poly._xmax):
+            if np.any(new_knots > poly_xmax):
                 break
             extended_knots.extend(new_knots)
             i += 1
@@ -441,7 +472,7 @@ def _generate_knots(poly, xmin: float, xmax: float, points=None):
         while True:
             offset = -i * period
             new_knots = knots + offset
-            if np.any(new_knots < poly._xmin):
+            if np.any(new_knots < poly_xmin):
                 break
             extended_knots.extend(new_knots)
             i += 1
@@ -460,20 +491,49 @@ def _compute_overlap(poly, f, xmin: float, xmax: float,
         max_refine_points=2000, points=None):
 
     # Get knots from poly and add integration boundaries
-    knots = _generate_knots(poly, xmin, xmax, points)
+    knots = funcs_get_knots(poly._funcs._ptr)
+    knots = _cover_domain(knots, poly._period, xmin, xmax, poly._xmin, poly._xmax, points)
+
+    f_res = f(0.5*xmin + 0.5*xmax)
+    f_ = f
+    if hasattr(f_res, 'shape'):
+        if f_res.dtype != np.float64:
+            raise ValueError("f must return a float64 array")
+        f_shape = f_res.shape
+        f_length = f_res.size
+        f_ = lambda x: f(x).ravel()
+    elif isinstance(f_res, float) or isinstance(f_res, np.float64):
+        if f_res.dtype != np.float64:
+            raise ValueError("f must return a float64 scalar")
+        f_shape = ()
+        f_length = 1
+        f_ = lambda x: np.array([f(x)])
+    else:
+        raise ValueError("f must return a scalar of float64 or an array")
     
+    result = _compute_overlap_internal(
+        poly, f_, f_length, xmin, xmax, knots, rtol, radix, max_refine_levels, max_refine_points)
+
+    return result[0].reshape(poly.shape + f_shape), result[1].reshape(poly.shape + f_shape)
+
+
+def _compute_overlap_internal(poly, poly_size, f, f_length: int, xmin: float, xmax: float, knots,
+        rtol=2.3e-16, radix=2, max_refine_levels=40,
+        max_refine_points=2000):
+
     # Use Gauss-Kronrod integration on segments
     base_rule = kronrod_31_15()
     xstart = knots[:-1]
     xstop = knots[1:]
 
-    f_shape = None
     res_value = 0
     res_error = 0
     res_magn = 0
     max_refine_levels = 40
     max_refine_points = 2000
     radix = 2
+
+    f_shape = (f_length,)
     
     for _ in range(max_refine_levels):
         if xstart.size > max_refine_points:
@@ -483,13 +543,20 @@ def _compute_overlap(poly, f, xmin: float, xmax: float,
         rule = base_rule.reseat(xstart[:, None], xstop[:, None])
 
         fx = np.array(list(map(f, rule.x.ravel())))
-        if f_shape is None:
-            f_shape = fx.shape[1:]
-        elif fx.shape[1:] != f_shape:
-            raise ValueError("inconsistent shapes")
-        fx = fx.reshape(rule.x.shape + (-1,))
+        if fx.ndim != 2:
+            raise ValueError("f must return a 1D array")
+        if fx.shape[1] != f_length:
+            raise ValueError("f must return a array with length f_length")
+        fx = fx.reshape(rule.x.shape + (f_length,))
 
-        valx = poly(rule.x).reshape(-1, *rule.x.shape, 1) * fx
+        rule_x_flat = rule.x.ravel()
+        poly_val = np.array(list(map(poly, rule_x_flat))).T.reshape(-1, *rule.x.shape, 1)
+        #poly_val = poly(rule.x).reshape(-1, *rule.x.shape, 1)
+        #if poly_val.shape[0] >= 2:
+            #print(poly_val.shape)
+            ##print(poly_val[0, 0, 0, 0])
+            #print(poly_val[1, 0, 0, 0])
+        valx = poly_val * fx
         int21 = (valx[:, :, :, :] * rule.w[:, :, None]).sum(2)
         int10 = (valx[:, :, rule.vsel, :] * rule.v[:, :, None]).sum(2)
         intdiff = np.abs(int21 - int10)
@@ -514,5 +581,5 @@ def _compute_overlap(poly, f, xmin: float, xmax: float,
     else:
         warn("Integration did not converge after refinement")
 
-    res_shape = poly.shape + f_shape
+    res_shape = (poly_size,) + f_shape
     return res_value.reshape(res_shape), res_error.reshape(res_shape)
