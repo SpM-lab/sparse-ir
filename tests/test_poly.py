@@ -65,14 +65,18 @@ def test_shape(sve_logistic):
     assert u[2:5].shape == (3,)
 """
 
-"""
-TODO: support slice in C API, or just drop this functionality
-def test_slice(sve_logistic):
-    sve_result = sve_logistic[42]
 
-    basis = sparse_ir.FiniteTempBasis('F', 4.2, 10, sve_result=sve_result)
-    assert basis[:4].size == 4
-"""
+@pytest.mark.parametrize("lambda_, atol", [(1E+4, 5e-13)])
+def test_overlap(sve_logistic, lambda_, atol):
+    sve_result = sve_logistic[lambda_]
+    wmax = 10.0
+    beta = lambda_/wmax
+    basis = sparse_ir.FiniteTempBasis('F', beta, wmax, sve_result=sve_result)
+
+    np.testing.assert_allclose(basis.u[0].overlap(basis.u[1], 0.0, beta), 0, rtol=0.0, atol=atol)
+    np.testing.assert_allclose(basis.u[0].overlap(basis.u[0], 0.0, beta), 1, rtol=0.0, atol=atol)
+    np.testing.assert_allclose(basis.u[-1].overlap(basis.u[-1], 0.0, beta), 1, rtol=0.0, atol=atol)
+
 
 
 @pytest.mark.parametrize("fn", ["u", "v"])

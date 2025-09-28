@@ -6,8 +6,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "numpy",
+    "pylibsparseir",
     "scipy",
-    "pylibsparseir>=0.5.0,<0.6.0",
 ]
 authors = [
     {name = "SpM-lab"}
@@ -57,3 +57,6 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_tests.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+
+[tool.uv.sources]
+pylibsparseir = { path = "../libsparseir/python/dist/pylibsparseir-0.5.2-cp313-cp313-macosx_15_0_arm64.whl" }

@@ -86,8 +86,8 @@ class FiniteTempBasis(AbstractBasis):
         uhat_funcs = FunctionSetFT(basis_get_uhat(self._ptr))
 
         self._s = basis_get_svals(self._ptr)
-        self._u = PiecewiseLegendrePolyVector(u_funcs, 0, self._beta)
-        self._v = PiecewiseLegendrePolyVector(v_funcs, -self._wmax, self._wmax)
+        self._u = PiecewiseLegendrePolyVector(u_funcs, -self._beta, self._beta, self._beta)
+        self._v = PiecewiseLegendrePolyVector(v_funcs, -self._wmax, self._wmax, 0.0)
         self._uhat = PiecewiseLegendrePolyFTVector(uhat_funcs)
 
     @property
