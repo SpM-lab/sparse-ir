@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Check version consistency
-        run: python check_version_consistency.py
+        run: python check_libsparseir_version_consistency.py
 
   test:
     name: Test
