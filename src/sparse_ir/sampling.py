@@ -18,7 +18,7 @@ class TauSampling:
     in (scaled/unscaled) imaginary time.
     """
 
-    def __init__(self, basis, sampling_points=None, use_positive_taus=False):
+    def __init__(self, basis, sampling_points=None, use_positive_taus=True):
         """
         Initialize tau sampling.
 
@@ -29,11 +29,10 @@ class TauSampling:
         sampling_points : array_like, optional
             Tau sampling points. If None, use default.
         use_positive_taus : bool, optional
+            If `use_positive_taus=True`, the sampling points are
+            folded to the positive tau domain [0, β) [default].
             If `use_positive_taus=False`, the sampling points are within
             the range [-β/2, β/2] and the distribution is symmetric.
-            If `use_positive_taus=True`, the sampling points are
-            folded to the positive tau domain [0, β), which is
-            the default behavior of sparseir 1.x.x.
         """
         self.basis = basis
 
