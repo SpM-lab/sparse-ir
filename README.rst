@@ -117,23 +117,6 @@ terms of compactness.
 
 License and citation
 --------------------
-Development
------------
-For developers, this repository includes tools to ensure consistency between
-different package managers:
-
-- **Version Consistency Check**: Ensures that ``pylibsparseir`` version
-  specifications in ``pyproject.toml`` and ``.conda/meta.yaml`` are consistent.
-
-  Run the check manually::
-
-      python check_version_consistency.py
-
-  Or install as a pre-commit hook::
-
-      pip install pre-commit
-      pre-commit install
-
 This software is released under the MIT License.  See LICENSE.txt for details.
 
 If you find the intermediate representation, sparse sampling, or this software
@@ -152,3 +135,20 @@ MINIMAX isometry method (Merzuk Kaltak and Georg Kresse,
 .. _Phys. Rev. B 101, 035144: https://doi.org/10.1103/PhysRevB.101.035144
 .. _SoftwareX 21, 101266: https://doi.org/10.1016/j.softx.2022.101266
 .. _Phys. Rev. B 101, 205145: https://doi.org/10.1103/PhysRevB.101.205145
+
+Development
+-----------
+For developers, this repository includes tools to ensure consistency between
+different package managers:
+
+- **Version Consistency Check**: Ensures that ``pylibsparseir`` version
+  specifications in ``pyproject.toml`` and ``.conda/meta.yaml`` are consistent.
+
+  Run the check manually::
+
+      python check_version_consistency.py
+
+  Or install as a pre-commit hook::
+
+      pip install pre-commit
+      pre-commit install
