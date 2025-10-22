@@ -1,0 +1,470 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Augmented bases &mdash; sparse-ir 2.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=51b770b3"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Other bases" href="otherbases.html" />
+    <link rel="prev" title="Singular value expansion" href="sve.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            sparse-ir
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basis.html">IR Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Sparse sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kernels.html">Kernels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sve.html">Singular value expansion</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Augmented bases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.accuracy"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.accuracy</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.beta"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.beta</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.default_matsubara_sampling_points"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.default_matsubara_sampling_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.default_tau_sampling_points"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.default_tau_sampling_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.is_well_conditioned"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.is_well_conditioned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.lambda_"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.lambda_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.shape"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.shape</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.significance"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.significance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.size"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.size</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.statistics"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.statistics</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.u"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.u</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.uhat"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.uhat</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis.wmax"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis.wmax</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#available-augmentations">Available augmentations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.TauConst"><code class="docutils literal notranslate"><span class="pre">TauConst</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.TauConst.__call__"><code class="docutils literal notranslate"><span class="pre">TauConst.__call__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.TauConst.create"><code class="docutils literal notranslate"><span class="pre">TauConst.create()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.TauConst.deriv"><code class="docutils literal notranslate"><span class="pre">TauConst.deriv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.TauConst.hat"><code class="docutils literal notranslate"><span class="pre">TauConst.hat()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.TauLinear"><code class="docutils literal notranslate"><span class="pre">TauLinear</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.TauLinear.__call__"><code class="docutils literal notranslate"><span class="pre">TauLinear.__call__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.TauLinear.create"><code class="docutils literal notranslate"><span class="pre">TauLinear.create()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.TauLinear.deriv"><code class="docutils literal notranslate"><span class="pre">TauLinear.deriv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.TauLinear.hat"><code class="docutils literal notranslate"><span class="pre">TauLinear.hat()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.MatsubaraConst"><code class="docutils literal notranslate"><span class="pre">MatsubaraConst</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.MatsubaraConst.__call__"><code class="docutils literal notranslate"><span class="pre">MatsubaraConst.__call__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.MatsubaraConst.create"><code class="docutils literal notranslate"><span class="pre">MatsubaraConst.create()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.MatsubaraConst.deriv"><code class="docutils literal notranslate"><span class="pre">MatsubaraConst.deriv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.MatsubaraConst.hat"><code class="docutils literal notranslate"><span class="pre">MatsubaraConst.hat()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#base-classes">Base classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.augment.AbstractAugmentation"><code class="docutils literal notranslate"><span class="pre">AbstractAugmentation</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.AbstractAugmentation.__call__"><code class="docutils literal notranslate"><span class="pre">AbstractAugmentation.__call__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.AbstractAugmentation.create"><code class="docutils literal notranslate"><span class="pre">AbstractAugmentation.create()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.AbstractAugmentation.deriv"><code class="docutils literal notranslate"><span class="pre">AbstractAugmentation.deriv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.augment.AbstractAugmentation.hat"><code class="docutils literal notranslate"><span class="pre">AbstractAugmentation.hat()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="otherbases.html">Other bases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="porting.html">Porting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hacking.html">Hacking/Development</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">sparse-ir</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Augmented bases</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/augment.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="augmented-bases">
+<h1>Augmented bases<a class="headerlink" href="#augmented-bases" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.augment.</span></span><span class="sig-name descname"><span class="pre">AugmentedBasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">basis</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">augmentations</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis" title="Link to this definition"></a></dt>
+<dd><p>Augmented basis on the imaginary-time/frequency axis.</p>
+<p>Groups a set of additional functions, <code class="docutils literal notranslate"><span class="pre">augmentations</span></code>, with a given
+<code class="docutils literal notranslate"><span class="pre">basis</span></code>.  The augmented functions then form the first basis
+functions, while the rest is provided by the regular basis, i.e.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="p">[</span><span class="n">l</span><span class="p">](</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="n">augmentations</span><span class="p">[</span><span class="n">l</span><span class="p">](</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;</span> <span class="n">naug</span> <span class="k">else</span> <span class="n">basis</span><span class="o">.</span><span class="n">u</span><span class="p">[</span><span class="n">l</span><span class="o">-</span><span class="n">naug</span><span class="p">](</span><span class="n">x</span><span class="p">),</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">naug</span> <span class="pre">=</span> <span class="pre">len(augmentations)</span></code> is the number of added basis functions
+through augmentation.  Similar expressions hold for Matsubara frequencies.</p>
+<p>Augmentation is useful in constructing bases for vertex-like quantities
+such as self-energies <a class="reference external" href="https://doi.org/10.1103/PhysRevResearch.3.033168">[1]</a>.  It is also useful when constructing a
+two-point kernel that serves as a base for multi-point functions <a class="reference external" href="https://doi.org/10.1103/PhysRevB.97.205111">[2]</a>.</p>
+<p class="rubric">Example</p>
+<p>For constructing the vertex basis and the augmented basis, one can
+use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sparse_ir</span><span class="o">,</span><span class="w"> </span><span class="nn">sparse_ir.augment</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">aug</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="n">sparse_ir</span><span class="o">.</span><span class="n">FiniteTempBasis</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">wmax</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+<span class="n">vertex_basis</span> <span class="o">=</span> <span class="n">aug</span><span class="o">.</span><span class="n">AugmentedBasis</span><span class="p">(</span><span class="n">basis</span><span class="p">,</span> <span class="n">aug</span><span class="o">.</span><span class="n">MatsubaraConst</span><span class="p">)</span>
+<span class="n">aug_basis</span> <span class="o">=</span> <span class="n">aug</span><span class="o">.</span><span class="n">AugmentedBasis</span><span class="p">(</span><span class="n">basis</span><span class="p">,</span> <span class="n">aug</span><span class="o">.</span><span class="n">TauConst</span><span class="p">,</span> <span class="n">aug</span><span class="o">.</span><span class="n">TauLinear</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Bases augmented with <cite>TauConst</cite> and <cite>TauLinear</cite> tend to be poorly
+conditioned.  Care must be taken while fitting and compactness should
+be enforced if possible to regularize the problem.</p>
+<p>While vertex bases, i.e., bases augmented with <cite>MatsubaraConst</cite>, stay
+reasonably well-conditioned, it is still good practice to treat the
+Hartree–Fock term separately rather than including it in the basis,
+if possible.</p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#sparse_ir.augment.MatsubaraConst" title="sparse_ir.augment.MatsubaraConst"><code class="xref py py-class docutils literal notranslate"><span class="pre">MatsubaraConst</span></code></a> for vertex basis <a class="reference external" href="https://doi.org/10.1103/PhysRevResearch.3.033168">[1]</a></p></li>
+<li><p><a class="reference internal" href="#sparse_ir.augment.TauConst" title="sparse_ir.augment.TauConst"><code class="xref py py-class docutils literal notranslate"><span class="pre">TauConst</span></code></a>, <a class="reference internal" href="#sparse_ir.augment.TauLinear" title="sparse_ir.augment.TauLinear"><code class="xref py py-class docutils literal notranslate"><span class="pre">TauLinear</span></code></a> for multi-point <a class="reference external" href="https://doi.org/10.1103/PhysRevB.97.205111">[2]</a></p></li>
+</ul>
+</div>
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.accuracy">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">accuracy</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.accuracy" title="Link to this definition"></a></dt>
+<dd><p>Accuracy of the basis.</p>
+<p>Upper bound to the relative error of representing a propagator with
+the given number of basis functions (number between 0 and 1).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.beta">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">beta</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.beta" title="Link to this definition"></a></dt>
+<dd><p>Inverse temperature</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.default_matsubara_sampling_points">
+<span class="sig-name descname"><span class="pre">default_matsubara_sampling_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">positive_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.default_matsubara_sampling_points" title="Link to this definition"></a></dt>
+<dd><p>julia-impl
+function default_matsubara_sampling_points(basis::AugmentedBasis; positive_only=false)</p>
+<blockquote>
+<div><p>n_points = Ref{Cint}(0)
+status = spir_basis_get_n_default_matsus_ext(_get_ptr(basis.basis), positive_only, length(basis), n_points)
+status == SPIR_COMPUTATION_SUCCESS || error(“Failed to get number of default Matsubara sampling points”)
+points = Vector{Int64}(undef, n_points[])
+n_points_returned = Ref{Cint}(0)
+status = spir_basis_get_default_matsus_ext(_get_ptr(basis.basis), positive_only, length(basis), points, n_points_returned)
+status == SPIR_COMPUTATION_SUCCESS || error(“Failed to get default Matsubara sampling points”)
+n_points_returned[] == n_points[] || error(“n_points_returned=$(n_points_returned[]) != n_points=$(n_points[])”)
+return points</p>
+</div></blockquote>
+<p>end</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.default_tau_sampling_points">
+<span class="sig-name descname"><span class="pre">default_tau_sampling_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">npoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.default_tau_sampling_points" title="Link to this definition"></a></dt>
+<dd><p>Default sampling points on the imaginary time axis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>npoints</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Minimum number of sampling points to return.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.is_well_conditioned">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_well_conditioned</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.is_well_conditioned" title="Link to this definition"></a></dt>
+<dd><p>Returns True if the sampling is expected to be well-conditioned</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.lambda_">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lambda_</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.lambda_" title="Link to this definition"></a></dt>
+<dd><p>Basis cutoff parameter, Λ = β * wmax, or None if not present</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.shape">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.shape" title="Link to this definition"></a></dt>
+<dd><p>Shape of the basis function set</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.significance">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">significance</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.significance" title="Link to this definition"></a></dt>
+<dd><p>Significances of the basis functions</p>
+<p>Vector of significance values, one for each basis function. Each
+value is a number between 0 and 1 which is an a-priori bound on the
+(relative) error made by discarding the associated coefficient.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.size">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.size" title="Link to this definition"></a></dt>
+<dd><p>Number of basis functions / singular values</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.statistics">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">statistics</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.statistics" title="Link to this definition"></a></dt>
+<dd><p>Quantum statistic (“F” for fermionic, “B” for bosonic)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.u">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">u</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.u" title="Link to this definition"></a></dt>
+<dd><p>Basis functions on the imaginary time axis.</p>
+<p>Set of IR basis functions on the imaginary time (tau) axis, where tau
+is a real number between zero and beta. To get the l-th basis function
+at imaginary time tau of some basis, use:</p>
+<blockquote>
+<div><p>ultau = basis.u[l](tau)        # l-th basis function at time tau</p>
+</div></blockquote>
+<p>Note that u supports vectorization both over l and tau.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.uhat">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">uhat</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.uhat" title="Link to this definition"></a></dt>
+<dd><p>Basis functions on the reduced Matsubara frequency (wn) axis.</p>
+<p>Set of IR basis functions reduced Matsubara frequency (wn) axis, where
+wn is an integer. These are related to u by the following Fourier transform:</p>
+<blockquote>
+<div><p>û(n) = ∫₀^β dτ exp(iπnτ/β) u(τ)</p>
+</div></blockquote>
+<p>To get the l-th basis function at some reduced frequency wn of
+some basis, use:</p>
+<blockquote>
+<div><p>uln = basis.uhat[l](wn)        # l-th basis function at freq wn</p>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Instead of the value of the Matsubara frequency, these functions
+expect integers corresponding to the prefactor of pi over beta.
+For example, the first few positive fermionic frequencies would
+be specified as [1, 3, 5, 7], and the first bosonic frequencies
+are [0, 2, 4, 6]. This is also distinct to an index!</p>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.augment.AugmentedBasis.wmax">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wmax</span></span><a class="headerlink" href="#sparse_ir.augment.AugmentedBasis.wmax" title="Link to this definition"></a></dt>
+<dd><p>Real frequency cutoff or None if not present</p>
+</dd></dl>
+
+</dd></dl>
+
+<section id="available-augmentations">
+<h2>Available augmentations<a class="headerlink" href="#available-augmentations" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauConst">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.augment.</span></span><span class="sig-name descname"><span class="pre">TauConst</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauConst" title="Link to this definition"></a></dt>
+<dd><p>Constant in imaginary time/discrete delta in frequency</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauConst.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tau</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauConst.__call__" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the function at imaginary time <code class="docutils literal notranslate"><span class="pre">tau</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauConst.create">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">basis</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauConst.create" title="Link to this definition"></a></dt>
+<dd><p>Factory method constructing an augmented term for a basis</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauConst.deriv">
+<span class="sig-name descname"><span class="pre">deriv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauConst.deriv" title="Link to this definition"></a></dt>
+<dd><p>Derivative of order <code class="docutils literal notranslate"><span class="pre">n</span></code> of the function</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauConst.hat">
+<span class="sig-name descname"><span class="pre">hat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauConst.hat" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the Fourier transform at reduced frequency <code class="docutils literal notranslate"><span class="pre">n</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauLinear">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.augment.</span></span><span class="sig-name descname"><span class="pre">TauLinear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauLinear" title="Link to this definition"></a></dt>
+<dd><p>Linear function in imaginary time, antisymmetric around beta/2</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauLinear.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tau</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauLinear.__call__" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the function at imaginary time <code class="docutils literal notranslate"><span class="pre">tau</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauLinear.create">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">basis</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauLinear.create" title="Link to this definition"></a></dt>
+<dd><p>Factory method constructing an augmented term for a basis</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauLinear.deriv">
+<span class="sig-name descname"><span class="pre">deriv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauLinear.deriv" title="Link to this definition"></a></dt>
+<dd><p>Derivative of order <code class="docutils literal notranslate"><span class="pre">n</span></code> of the function</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.TauLinear.hat">
+<span class="sig-name descname"><span class="pre">hat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.TauLinear.hat" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the Fourier transform at reduced frequency <code class="docutils literal notranslate"><span class="pre">n</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.augment.MatsubaraConst">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.augment.</span></span><span class="sig-name descname"><span class="pre">MatsubaraConst</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.MatsubaraConst" title="Link to this definition"></a></dt>
+<dd><p>Constant in Matsubara, undefined in imaginary time</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.MatsubaraConst.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tau</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.MatsubaraConst.__call__" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the function at imaginary time <code class="docutils literal notranslate"><span class="pre">tau</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.MatsubaraConst.create">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">basis</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.MatsubaraConst.create" title="Link to this definition"></a></dt>
+<dd><p>Factory method constructing an augmented term for a basis</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.MatsubaraConst.deriv">
+<span class="sig-name descname"><span class="pre">deriv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.MatsubaraConst.deriv" title="Link to this definition"></a></dt>
+<dd><p>Derivative of order <code class="docutils literal notranslate"><span class="pre">n</span></code> of the function</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.MatsubaraConst.hat">
+<span class="sig-name descname"><span class="pre">hat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.MatsubaraConst.hat" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the Fourier transform at reduced frequency <code class="docutils literal notranslate"><span class="pre">n</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="base-classes">
+<h2>Base classes<a class="headerlink" href="#base-classes" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.augment.AbstractAugmentation">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.augment.</span></span><span class="sig-name descname"><span class="pre">AbstractAugmentation</span></span><a class="headerlink" href="#sparse_ir.augment.AbstractAugmentation" title="Link to this definition"></a></dt>
+<dd><p>Scalar function in imaginary time/frequency.</p>
+<p>This represents a single function in imaginary time and frequency,
+together with some auxiliary methods that make it suitable for augmenting
+a basis.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#sparse_ir.augment.AugmentedBasis" title="sparse_ir.augment.AugmentedBasis"><code class="xref py py-class docutils literal notranslate"><span class="pre">AugmentedBasis</span></code></a></p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.AbstractAugmentation.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tau</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.AbstractAugmentation.__call__" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the function at imaginary time <code class="docutils literal notranslate"><span class="pre">tau</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.AbstractAugmentation.create">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">basis</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.AbstractAugmentation.create" title="Link to this definition"></a></dt>
+<dd><p>Factory method constructing an augmented term for a basis</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.AbstractAugmentation.deriv">
+<span class="sig-name descname"><span class="pre">deriv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.AbstractAugmentation.deriv" title="Link to this definition"></a></dt>
+<dd><p>Derivative of order <code class="docutils literal notranslate"><span class="pre">n</span></code> of the function</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.augment.AbstractAugmentation.hat">
+<span class="sig-name descname"><span class="pre">hat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.augment.AbstractAugmentation.hat" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the Fourier transform at reduced frequency <code class="docutils literal notranslate"><span class="pre">n</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sve.html" class="btn btn-neutral float-left" title="Singular value expansion" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="otherbases.html" class="btn btn-neutral float-right" title="Other bases" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, SpM-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

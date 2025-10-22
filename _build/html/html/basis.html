@@ -1,0 +1,317 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IR Basis &mdash; sparse-ir 2.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=51b770b3"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Sparse sampling" href="sampling.html" />
+    <link rel="prev" title="Getting started" href="tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            sparse-ir
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">IR Basis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sparse_ir.FiniteTempBasis"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.accuracy"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.accuracy</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.beta"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.beta</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.default_matsubara_sampling_points"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.default_matsubara_sampling_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.default_omega_sampling_points"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.default_omega_sampling_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.default_tau_sampling_points"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.default_tau_sampling_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.kernel"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.kernel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.lambda_"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.lambda_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.rescale"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.rescale()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.s"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.s</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.shape"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.shape</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.significance"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.significance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.size"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.size</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.statistics"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.statistics</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.sve_result"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.sve_result</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.u"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.u</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.uhat"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.uhat</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.FiniteTempBasis.wmax"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis.wmax</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#piecewise-polynomials">Piecewise polynomials</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.poly.PiecewiseLegendrePoly"><code class="docutils literal notranslate"><span class="pre">PiecewiseLegendrePoly</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.poly.PiecewiseLegendrePoly.__call__"><code class="docutils literal notranslate"><span class="pre">PiecewiseLegendrePoly.__call__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Sparse sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kernels.html">Kernels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sve.html">Singular value expansion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augment.html">Augmented bases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="otherbases.html">Other bases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="porting.html">Porting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hacking.html">Hacking/Development</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">sparse-ir</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">IR Basis</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/basis.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ir-basis">
+<h1>IR Basis<a class="headerlink" href="#ir-basis" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.</span></span><span class="sig-name descname"><span class="pre">FiniteTempBasis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">statistics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">wmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sve_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="sve.html#sparse_ir.sve.SVEResult" title="sparse_ir.sve.SVEResult"><span class="pre">SVEResult</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.FiniteTempBasis" title="Link to this definition"></a></dt>
+<dd><p>Finite temperature basis for intermediate representation.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.accuracy">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">accuracy</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.accuracy" title="Link to this definition"></a></dt>
+<dd><p>Overall accuracy bound.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.beta">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">beta</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.beta" title="Link to this definition"></a></dt>
+<dd><p>Inverse temperature</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.default_matsubara_sampling_points">
+<span class="sig-name descname"><span class="pre">default_matsubara_sampling_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positive_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.default_matsubara_sampling_points" title="Link to this definition"></a></dt>
+<dd><p>Get default Matsubara sampling points.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.default_omega_sampling_points">
+<span class="sig-name descname"><span class="pre">default_omega_sampling_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.default_omega_sampling_points" title="Link to this definition"></a></dt>
+<dd><p>Get default omega (real frequency) sampling points.</p>
+<p>Returns the extrema of the highest-order basis function in real frequency.
+These points provide near-optimal conditioning for the basis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>npoints</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Ignored (for compatibility with sparse-ir API)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Default omega sampling points</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.default_tau_sampling_points">
+<span class="sig-name descname"><span class="pre">default_tau_sampling_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.default_tau_sampling_points" title="Link to this definition"></a></dt>
+<dd><p>Get default tau sampling points.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.kernel">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">kernel</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.kernel" title="Link to this definition"></a></dt>
+<dd><p>The kernel used to generate the basis.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.lambda_">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lambda_</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.lambda_" title="Link to this definition"></a></dt>
+<dd><p>Basis cutoff parameter, Λ = β * wmax</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.rescale">
+<span class="sig-name descname"><span class="pre">rescale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_lambda</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.rescale" title="Link to this definition"></a></dt>
+<dd><p>Return a basis for different lambda while keeping the same eps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_lambda</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – The new lambda value (must equal new_beta * new_wmax)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new basis with the rescaled parameters</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#sparse_ir.FiniteTempBasis" title="sparse_ir.FiniteTempBasis">FiniteTempBasis</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.s">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">s</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.s" title="Link to this definition"></a></dt>
+<dd><p>Singular values.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.shape">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.shape" title="Link to this definition"></a></dt>
+<dd><p>Shape of the basis function set</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.significance">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">significance</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.significance" title="Link to this definition"></a></dt>
+<dd><p>Relative significance of basis functions.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.size">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.size" title="Link to this definition"></a></dt>
+<dd><p>Number of basis functions / singular values</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.statistics">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">statistics</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.statistics" title="Link to this definition"></a></dt>
+<dd><p>Quantum statistic (‘F’ for fermionic, ‘B’ for bosonic)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.sve_result">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sve_result</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.sve_result" title="Link to this definition"></a></dt>
+<dd><p>The singular value expansion result.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.u">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">u</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.u" title="Link to this definition"></a></dt>
+<dd><p>Basis functions on the imaginary time axis.</p>
+<p>Set of IR basis functions on the imaginary time (tau) axis, where tau
+is a real number between zero and beta. To get the l-th basis function
+at imaginary time tau of some basis, use:</p>
+<blockquote>
+<div><p>ultau = basis.u[l](tau)        # l-th basis function at time tau</p>
+</div></blockquote>
+<p>Note that u supports vectorization both over l and tau.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.uhat">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">uhat</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.uhat" title="Link to this definition"></a></dt>
+<dd><p>Basis functions on the reduced Matsubara frequency (wn) axis.</p>
+<p>Set of IR basis functions reduced Matsubara frequency (wn) axis, where
+wn is an integer. These are related to u by the following Fourier transform:</p>
+<blockquote>
+<div><p>û(n) = ∫₀^β dτ exp(iπnτ/β) u(τ)</p>
+</div></blockquote>
+<p>To get the l-th basis function at some reduced frequency wn of
+some basis, use:</p>
+<blockquote>
+<div><p>uln = basis.uhat[l](wn)        # l-th basis function at freq wn</p>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Instead of the value of the Matsubara frequency, these functions
+expect integers corresponding to the prefactor of pi over beta.
+For example, the first few positive fermionic frequencies would
+be specified as [1, 3, 5, 7], and the first bosonic frequencies
+are [0, 2, 4, 6]. This is also distinct to an index!</p>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.FiniteTempBasis.wmax">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wmax</span></span><a class="headerlink" href="#sparse_ir.FiniteTempBasis.wmax" title="Link to this definition"></a></dt>
+<dd><p>Real frequency cutoff</p>
+</dd></dl>
+
+</dd></dl>
+
+<section id="piecewise-polynomials">
+<h2>Piecewise polynomials<a class="headerlink" href="#piecewise-polynomials" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.poly.PiecewiseLegendrePoly">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.poly.</span></span><span class="sig-name descname"><span class="pre">PiecewiseLegendrePoly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">funcs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FunctionSet</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">xmax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.poly.PiecewiseLegendrePoly" title="Link to this definition"></a></dt>
+<dd><p>Piecewise Legendre polynomial.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.poly.PiecewiseLegendrePoly.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.poly.PiecewiseLegendrePoly.__call__" title="Link to this definition"></a></dt>
+<dd><p>Evaluate basis functions at given points.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tutorial.html" class="btn btn-neutral float-left" title="Getting started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sampling.html" class="btn btn-neutral float-right" title="Sparse sampling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, SpM-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

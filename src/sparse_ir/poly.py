@@ -264,11 +264,14 @@ class PiecewiseLegendrePoly:
     xmax : float
         Maximum value of the interval
     period : float
-        Period of the interval. For periodic functions, this should be the period of the function.
-        For non-periodic functions, this should be 0.
+        Period of the interval. For periodic functions, this should be the 
+        period of the function. For non-periodic functions, this should be 0.
+    default_overlap_range : tuple, optional
+        Default range for overlap calculations (xmin, xmax)
     """
 
-    def __init__(self, funcs: FunctionSet, xmin: float, xmax: float, period: float):
+    def __init__(self, funcs: FunctionSet, xmin: float, xmax: float, 
+                 period: float, default_overlap_range=None):
         if not isinstance(funcs, FunctionSet):
             raise ValueError("funcs must be a FunctionSet")
         if funcs.size() != 1:
@@ -278,21 +281,50 @@ class PiecewiseLegendrePoly:
         self._xmax = xmax
         self._period = period
         self.shape = (self._funcs.size(),)
+        
+        # Set default overlap range
+        if default_overlap_range is not None:
+            self._default_overlap_range = default_overlap_range
+        else:
+            # Default: use existing xmin, xmax
+            self._default_overlap_range = (xmin, xmax)
 
     def __call__(self, x):
         """Evaluate basis functions at given points."""
         return self._funcs(x)
 
-    def overlap(self, f, xmin: float, xmax: float, *, rtol=2.3e-16, return_error=False, points=None):
+    def overlap(self, f, xmin: float = None, xmax: float = None, *, rtol=2.3e-16, return_error=False, points=None):
         """
         Evaluate overlap integral of this polynomial with function ``f``.
         If ``f` returns a scalar, the result is a scalar.
         If ``f`` returns an array, the result is an array with the same shape.
+        
+        Parameters:
+        -----------
+        f : callable
+            Function to integrate with
+        xmin : float, optional
+            Minimum value of the interval. If None, uses default range.
+        xmax : float, optional
+            Maximum value of the interval. If None, uses default range.
+        rtol : float
+            Relative tolerance for integration
+        return_error : bool
+            Whether to return integration error
+        points : sequence, optional
+            Break points for integration
         """
+        # Use default range if not specified
+        if xmin is None:
+            xmin = self._default_overlap_range[0]
+        if xmax is None:
+            xmax = self._default_overlap_range[1]
 
-        polyvec = PiecewiseLegendrePolyVector(self._funcs, self._xmin, self._xmax, self._period)
+        polyvec = PiecewiseLegendrePolyVector(self._funcs, self._xmin, 
+                                            self._xmax, self._period)
 
-        int_result, int_error = polyvec.overlap(f, xmin, xmax, rtol=rtol, return_error=True, points=points)
+        int_result, int_error = polyvec.overlap(f, xmin, xmax, rtol=rtol, 
+                                              return_error=True, points=points)
 
         int_result = int_result.reshape(int_result.shape[1:])
         int_error = int_error.reshape(int_error.shape[1:])
@@ -312,12 +344,20 @@ class PiecewiseLegendrePoly:
 class PiecewiseLegendrePolyVector:
     """Piecewise Legendre polynomial vector."""
 
-    def __init__(self, funcs: FunctionSet, xmin: float, xmax: float, period: float):
+    def __init__(self, funcs: FunctionSet, xmin: float, xmax: float, 
+                 period: float, default_overlap_range=None):
         self._funcs = funcs
         self._xmin = xmin
         self._xmax = xmax
         self._period = period
         self.shape = (self._funcs.size(),)
+        
+        # Set default overlap range
+        if default_overlap_range is not None:
+            self._default_overlap_range = default_overlap_range
+        else:
+            # Default: use existing xmin, xmax
+            self._default_overlap_range = (xmin, xmax)
 
     def __call__(self, x):
         """Evaluate basis functions at given points."""
@@ -327,12 +367,15 @@ class PiecewiseLegendrePolyVector:
         """Get a single basis function or slice of functions."""
         funcs_slice = self._funcs[index]
         if funcs_slice.size() == 1:
-            return PiecewiseLegendrePoly(funcs_slice, self._xmin, self._xmax, self._period)
+            return PiecewiseLegendrePoly(funcs_slice, self._xmin, self._xmax, 
+                                       self._period, self._default_overlap_range)
         else:
-            return PiecewiseLegendrePolyVector(funcs_slice, self._xmin, self._xmax, self._period)
+            return PiecewiseLegendrePolyVector(funcs_slice, self._xmin, 
+                                             self._xmax, self._period, 
+                                             self._default_overlap_range)
 
 
-    def overlap(self, f, xmin: float, xmax: float, *, rtol=2.3e-16, return_error=False, points=None):
+    def overlap(self, f, xmin: float = None, xmax: float = None, *, rtol=2.3e-16, return_error=False, points=None):
         r"""Evaluate overlap integral of this polynomial with function ``f``.
 
         Given the function ``f``, evaluate the integral::
@@ -346,10 +389,10 @@ class PiecewiseLegendrePolyVector:
             f (callable):
                 function that is called with a point ``x`` and returns ``f(x)``
                 at that position.
-            xmin : float
-                Minimum value of the interval
-            xmax : float
-                Maximum value of the interval
+            xmin : float, optional
+                Minimum value of the interval. If None, uses default range.
+            xmax : float, optional
+                Maximum value of the interval. If None, uses default range.
             points (sequence of floats)
                 A sequence of break points in the integration interval
                 where local difficulties of the integrand may occur
@@ -360,14 +403,24 @@ class PiecewiseLegendrePolyVector:
             poly_dims are the shape of the polynomial and f_dims are those
             of the function f(x).
         """
+        # Use default range if not specified
+        if xmin is None:
+            xmin = self._default_overlap_range[0]
+        if xmax is None:
+            xmax = self._default_overlap_range[1]
+            
         if xmin > xmax:
             raise ValueError("xmin must be less than xmax")
         
         if self._period == 0.0:
             if xmin < self._xmin:
-                raise ValueError(f"xmin ({xmin}) must be greater than or equal to the lower bound of the polynomial domain ({self._xmin})")
+                raise ValueError(f"xmin ({xmin}) must be greater than or equal "
+                               f"to the lower bound of the polynomial domain "
+                               f"({self._xmin})")
             if xmax > self._xmax:
-                raise ValueError(f"xmax ({xmax}) must be less than or equal to the upper bound of the polynomial domain ({self._xmax})")
+                raise ValueError(f"xmax ({xmax}) must be less than or equal "
+                               f"to the upper bound of the polynomial domain "
+                               f"({self._xmax})")
 
         f_res = f(0.5*xmin + 0.5*xmax)
 

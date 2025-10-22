@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sparse-ir - A library for the intermediate representation of propagators &mdash; sparse-ir 2.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=51b770b3"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting started" href="tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            sparse-ir
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basis.html">IR Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Sparse sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kernels.html">Kernels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sve.html">Singular value expansion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augment.html">Augmented bases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="otherbases.html">Other bases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="porting.html">Porting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hacking.html">Hacking/Development</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">sparse-ir</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">sparse-ir - A library for the intermediate representation of propagators</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="sparse-ir-a-library-for-the-intermediate-representation-of-propagators">
+<h1>sparse-ir - A library for the intermediate representation of propagators<a class="headerlink" href="#sparse-ir-a-library-for-the-intermediate-representation-of-propagators" title="Link to this heading"></a></h1>
+<p>This library provides routines for constructing and working with the
+intermediate representation of correlation functions.  It provides:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>on-the-fly computation of basis functions for arbitrary cutoff Λ</p></li>
+<li><p>basis functions and singular values are accurate to full precision</p></li>
+<li><p>routines for sparse sampling</p></li>
+</ul>
+</div></blockquote>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>Install via <a class="reference external" href="https://pypi.org/project/sparse-ir">pip</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">sparse</span><span class="o">-</span><span class="n">ir</span>
+</pre></div>
+</div>
+<p>Install via <a class="reference external" href="https://anaconda.org/spm-lab/sparse-ir">conda</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span> <span class="o">-</span><span class="n">c</span> <span class="n">spm</span><span class="o">-</span><span class="n">lab</span> <span class="n">sparse</span><span class="o">-</span><span class="n">ir</span>
+</pre></div>
+</div>
+<p>sparse-ir requires <a class="reference external" href="https://numpy.org/">numpy</a>, <a class="reference external" href="https://scipy.org/">scipy</a>,
+and <a class="reference external" href="https://pypi.org/project/pylibsparseir">pylibsparseir</a> (a thin Python wrapper
+for the <a class="reference external" href="https://github.com/SpM-lab/libsparseir">libsparseir</a> C API).</p>
+<p>To manually install the current development version, you can use the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Only recommended for developers - no automatic updates!</span>
+<span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">SpM</span><span class="o">-</span><span class="n">lab</span><span class="o">/</span><span class="n">sparse</span><span class="o">-</span><span class="n">ir</span>
+<span class="n">cd</span> <span class="n">sparse</span><span class="o">-</span><span class="n">ir</span>
+<span class="n">uv</span> <span class="n">sync</span>
+</pre></div>
+</div>
+<p>Note: <cite>uv</cite> is a fast Python package manager. If you don’t have it installed,
+you can install it with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">uv</span></code> or use <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code> instead.</p>
+</section>
+<section id="building-documentation">
+<h2>Building documentation<a class="headerlink" href="#building-documentation" title="Link to this heading"></a></h2>
+<p>To build the documentation locally:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">doc</span>
+<span class="n">sphinx</span><span class="o">-</span><span class="n">build</span> <span class="o">-</span><span class="n">M</span> <span class="n">html</span> <span class="o">.</span> <span class="n">_build</span><span class="o">/</span><span class="n">html</span>
+</pre></div>
+</div>
+<p>The documentation will be available in <code class="docutils literal notranslate"><span class="pre">doc/_build/html/index.html</span></code>.</p>
+</section>
+<section id="documentation-and-tutorial">
+<h2>Documentation and tutorial<a class="headerlink" href="#documentation-and-tutorial" title="Link to this heading"></a></h2>
+<p>Check out our <a class="reference external" href="https://spm-lab.github.io/sparse-ir-tutorial">comprehensive tutorial</a>, where we self-contained
+notebooks for several many-body methods - GF(2), GW, Eliashberg equations,
+Lichtenstein formula, FLEX, … - are presented.</p>
+<p>Refer to the <a class="reference external" href="https://sparse-ir.readthedocs.io">API documentation</a> for more details on how to work
+with the python library.</p>
+<p>There is also a <a class="reference external" href="https://github.com/SpM-lab/SparseIR.jl">Julia library</a> and (currently somewhat restricted)
+<a href="#id1"><span class="problematic" id="id2">`Fortran library`_</span></a> available for the IR basis and sparse sampling.</p>
+</section>
+<section id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
+<p>Here is a full second-order perturbation theory solver (GF(2)) in a few
+lines of Python code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Construct the IR basis and sparse sampling for fermionic propagators</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sparse_ir</span><span class="o">,</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="n">sparse_ir</span><span class="o">.</span><span class="n">FiniteTempBasis</span><span class="p">(</span><span class="s1">&#39;F&#39;</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">wmax</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span>
+<span class="n">stau</span> <span class="o">=</span> <span class="n">sparse_ir</span><span class="o">.</span><span class="n">TauSampling</span><span class="p">(</span><span class="n">basis</span><span class="p">)</span>
+<span class="n">siw</span> <span class="o">=</span> <span class="n">sparse_ir</span><span class="o">.</span><span class="n">MatsubaraSampling</span><span class="p">(</span><span class="n">basis</span><span class="p">,</span> <span class="n">positive_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Solve the single impurity Anderson model coupled to a bath with a</span>
+<span class="c1"># semicircular states with unit half bandwidth.</span>
+<span class="n">U</span> <span class="o">=</span> <span class="mf">1.2</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rho0w</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">w</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+
+<span class="c1"># Compute the IR basis coefficients for the non-interacting propagator</span>
+<span class="n">rho0l</span> <span class="o">=</span> <span class="n">basis</span><span class="o">.</span><span class="n">v</span><span class="o">.</span><span class="n">overlap</span><span class="p">(</span><span class="n">rho0w</span><span class="p">)</span>
+<span class="n">G0l</span> <span class="o">=</span> <span class="o">-</span><span class="n">basis</span><span class="o">.</span><span class="n">s</span> <span class="o">*</span> <span class="n">rho0l</span>
+
+<span class="c1"># Self-consistency loop: alternate between second-order expression for the</span>
+<span class="c1"># self-energy and the Dyson equation until convergence.</span>
+<span class="n">Gl</span> <span class="o">=</span> <span class="n">G0l</span>
+<span class="n">Gl_prev</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">while</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">Gl</span> <span class="o">-</span> <span class="n">Gl_prev</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+    <span class="n">Gl_prev</span> <span class="o">=</span> <span class="n">Gl</span>
+    <span class="n">Gtau</span> <span class="o">=</span> <span class="n">stau</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">Gl</span><span class="p">)</span>
+    <span class="n">Sigmatau</span> <span class="o">=</span> <span class="n">U</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">Gtau</span><span class="o">**</span><span class="mi">3</span>
+    <span class="n">Sigmal</span> <span class="o">=</span> <span class="n">stau</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Sigmatau</span><span class="p">)</span>
+    <span class="n">Sigmaiw</span> <span class="o">=</span> <span class="n">siw</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">Sigmal</span><span class="p">)</span>
+    <span class="n">G0iw</span> <span class="o">=</span> <span class="n">siw</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">G0l</span><span class="p">)</span>
+    <span class="n">Giw</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">G0iw</span> <span class="o">-</span> <span class="n">Sigmaiw</span><span class="p">)</span>
+    <span class="n">Gl</span> <span class="o">=</span> <span class="n">siw</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Giw</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You may want to start with reading up on the <a class="reference external" href="https://arxiv.org/abs/2106.12685">intermediate representation</a>.
+It is tied to the analytic continuation of bosonic/fermionic spectral
+functions from (real) frequencies to imaginary time, a transformation mediated
+by a kernel <code class="docutils literal notranslate"><span class="pre">K</span></code>.  The kernel depends on a cutoff, which you should choose to
+be <code class="docutils literal notranslate"><span class="pre">lambda_</span> <span class="pre">&gt;=</span> <span class="pre">beta</span> <span class="pre">*</span> <span class="pre">W</span></code>, where <code class="docutils literal notranslate"><span class="pre">beta</span></code> is the inverse temperature and <code class="docutils literal notranslate"><span class="pre">W</span></code>
+is the bandwidth.</p>
+<p>One can now perform a <a class="reference external" href="https://w.wiki/3poQ">singular value expansion</a> on this kernel, which
+generates two sets of orthonormal basis functions, one set <code class="docutils literal notranslate"><span class="pre">v[l](w)</span></code> for
+real frequency side <code class="docutils literal notranslate"><span class="pre">w</span></code>, and one set <code class="docutils literal notranslate"><span class="pre">u[l](tau)</span></code> for the same obejct in
+imaginary (Euclidean) time <code class="docutils literal notranslate"><span class="pre">tau</span></code>, together with a “coupling” strength
+<code class="docutils literal notranslate"><span class="pre">s[l]</span></code> between the two sides.</p>
+<p>By this construction, the imaginary time basis can be shown to be <em>optimal</em> in
+terms of compactness.</p>
+</section>
+<section id="license-and-citation">
+<h2>License and citation<a class="headerlink" href="#license-and-citation" title="Link to this heading"></a></h2>
+<p>This software is released under the MIT License.  See LICENSE.txt for details.</p>
+<p>If you find the intermediate representation, sparse sampling, or this software
+useful in your research, please consider citing the following papers:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Hiroshi Shinaoka et al., <a class="reference external" href="https://doi.org/10.1103/PhysRevB.96.035147">Phys. Rev. B 96, 035147</a>  (2017)</p></li>
+<li><p>Jia Li et al., <a class="reference external" href="https://doi.org/10.1103/PhysRevB.101.035144">Phys. Rev. B 101, 035144</a> (2020)</p></li>
+<li><p>Markus Wallerberger et al., <a class="reference external" href="https://doi.org/10.1016/j.softx.2022.101266">SoftwareX 21, 101266</a> (2023)</p></li>
+</ul>
+</div></blockquote>
+<p>If you are discussing sparse sampling in your research specifically, please
+also consider citing an independently discovered, closely related approach, the
+MINIMAX isometry method (Merzuk Kaltak and Georg Kresse,
+<a class="reference external" href="https://doi.org/10.1103/PhysRevB.101.205145">Phys. Rev. B 101, 205145</a>, 2020).</p>
+</section>
+<section id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basis.html">IR Basis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="basis.html#sparse_ir.FiniteTempBasis"><code class="docutils literal notranslate"><span class="pre">FiniteTempBasis</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="basis.html#piecewise-polynomials">Piecewise polynomials</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Sparse sampling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html#sparse-sampling-transformers">Sparse sampling transformers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html#base-classes">Base classes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="kernels.html">Kernels</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="kernels.html#predefined-kernels">Predefined kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kernels.html#custom-kernels">Custom kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kernels.html#base-classes">Base classes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sve.html">Singular value expansion</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sve.html#sparse_ir.compute_sve"><code class="docutils literal notranslate"><span class="pre">compute_sve()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="sve.html#module-sparse_ir.sve">Expansion module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sve.html#singular-value-decomposition">Singular value decomposition</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="augment.html">Augmented bases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="augment.html#sparse_ir.augment.AugmentedBasis"><code class="docutils literal notranslate"><span class="pre">AugmentedBasis</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="augment.html#available-augmentations">Available augmentations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="augment.html#base-classes">Base classes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="otherbases.html">Other bases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="otherbases.html#sparse_ir.dlr.DiscreteLehmannRepresentation"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="otherbases.html#base-classes">Base classes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="porting.html">Porting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="porting.html#adapter-module">Adapter module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hacking.html">Hacking/Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hacking.html#code-guidelines">Code guidelines</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tutorial.html" class="btn btn-neutral float-right" title="Getting started" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, SpM-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

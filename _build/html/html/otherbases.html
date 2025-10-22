@@ -1,0 +1,472 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Other bases &mdash; sparse-ir 2.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=51b770b3"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Porting" href="porting.html" />
+    <link rel="prev" title="Augmented bases" href="augment.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            sparse-ir
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basis.html">IR Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Sparse sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="kernels.html">Kernels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sve.html">Singular value expansion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augment.html">Augmented bases</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Other bases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.accuracy"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.accuracy</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.basis"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.basis</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.beta"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.beta</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.default_matsubara_sampling_points"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.default_matsubara_sampling_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.default_tau_sampling_points"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.default_tau_sampling_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.from_IR"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.from_IR()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.is_well_conditioned"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.is_well_conditioned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.lambda_"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.lambda_</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.shape"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.shape</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.significance"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.significance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.size"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.size</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.statistics"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.statistics</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.to_IR"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.to_IR()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.u"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.u</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.uhat"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.uhat</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.wmax"><code class="docutils literal notranslate"><span class="pre">DiscreteLehmannRepresentation.wmax</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#base-classes">Base classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis"><code class="docutils literal notranslate"><span class="pre">AbstractBasis</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.accuracy"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.accuracy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.beta"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.beta</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.default_matsubara_sampling_points"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.default_matsubara_sampling_points()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.default_tau_sampling_points"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.default_tau_sampling_points()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.is_well_conditioned"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.is_well_conditioned</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.lambda_"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.lambda_</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.shape"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.shape</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.significance"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.significance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.size"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.size</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.statistics"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.statistics</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.u"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.u</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.uhat"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.uhat</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis.wmax"><code class="docutils literal notranslate"><span class="pre">AbstractBasis.wmax</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="porting.html">Porting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hacking.html">Hacking/Development</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">sparse-ir</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Other bases</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/otherbases.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="other-bases">
+<h1>Other bases<a class="headerlink" href="#other-bases" title="Link to this heading"></a></h1>
+<p>Aside from the intermediate representation (IR), <cite>sparse-ir</cite> allows to work
+with any bases derived from <a class="reference internal" href="#sparse_ir.abstract.AbstractBasis" title="sparse_ir.abstract.AbstractBasis"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse_ir.abstract.AbstractBasis</span></code></a>.</p>
+<p>In particular, we allow working we offer a variant of the Discrete Lehmann
+Representation: <a class="reference internal" href="#sparse_ir.dlr.DiscreteLehmannRepresentation" title="sparse_ir.dlr.DiscreteLehmannRepresentation"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse_ir.dlr.DiscreteLehmannRepresentation</span></code></a>.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.dlr.</span></span><span class="sig-name descname"><span class="pre">DiscreteLehmannRepresentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis" title="sparse_ir.abstract.AbstractBasis"><span class="pre">AbstractBasis</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">poles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation" title="Link to this definition"></a></dt>
+<dd><p>Discrete Lehmann Representation basis.</p>
+<p>The DLR provides an alternative representation of Green’s functions
+using poles at the IR sampling points. This can be more efficient
+than the standard IR basis for certain applications.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.accuracy">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">accuracy</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.accuracy" title="Link to this definition"></a></dt>
+<dd><p>Accuracy of the basis.</p>
+<p>Upper bound to the relative error of representing a propagator with
+the given number of basis functions (number between 0 and 1).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.basis">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">basis</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#sparse_ir.abstract.AbstractBasis" title="sparse_ir.abstract.AbstractBasis"><span class="pre">AbstractBasis</span></a></em><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.basis" title="Link to this definition"></a></dt>
+<dd><p>Underlying basis</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.beta">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">beta</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.beta" title="Link to this definition"></a></dt>
+<dd><p>Inverse temperature</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.default_matsubara_sampling_points">
+<span class="sig-name descname"><span class="pre">default_matsubara_sampling_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.default_matsubara_sampling_points" title="Link to this definition"></a></dt>
+<dd><p>Default sampling points on the imaginary frequency axis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>npoints</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Minimum number of sampling points to return.</p></li>
+<li><p><strong>positive_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Only return non-negative frequencies. This is useful if the
+object to be fitted is symmetric in Matsubara frequency,
+ghat(w) == ghat(-w).conj(), or, equivalently, real in
+imaginary time.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.default_tau_sampling_points">
+<span class="sig-name descname"><span class="pre">default_tau_sampling_points</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.default_tau_sampling_points" title="Link to this definition"></a></dt>
+<dd><p>Default sampling points on the imaginary time axis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>npoints</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Minimum number of sampling points to return.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.from_IR">
+<span class="sig-name descname"><span class="pre">from_IR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gl</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.from_IR" title="Link to this definition"></a></dt>
+<dd><p>From IR to DLR</p>
+<dl class="simple">
+<dt>gl:</dt><dd><p>Expansion coefficients in IR</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.is_well_conditioned">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_well_conditioned</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.is_well_conditioned" title="Link to this definition"></a></dt>
+<dd><p>Returns True if the sampling is expected to be well-conditioned</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.lambda_">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lambda_</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.lambda_" title="Link to this definition"></a></dt>
+<dd><p>Basis cutoff parameter, Λ = β * wmax, or None if not present</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.shape">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.shape" title="Link to this definition"></a></dt>
+<dd><p>Shape of the basis function set</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.significance">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">significance</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.significance" title="Link to this definition"></a></dt>
+<dd><p>Significances of the basis functions</p>
+<p>Vector of significance values, one for each basis function. Each
+value is a number between 0 and 1 which is an a-priori bound on the
+(relative) error made by discarding the associated coefficient.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.size">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.size" title="Link to this definition"></a></dt>
+<dd><p>Number of basis functions / singular values</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.statistics">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">statistics</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.statistics" title="Link to this definition"></a></dt>
+<dd><p>Quantum statistic (“F” for fermionic, “B” for bosonic)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.to_IR">
+<span class="sig-name descname"><span class="pre">to_IR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_dlr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.to_IR" title="Link to this definition"></a></dt>
+<dd><p>From DLR to IR</p>
+<dl class="simple">
+<dt>g_dlr:</dt><dd><p>Expansion coefficients in DLR</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.u">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">u</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.u" title="Link to this definition"></a></dt>
+<dd><p>Basis functions on the imaginary time axis.</p>
+<p>Set of IR basis functions on the imaginary time (tau) axis, where tau
+is a real number between zero and beta. To get the l-th basis function
+at imaginary time tau of some basis, use:</p>
+<blockquote>
+<div><p>ultau = basis.u[l](tau)        # l-th basis function at time tau</p>
+</div></blockquote>
+<p>Note that u supports vectorization both over l and tau.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.uhat">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">uhat</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.uhat" title="Link to this definition"></a></dt>
+<dd><p>Basis functions on the reduced Matsubara frequency (wn) axis.</p>
+<p>Set of IR basis functions reduced Matsubara frequency (wn) axis, where
+wn is an integer. These are related to u by the following Fourier transform:</p>
+<blockquote>
+<div><p>û(n) = ∫₀^β dτ exp(iπnτ/β) u(τ)</p>
+</div></blockquote>
+<p>To get the l-th basis function at some reduced frequency wn of
+some basis, use:</p>
+<blockquote>
+<div><p>uln = basis.uhat[l](wn)        # l-th basis function at freq wn</p>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Instead of the value of the Matsubara frequency, these functions
+expect integers corresponding to the prefactor of pi over beta.
+For example, the first few positive fermionic frequencies would
+be specified as [1, 3, 5, 7], and the first bosonic frequencies
+are [0, 2, 4, 6]. This is also distinct to an index!</p>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.dlr.DiscreteLehmannRepresentation.wmax">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wmax</span></span><a class="headerlink" href="#sparse_ir.dlr.DiscreteLehmannRepresentation.wmax" title="Link to this definition"></a></dt>
+<dd><p>Real frequency cutoff or None if not present</p>
+</dd></dl>
+
+</dd></dl>
+
+<section id="base-classes">
+<h2>Base classes<a class="headerlink" href="#base-classes" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.abstract.</span></span><span class="sig-name descname"><span class="pre">AbstractBasis</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis" title="Link to this definition"></a></dt>
+<dd><p>Abstract base class for bases on the imaginary-time axis.</p>
+<p>This class stores a set of basis functions. We can then expand a two-point
+propagator G(τ), where τ is imaginary time:</p>
+<blockquote>
+<div><p>G(τ) ≈ Σ_{l=0}^{L-1} g_l U_l(τ)</p>
+</div></blockquote>
+<p>where U is now the l-th basis function, stored in u and g denote the
+expansion coefficients. Similarly, the Fourier transform Ĝ(n), where n
+is a reduced Matsubara frequency, can be expanded as follows:</p>
+<blockquote>
+<div><p>Ĝ(n) ≈ Σ_{l=0}^{L-1} g_l Û_l(n)</p>
+</div></blockquote>
+<p>where Û is the Fourier transform of the l-th basis function, stored
+in uhat.</p>
+<p>Assuming that basis is an instance of some abstract basis, g is a vector
+of expansion coefficients, tau is some imaginary time and n some frequency,
+we can write this in the library as follows:</p>
+<blockquote>
+<div><p>G_tau = basis.u(tau).T &#64; gl
+G_n = basis.uhat(n).T &#64; gl</p>
+</div></blockquote>
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.accuracy">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">accuracy</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.accuracy" title="Link to this definition"></a></dt>
+<dd><p>Accuracy of the basis.</p>
+<p>Upper bound to the relative error of representing a propagator with
+the given number of basis functions (number between 0 and 1).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.beta">
+<em class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">beta</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.beta" title="Link to this definition"></a></dt>
+<dd><p>Inverse temperature</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.default_matsubara_sampling_points">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">default_matsubara_sampling_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">npoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positive_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.default_matsubara_sampling_points" title="Link to this definition"></a></dt>
+<dd><p>Default sampling points on the imaginary frequency axis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>npoints</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Minimum number of sampling points to return.</p></li>
+<li><p><strong>positive_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Only return non-negative frequencies. This is useful if the
+object to be fitted is symmetric in Matsubara frequency,
+ghat(w) == ghat(-w).conj(), or, equivalently, real in
+imaginary time.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.default_tau_sampling_points">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">default_tau_sampling_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">npoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.default_tau_sampling_points" title="Link to this definition"></a></dt>
+<dd><p>Default sampling points on the imaginary time axis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>npoints</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Minimum number of sampling points to return.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.is_well_conditioned">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_well_conditioned</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.is_well_conditioned" title="Link to this definition"></a></dt>
+<dd><p>Returns True if the sampling is expected to be well-conditioned</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.lambda_">
+<em class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lambda_</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.lambda_" title="Link to this definition"></a></dt>
+<dd><p>Basis cutoff parameter, Λ = β * wmax, or None if not present</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.shape">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.shape" title="Link to this definition"></a></dt>
+<dd><p>Shape of the basis function set</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.significance">
+<em class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">significance</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.significance" title="Link to this definition"></a></dt>
+<dd><p>Significances of the basis functions</p>
+<p>Vector of significance values, one for each basis function. Each
+value is a number between 0 and 1 which is an a-priori bound on the
+(relative) error made by discarding the associated coefficient.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.size">
+<em class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.size" title="Link to this definition"></a></dt>
+<dd><p>Number of basis functions / singular values</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.statistics">
+<em class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">statistics</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.statistics" title="Link to this definition"></a></dt>
+<dd><p>Quantum statistic (“F” for fermionic, “B” for bosonic)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.u">
+<em class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">u</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.u" title="Link to this definition"></a></dt>
+<dd><p>Basis functions on the imaginary time axis.</p>
+<p>Set of IR basis functions on the imaginary time (tau) axis, where tau
+is a real number between zero and beta. To get the l-th basis function
+at imaginary time tau of some basis, use:</p>
+<blockquote>
+<div><p>ultau = basis.u[l](tau)        # l-th basis function at time tau</p>
+</div></blockquote>
+<p>Note that u supports vectorization both over l and tau.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.uhat">
+<em class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">uhat</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.uhat" title="Link to this definition"></a></dt>
+<dd><p>Basis functions on the reduced Matsubara frequency (wn) axis.</p>
+<p>Set of IR basis functions reduced Matsubara frequency (wn) axis, where
+wn is an integer. These are related to u by the following Fourier transform:</p>
+<blockquote>
+<div><p>û(n) = ∫₀^β dτ exp(iπnτ/β) u(τ)</p>
+</div></blockquote>
+<p>To get the l-th basis function at some reduced frequency wn of
+some basis, use:</p>
+<blockquote>
+<div><p>uln = basis.uhat[l](wn)        # l-th basis function at freq wn</p>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Instead of the value of the Matsubara frequency, these functions
+expect integers corresponding to the prefactor of pi over beta.
+For example, the first few positive fermionic frequencies would
+be specified as [1, 3, 5, 7], and the first bosonic frequencies
+are [0, 2, 4, 6]. This is also distinct to an index!</p>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.abstract.AbstractBasis.wmax">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wmax</span></span><a class="headerlink" href="#sparse_ir.abstract.AbstractBasis.wmax" title="Link to this definition"></a></dt>
+<dd><p>Real frequency cutoff or None if not present</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="augment.html" class="btn btn-neutral float-left" title="Augmented bases" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="porting.html" class="btn btn-neutral float-right" title="Porting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, SpM-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
