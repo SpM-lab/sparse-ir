@@ -86,8 +86,13 @@ class FiniteTempBasis(AbstractBasis):
         uhat_funcs = FunctionSetFT(basis_get_uhat(self._ptr))
 
         self._s = basis_get_svals(self._ptr)
-        self._u = PiecewiseLegendrePolyVector(u_funcs, -self._beta, self._beta, self._beta)
-        self._v = PiecewiseLegendrePolyVector(v_funcs, -self._wmax, self._wmax, 0.0)
+        # u_funcs uses [0, beta] as default overlap range
+        self._u = PiecewiseLegendrePolyVector(u_funcs, -self._beta, self._beta, 
+                                            self._beta, 
+                                            default_overlap_range=(0, self._beta))
+        # v_funcs uses default range (existing xmin, xmax)
+        self._v = PiecewiseLegendrePolyVector(v_funcs, -self._wmax, self._wmax, 
+                                            0.0)
         self._uhat = PiecewiseLegendrePolyFTVector(uhat_funcs)
 
     @property

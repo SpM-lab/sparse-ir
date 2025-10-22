@@ -1,0 +1,276 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kernels &mdash; sparse-ir 2.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=51b770b3"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Singular value expansion" href="sve.html" />
+    <link rel="prev" title="Sparse sampling" href="sampling.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            sparse-ir
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basis.html">IR Basis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Sparse sampling</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Kernels</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#predefined-kernels">Predefined kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.LogisticKernel"><code class="docutils literal notranslate"><span class="pre">LogisticKernel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.LogisticKernel.lambda_"><code class="docutils literal notranslate"><span class="pre">LogisticKernel.lambda_</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.RegularizedBoseKernel"><code class="docutils literal notranslate"><span class="pre">RegularizedBoseKernel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sparse_ir.RegularizedBoseKernel.lambda_"><code class="docutils literal notranslate"><span class="pre">RegularizedBoseKernel.lambda_</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#custom-kernels">Custom kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#base-classes">Base classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sparse_ir.kernel.AbstractKernel"><code class="docutils literal notranslate"><span class="pre">AbstractKernel</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sve.html">Singular value expansion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="augment.html">Augmented bases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="otherbases.html">Other bases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="porting.html">Porting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hacking.html">Hacking/Development</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">sparse-ir</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Kernels</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/kernels.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="kernels">
+<h1>Kernels<a class="headerlink" href="#kernels" title="Link to this heading"></a></h1>
+<p>The IR basis is nothing but the <a class="reference external" href="https://w.wiki/3poQ">singular value expansion</a> of a suitable
+integral kernel <cite>K</cite> mediating the change from real frequencies to imaginary
+times:</p>
+<div class="math notranslate nohighlight">
+\[G(τ) = - \int d\omega  K(τ, \omega) w(\omega) \rho(\omega),\]</div>
+<p>where:</p>
+<div class="math notranslate nohighlight">
+\[\rho(ω) = -\frac 1\pi \Im G(ω + i\delta)\]</div>
+<p>is the spectral function and w(ω) is a weight function. The integral is defined
+on the interval [-ωmax, ωmax], where ωmax(=Λ/β) is a frequency cutoff.</p>
+<p>Different kernels yield different IR basis functions.  The <cite>sparse-ir</cite> library
+defines two kernels:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#sparse_ir.LogisticKernel" title="sparse_ir.LogisticKernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse_ir.LogisticKernel</span></code></a>: continuation of <em>fermionic/bosonic</em>
+spectral functions with w(ω)=1 for fermions
+and w(ω)=1/tanh(ω/ωmax) for bosons.</p></li>
+<li><p><a class="reference internal" href="#sparse_ir.RegularizedBoseKernel" title="sparse_ir.RegularizedBoseKernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse_ir.RegularizedBoseKernel</span></code></a>: continuation of <em>bosonic</em> spectral functions
+with w(ω)=1/ω.</p></li>
+</ul>
+</div></blockquote>
+<p>By default, <a class="reference internal" href="#sparse_ir.LogisticKernel" title="sparse_ir.LogisticKernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse_ir.LogisticKernel</span></code></a> is used.
+Kernels can be fed directly into <a class="reference internal" href="basis.html#sparse_ir.FiniteTempBasis" title="sparse_ir.FiniteTempBasis"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse_ir.FiniteTempBasis</span></code></a> to
+get the intermediate representation.</p>
+<section id="predefined-kernels">
+<h2>Predefined kernels<a class="headerlink" href="#predefined-kernels" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.LogisticKernel">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.</span></span><span class="sig-name descname"><span class="pre">LogisticKernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lambda_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.LogisticKernel" title="Link to this definition"></a></dt>
+<dd><p>Fermionic/logistic imaginary-time kernel.</p>
+<p>This kernel treats a fermionic spectral function at finite temperature.
+The definition is:</p>
+<blockquote>
+<div><p>K(τ, ω) = exp(-τ ω) / (1 + exp(-β ω))</p>
+</div></blockquote>
+<p>with τ ∈ [0, β] and ω ∈ [-ωmax, ωmax].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>lambda</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Kernel cutoff Λ = β * ωmax</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.LogisticKernel.lambda_">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lambda_</span></span><a class="headerlink" href="#sparse_ir.LogisticKernel.lambda_" title="Link to this definition"></a></dt>
+<dd><p>Kernel cutoff.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.RegularizedBoseKernel">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.</span></span><span class="sig-name descname"><span class="pre">RegularizedBoseKernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lambda_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sparse_ir.RegularizedBoseKernel" title="Link to this definition"></a></dt>
+<dd><p>Bosonic imaginary-time kernel.</p>
+<p>This kernel treats a bosonic spectral function at finite temperature.
+The definition is:</p>
+<blockquote>
+<div><p>K(τ, ω) = ω exp(-τ ω) / (1 - exp(-β ω))</p>
+</div></blockquote>
+<p>with τ ∈ [0, β] and ω ∈ [-ωmax, ωmax]. The kernel is regularized
+at ω = 0 to avoid the singularity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>lambda</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Kernel cutoff Λ = β * ωmax</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="sparse_ir.RegularizedBoseKernel.lambda_">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">lambda_</span></span><a class="headerlink" href="#sparse_ir.RegularizedBoseKernel.lambda_" title="Link to this definition"></a></dt>
+<dd><p>Kernel cutoff.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="custom-kernels">
+<h2>Custom kernels<a class="headerlink" href="#custom-kernels" title="Link to this heading"></a></h2>
+<p>Adding kernels to <code class="docutils literal notranslate"><span class="pre">sparse_ir</span></code> is simple - at the very basic level, the
+library expects a kernel <code class="docutils literal notranslate"><span class="pre">K</span></code> to be able to provide two things:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>the values through <code class="docutils literal notranslate"><span class="pre">K(x,</span> <span class="pre">y)</span></code></p></li>
+<li><p>a set of SVE discretization hints through <code class="docutils literal notranslate"><span class="pre">K.hints()</span></code></p></li>
+</ol>
+</div></blockquote>
+<p>Let us suppose you simply want to include a Gaussian default model on the real
+axis instead of the default (flat) one.  We create a new kernel by inheriting
+from <a class="reference internal" href="#sparse_ir.kernel.AbstractKernel" title="sparse_ir.kernel.AbstractKernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse_ir.kernel.AbstractKernel</span></code></a> and then simply wrap around a
+fermionic kernel, modifying the values as needed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sparse_ir</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sparse_ir.kernel</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">KernelFGauss</span><span class="p">(</span><span class="n">sparse_ir</span><span class="o">.</span><span class="n">kernel</span><span class="o">.</span><span class="n">AbstractKernel</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lambda_</span><span class="p">,</span> <span class="n">std</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inner</span> <span class="o">=</span> <span class="n">sparse_ir</span><span class="o">.</span><span class="n">LogisticKernel</span><span class="p">(</span><span class="n">lambda_</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_</span> <span class="o">=</span> <span class="n">lambda_</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std</span> <span class="o">=</span> <span class="n">std</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_plus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x_minus</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># First, get value of kernel</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inner</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_plus</span><span class="p">,</span> <span class="n">x_minus</span><span class="p">)</span>
+        <span class="c1"># Then multiply with default model</span>
+        <span class="n">val</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">std</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">val</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">hints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inner</span><span class="o">.</span><span class="n">hints</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can feed this kernel now directly to <a class="reference internal" href="basis.html#sparse_ir.FiniteTempBasis" title="sparse_ir.FiniteTempBasis"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse_ir.FiniteTempBasis</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">K</span> <span class="o">=</span> <span class="n">GaussFKernel</span><span class="p">(</span><span class="mf">10.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="n">sparse_ir</span><span class="o">.</span><span class="n">FiniteTempBasis</span><span class="p">(</span><span class="n">K</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">basis</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This should get you started.  For a fully-fledged and robust implementation,
+you should:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Make sure that your kernel does not lose precision in computing <code class="docutils literal notranslate"><span class="pre">K(x,</span> <span class="pre">y)</span></code>,
+as this directly affects the quality of the basis.  This is also where the
+arguments <code class="docutils literal notranslate"><span class="pre">x_plus</span></code> and <code class="docutils literal notranslate"><span class="pre">x_minus</span></code> may become useful.</p></li>
+<li><p>Optimize your discretization hints.  To do so, it is useful to choose the
+segments in <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span></code> close to the asymptotic distribution of the roots
+of the respective singular functions.  The Gauss order can then be
+determined from a convergence analysis.</p></li>
+<li><p>Check whether your kernel is centrosymmetric, and if so, override the
+<code class="docutils literal notranslate"><span class="pre">is_centrosymmetric</span></code> property.  This yields a approximately four-times
+performance boost.  However, check that the symmetrized versions of the
+kernels do not lose precision.</p></li>
+</ol>
+</div></blockquote>
+</section>
+<section id="base-classes">
+<h2>Base classes<a class="headerlink" href="#base-classes" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparse_ir.kernel.AbstractKernel">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparse_ir.kernel.</span></span><span class="sig-name descname"><span class="pre">AbstractKernel</span></span><a class="headerlink" href="#sparse_ir.kernel.AbstractKernel" title="Link to this definition"></a></dt>
+<dd><p>Abstract base class for kernels.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sampling.html" class="btn btn-neutral float-left" title="Sparse sampling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sve.html" class="btn btn-neutral float-right" title="Singular value expansion" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, SpM-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
