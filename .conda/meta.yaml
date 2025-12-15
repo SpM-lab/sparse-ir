@@ -21,12 +21,12 @@ requirements:
     - scipy
     - setuptools
     - wheel
-    - spm-lab::pylibsparseir >=0.6.0,<0.7.0
+    - spm-lab::pylibsparseir >=0.7.0,<0.8.0
   run:
     - numpy
     - python
     - scipy
-    - spm-lab::pylibsparseir >=0.6.0,<0.7.0
+    - spm-lab::pylibsparseir >=0.7.0,<0.8.0
 
 #test:
 #  imports:

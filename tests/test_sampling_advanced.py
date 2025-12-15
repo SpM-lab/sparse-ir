@@ -123,21 +123,12 @@ class TestSamplingEdgeCases:
         """Test tau points outside [0, beta] range."""
         basis = sparse_ir.FiniteTempBasis('F', 1.0, 10.0, 1e-6)
 
-        # The C++ library enforces tau to be within [0, beta]
-        # Test that out-of-bounds points raise an error
-        out_of_bounds_points = np.array([-0.5, 1.5])  # beta = 1.0
+        # The C library requires that the number of sampling points >= basis size
+        # Creating sampling with fewer points than basis size raises an error
+        out_of_bounds_points = np.array([-0.5, 1.5])  # Only 2 points, but basis.size > 2
 
-        # Creating sampling with out-of-bounds points is allowed
-        smpl = sparse_ir.TauSampling(basis, out_of_bounds_points)
-        assert len(smpl.tau) == 2
-        np.testing.assert_array_equal(smpl.tau, out_of_bounds_points)
-
-        # But evaluation should fail for out-of-bounds tau
-        Gl = np.zeros(basis.size)
-        Gl[0] = 1.0
-
-        with pytest.raises(RuntimeError, match="Failed to evaluate sampling"):
-            Gtau = smpl.evaluate(Gl)
+        with pytest.raises(RuntimeError, match="Failed to create tau sampling"):
+            smpl = sparse_ir.TauSampling(basis, out_of_bounds_points)
 
     @pytest.mark.parametrize("stat", ['F', 'B'])
     def test_different_statistics(self, stat):

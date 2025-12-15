@@ -15,7 +15,7 @@ import numpy as np
 import weakref
 import threading
 
-from pylibsparseir.core import _lib
+from pylibsparseir.core import _lib, c_double_complex
 from pylibsparseir.core import funcs_eval_single_float64, funcs_eval_single_complex128
 from pylibsparseir.core import funcs_get_size, funcs_get_knots, SPIR_ORDER_COLUMN_MAJOR
 from ._gauss import kronrod_31_15
@@ -50,7 +50,7 @@ class FunctionSet:
         # Register this object for safe cleanup
         with _registry_lock:
             _pointer_registry.add(self)
-    
+
     def size(self):
         return self._size
 
@@ -79,7 +79,7 @@ class FunctionSet:
             return o.ravel()
         else:
             return o
-    
+
     def __call_batch(self, x: np.ndarray):
         # Use batch evaluation for arrays
         x = np.ascontiguousarray(x)
@@ -87,13 +87,13 @@ class FunctionSet:
         x_flat = x.ravel()
         n_points = len(x_flat)
         n_funcs = self._size
-        
+
         # Prepare input array (double)
         x_double = x_flat.astype(np.float64)
-        
+
         # Prepare output array (double)
         output = np.zeros((n_funcs, n_points), dtype=np.float64)
-            
+
         # Call batch evaluation function
         status = _lib.spir_funcs_batch_eval(
             self._ptr,
@@ -105,7 +105,7 @@ class FunctionSet:
 
         if status != 0:
             raise RuntimeError(f"Batch evaluation failed with status {status}")
-        
+
         # Reshape output to match input shape: (n_funcs, ...) + original_shape
         output = output.reshape((n_funcs,) + original_shape)
 
@@ -117,7 +117,7 @@ class FunctionSet:
         if self._released:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
-        
+
         if isinstance(index, slice):
             # Handle slice
             start, stop, step = index.indices(sz)
@@ -131,7 +131,7 @@ class FunctionSet:
             else:
                 # List/array of indices
                 indices = (index % sz).tolist()
-        
+
         return funcs_get_slice(self._ptr, indices)
 
     def release(self):
@@ -159,7 +159,7 @@ class FunctionSetFT:
         # Register this object for safe cleanup
         with _registry_lock:
             _pointer_registry.add(self)
-    
+
     def size(self):
         return self._size
 
@@ -180,28 +180,28 @@ class FunctionSetFT:
             x_flat = x.ravel()
             n_points = len(x_flat)
             n_funcs = self._size
-            
+
             # Prepare input array
             x_int64 = x_flat.astype(np.int64)
-            
+
             # Prepare output array (complex128)
             output = np.zeros((n_funcs, n_points), dtype=np.complex128)
-            
+
             # Call batch evaluation function
             status = _lib.spir_funcs_batch_eval_matsu(
                 self._ptr,
                 SPIR_ORDER_COLUMN_MAJOR,
                 n_points,
                 x_int64.ctypes.data_as(POINTER(c_int64)),
-                output.ctypes.data_as(POINTER(c_double))
+                output.ctypes.data_as(POINTER(c_double_complex))  # FIX: Matsubara returns complex values
             )
-            
+
             if status != 0:
                 raise RuntimeError(f"Batch evaluation failed with status {status}")
-            
+
             # Reshape output to match input shape: (n_funcs, ...) + original_shape
             output = output.reshape((n_funcs,) + original_shape)
-            
+
             if x.size == 1 and self._size == 1:
                 return output.flat[0]
             elif x.size == 1 and self._size > 1:
@@ -216,7 +216,7 @@ class FunctionSetFT:
         if self._released:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
-        
+
         if isinstance(index, slice):
             # Handle slice
             start, stop, step = index.indices(sz)
@@ -230,7 +230,7 @@ class FunctionSetFT:
             else:
                 # List/array of indices
                 indices = (index % sz).tolist()
-        
+
         return funcs_ft_get_slice(self._ptr, indices)
 
     def release(self):
@@ -264,13 +264,13 @@ class PiecewiseLegendrePoly:
     xmax : float
         Maximum value of the interval
     period : float
-        Period of the interval. For periodic functions, this should be the 
+        Period of the interval. For periodic functions, this should be the
         period of the function. For non-periodic functions, this should be 0.
     default_overlap_range : tuple, optional
         Default range for overlap calculations (xmin, xmax)
     """
 
-    def __init__(self, funcs: FunctionSet, xmin: float, xmax: float, 
+    def __init__(self, funcs: FunctionSet, xmin: float, xmax: float,
                  period: float, default_overlap_range=None):
         if not isinstance(funcs, FunctionSet):
             raise ValueError("funcs must be a FunctionSet")
@@ -281,7 +281,7 @@ class PiecewiseLegendrePoly:
         self._xmax = xmax
         self._period = period
         self.shape = (self._funcs.size(),)
-        
+
         # Set default overlap range
         if default_overlap_range is not None:
             self._default_overlap_range = default_overlap_range
@@ -298,7 +298,7 @@ class PiecewiseLegendrePoly:
         Evaluate overlap integral of this polynomial with function ``f``.
         If ``f` returns a scalar, the result is a scalar.
         If ``f`` returns an array, the result is an array with the same shape.
-        
+
         Parameters:
         -----------
         f : callable
@@ -320,10 +320,10 @@ class PiecewiseLegendrePoly:
         if xmax is None:
             xmax = self._default_overlap_range[1]
 
-        polyvec = PiecewiseLegendrePolyVector(self._funcs, self._xmin, 
+        polyvec = PiecewiseLegendrePolyVector(self._funcs, self._xmin,
                                             self._xmax, self._period)
 
-        int_result, int_error = polyvec.overlap(f, xmin, xmax, rtol=rtol, 
+        int_result, int_error = polyvec.overlap(f, xmin, xmax, rtol=rtol,
                                               return_error=True, points=points)
 
         int_result = int_result.reshape(int_result.shape[1:])
@@ -339,19 +339,19 @@ class PiecewiseLegendrePoly:
             return int_result, int_error
         else:
             return int_result
-            
+
 
 class PiecewiseLegendrePolyVector:
     """Piecewise Legendre polynomial vector."""
 
-    def __init__(self, funcs: FunctionSet, xmin: float, xmax: float, 
+    def __init__(self, funcs: FunctionSet, xmin: float, xmax: float,
                  period: float, default_overlap_range=None):
         self._funcs = funcs
         self._xmin = xmin
         self._xmax = xmax
         self._period = period
         self.shape = (self._funcs.size(),)
-        
+
         # Set default overlap range
         if default_overlap_range is not None:
             self._default_overlap_range = default_overlap_range
@@ -367,11 +367,11 @@ class PiecewiseLegendrePolyVector:
         """Get a single basis function or slice of functions."""
         funcs_slice = self._funcs[index]
         if funcs_slice.size() == 1:
-            return PiecewiseLegendrePoly(funcs_slice, self._xmin, self._xmax, 
+            return PiecewiseLegendrePoly(funcs_slice, self._xmin, self._xmax,
                                        self._period, self._default_overlap_range)
         else:
-            return PiecewiseLegendrePolyVector(funcs_slice, self._xmin, 
-                                             self._xmax, self._period, 
+            return PiecewiseLegendrePolyVector(funcs_slice, self._xmin,
+                                             self._xmax, self._period,
                                              self._default_overlap_range)
 
 
@@ -408,10 +408,10 @@ class PiecewiseLegendrePolyVector:
             xmin = self._default_overlap_range[0]
         if xmax is None:
             xmax = self._default_overlap_range[1]
-            
+
         if xmin > xmax:
             raise ValueError("xmin must be less than xmax")
-        
+
         if self._period == 0.0:
             if xmin < self._xmin:
                 raise ValueError(f"xmin ({xmin}) must be greater than or equal "
@@ -501,15 +501,15 @@ def _cover_domain(
 
     # Add integration boundaries
     knots = np.unique(np.hstack([knots, [xmin, xmax]]))
-    
+
     if points is not None:
         points = np.asarray(points)
         knots = np.unique(np.hstack((knots, points)))
-    
+
     if period != 0.0:
         # Shift points to cover the entire domain
         extended_knots = list(knots)
-        
+
         # Extend in positive direction
         i = 1
         while True:
@@ -519,7 +519,7 @@ def _cover_domain(
                 break
             extended_knots.extend(new_knots)
             i += 1
-        
+
         # Extend in negative direction
         i = 1
         while True:
@@ -529,9 +529,9 @@ def _cover_domain(
                 break
             extended_knots.extend(new_knots)
             i += 1
-        
+
         knots = np.unique(np.array(extended_knots))
-    
+
     # Trim knots to the integration interval
     knots = knots[(knots >= xmin) & (knots <= xmax)]
     knots = np.sort(knots)
@@ -563,7 +563,7 @@ def _compute_overlap(poly, f, xmin: float, xmax: float,
         f_ = lambda x: np.array([f(x)])
     else:
         raise ValueError("f must return a scalar of float64 or an array")
-    
+
     result = _compute_overlap_internal(
         poly, f_, f_length, xmin, xmax, knots, rtol, radix, max_refine_levels, max_refine_points)
 
@@ -587,7 +587,7 @@ def _compute_overlap_internal(poly, poly_size, f, f_length: int, xmin: float, xm
     radix = 2
 
     f_shape = (f_length,)
-    
+
     for _ in range(max_refine_levels):
         if xstart.size > max_refine_points:
             warn("Refinement is too broad, aborting (increase rtol)")

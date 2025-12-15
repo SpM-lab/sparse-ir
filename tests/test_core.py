@@ -30,7 +30,7 @@ class TestCoreAPI:
         xmax = c_double()
         ymin = c_double()
         ymax = c_double()
-        _lib.spir_kernel_domain(kernel_log, byref(xmin), byref(xmax), byref(ymin), byref(ymax))
+        _lib.spir_kernel_get_domain(kernel_log, byref(xmin), byref(xmax), byref(ymin), byref(ymax))
         assert xmin.value < xmax.value
         assert ymin.value < ymax.value
 
