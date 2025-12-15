@@ -28,10 +28,12 @@ class TestTauSampling:
 
     def test_creation_custom_points(self, basis):
         """Test TauSampling creation with custom points."""
-        custom_points = np.linspace(0, basis.beta, 10)
+        # Number of sampling points must be >= basis.size
+        n_points = basis.size + 5
+        custom_points = np.linspace(0, basis.beta, n_points)
         sampling = sparse_ir.TauSampling(basis, custom_points)
 
-        assert len(sampling.tau) == 10
+        assert len(sampling.tau) == n_points
         np.testing.assert_array_almost_equal(sampling.tau, custom_points)
 
     def test_evaluate_fit_roundtrip(self, basis):
