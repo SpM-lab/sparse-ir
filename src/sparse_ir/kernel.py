@@ -23,7 +23,7 @@ def kernel_domain(kernel: AbstractKernel):
     ymin = c_double()
     ymax = c_double()
 
-    status = _lib.spir_kernel_domain(
+    status = _lib.spir_kernel_get_domain(
         kernel._ptr, byref(xmin), byref(xmax), byref(ymin), byref(ymax)
     )
     if status != COMPUTATION_SUCCESS:
