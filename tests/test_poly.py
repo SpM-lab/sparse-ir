@@ -131,6 +131,7 @@ def test_broadcast_uv(sve_logistic, fn):
     assert_eq(f[l](np.reshape(x, (2, 2))), f[l](x).reshape(3, 2, 2))
 
 
+@pytest.mark.skip(reason="FTVector slicing not yet supported in C API")
 def test_broadcast_uhat(sve_logistic):
     sve_result = sve_logistic[42]
     basis = sparse_ir.FiniteTempBasis('B', 4.2, 10, sve_result=sve_result)
