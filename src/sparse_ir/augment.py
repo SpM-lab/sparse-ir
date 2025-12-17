@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: MIT
 from . import _util
 import numpy as np
-from ctypes import c_int, byref
+from ctypes import c_int, c_bool, byref
 from . import abstract
 from . import basis
-from pylibsparseir.core import basis_get_default_tau_sampling_points_ext, basis_get_n_default_matsus_ext, basis_get_default_matsus_ext
-from pylibsparseir.core import COMPUTATION_SUCCESS
+from pylibsparseir.core import basis_get_default_tau_sampling_points_ext, basis_get_default_matsus_ext, _lib
+from pylibsparseir.constants import COMPUTATION_SUCCESS
 
 class AugmentedBasis(abstract.AbstractBasis):
     """Augmented basis on the imaginary-time/frequency axis.
@@ -140,12 +140,26 @@ class AugmentedBasis(abstract.AbstractBasis):
 
     def default_matsubara_sampling_points(self, *, positive_only=False):
         """Get default Matsubara sampling points for augmented basis.
-        
+
         This method provides default sampling points for Matsubara frequencies
         when using an augmented basis.
         """
-        n_points_returned = basis_get_n_default_matsus_ext(self._basis._ptr, self.size, positive_only)
-        points = np.zeros(n_points_returned, dtype=np.int64)
+        # Call C function directly with correct 5 arguments
+        # The pylibsparseir wrapper basis_get_n_default_matsus_ext has a bug - missing 2nd bool arg
+        # C signature: (basis_ptr, _Bool positive_only, _Bool fence, c_int n_points, POINTER(c_int) n_points_returned)
+        n_points_returned = c_int()
+        fence = False  # fence parameter (second bool)
+        status = _lib.spir_basis_get_n_default_matsus_ext(
+            self._basis._ptr,
+            c_bool(positive_only),
+            c_bool(fence),
+            c_int(self.size),
+            byref(n_points_returned)
+        )
+        if status != COMPUTATION_SUCCESS:
+            raise RuntimeError(f"Failed to get number of default Matsubara points: {status}")
+
+        points = np.zeros(n_points_returned.value, dtype=np.int64)
         basis_get_default_matsus_ext(self._basis._ptr, positive_only, points)
         return points
 

@@ -6,8 +6,14 @@ High-level Python classes for sparse sampling
 
 import numpy as np
 from ctypes import POINTER, c_double, c_int, byref, c_bool, c_int64
-from pylibsparseir.core import c_double_complex, tau_sampling_new
-from pylibsparseir.core import matsubara_sampling_new, _lib, _statistics_to_c
+from pylibsparseir.core import (
+    c_double_complex,
+    get_default_blas_backend,
+    matsubara_sampling_new,
+    tau_sampling_new,
+    _lib,
+    _statistics_to_c,
+)
 from pylibsparseir.constants import COMPUTATION_SUCCESS, SPIR_ORDER_ROW_MAJOR
 from . import augment
 
@@ -44,6 +50,7 @@ class TauSampling:
             self.sampling_points = np.asarray(sampling_points, dtype=np.float64)
 
         self.sampling_points = np.sort(self.sampling_points)
+        self._backend = get_default_blas_backend()
         if isinstance(basis, augment.AugmentedBasis):
             # Create sampling object
             # matrix: (n_points, n_funcs)
@@ -51,7 +58,7 @@ class TauSampling:
             status = c_int()
             sampling = _lib.spir_tau_sampling_new_with_matrix(
                 SPIR_ORDER_ROW_MAJOR,
-                _statistics_to_c(basis.statistics),   
+                _statistics_to_c(basis.statistics),
                 basis.size,
                 self.sampling_points.size,
                 self.sampling_points.ctypes.data_as(POINTER(c_double)),
@@ -96,6 +103,7 @@ class TauSampling:
 
             status = _lib.spir_sampling_eval_dd(
                 self._ptr,
+                self._backend,
                 SPIR_ORDER_ROW_MAJOR,
                 ndim,
                 input_dims.ctypes.data_as(POINTER(c_int)),
@@ -108,6 +116,7 @@ class TauSampling:
 
             status = _lib.spir_sampling_eval_zz(
                 self._ptr,
+                self._backend,
                 SPIR_ORDER_ROW_MAJOR,
                 ndim,
                 input_dims.ctypes.data_as(POINTER(c_int)),
@@ -137,6 +146,7 @@ class TauSampling:
             output = np.zeros(output_dims, dtype=np.float64)
             status = _lib.spir_sampling_fit_dd(
                 self._ptr,
+                self._backend,
                 SPIR_ORDER_ROW_MAJOR,
                 ndim,
                 input_dims.ctypes.data_as(POINTER(c_int)),
@@ -148,6 +158,7 @@ class TauSampling:
             output = np.zeros(output_dims, dtype=c_double_complex)
             status = _lib.spir_sampling_fit_zz(
                 self._ptr,
+                self._backend,
                 SPIR_ORDER_ROW_MAJOR,
                 ndim,
                 input_dims.ctypes.data_as(POINTER(c_int)),
@@ -214,6 +225,7 @@ class MatsubaraSampling:
         else:
             self.sampling_points = np.asarray(sampling_points, dtype=np.int64)
 
+        self._backend = get_default_blas_backend()
         if isinstance(basis, augment.AugmentedBasis):
             # Create sampling object
             matrix = basis.uhat(self.sampling_points).T
@@ -268,6 +280,7 @@ class MatsubaraSampling:
         if al.dtype.kind == "f":
             status = _lib.spir_sampling_eval_dz(
                 self._ptr,
+                self._backend,
                 SPIR_ORDER_ROW_MAJOR,
                 ndim,
                 input_dims.ctypes.data_as(POINTER(c_int)),
@@ -279,6 +292,7 @@ class MatsubaraSampling:
         elif al.dtype.kind == "c":
             status = _lib.spir_sampling_eval_zz(
                 self._ptr,
+                self._backend,
                 SPIR_ORDER_ROW_MAJOR,
                 ndim,
                 input_dims.ctypes.data_as(POINTER(c_int)),
@@ -308,6 +322,7 @@ class MatsubaraSampling:
 
         status = _lib.spir_sampling_fit_zz(
             self._ptr,
+            self._backend,
             SPIR_ORDER_ROW_MAJOR,
             ndim,
             input_dims.ctypes.data_as(POINTER(c_int)),

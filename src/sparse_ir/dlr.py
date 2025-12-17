@@ -11,7 +11,7 @@ import ctypes
 import numpy as np
 from .abstract import AbstractBasis
 from pylibsparseir.core import basis_get_default_omega_sampling_points
-from pylibsparseir.core import _lib, COMPUTATION_SUCCESS
+from pylibsparseir.core import _lib, COMPUTATION_SUCCESS, get_default_blas_backend
 from pylibsparseir.constants import SPIR_ORDER_ROW_MAJOR
 
 class DiscreteLehmannRepresentation(AbstractBasis):
@@ -43,6 +43,7 @@ class DiscreteLehmannRepresentation(AbstractBasis):
             poles = basis_get_default_omega_sampling_points(basis._ptr)
         self._basis = basis
         self._poles = np.ascontiguousarray(poles)
+        self._backend = get_default_blas_backend()
         self._ptr = _lib.spir_dlr_new_with_poles(basis._ptr, len(poles), poles.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), status)
         if status.value != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Failed to create DLR basis: {status.value}")
@@ -125,6 +126,7 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         if gl.dtype.kind == 'f':
             ret = _lib.spir_ir2dlr_dd(
                 self._ptr,
+                self._backend,
                 order,
                 ndim,
                 input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
@@ -135,6 +137,7 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         elif gl.dtype.kind == 'c':
             ret = _lib.spir_ir2dlr_zz(
                 self._ptr,
+                self._backend,
                 order,
                 ndim,
                 input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
@@ -180,6 +183,7 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         if g_dlr.dtype.kind == 'f':
             ret = _lib.spir_dlr2ir_dd(
                 self._ptr,
+                self._backend,
                 order,
                 ndim,
                 input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
@@ -190,6 +194,7 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         elif g_dlr.dtype.kind == 'c':
             ret = _lib.spir_dlr2ir_zz(
                 self._ptr,
+                self._backend,
                 order,
                 ndim,
                 input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
