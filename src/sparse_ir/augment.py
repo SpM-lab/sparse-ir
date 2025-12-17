@@ -111,7 +111,18 @@ class AugmentedBasis(abstract.AbstractBasis):
     def wmax(self):
         return self._basis.wmax
 
-    def default_tau_sampling_points(self, *, npoints=None):
+    def default_tau_sampling_points(self, *, npoints=None, use_positive_taus=True):
+        """Get default tau sampling points for augmented basis.
+        
+        Arguments:
+            npoints (int):
+                Minimum number of sampling points to return. If None, uses self.size.
+            use_positive_taus (bool):
+                If True, fold points to [0, β] range and sort them (default: True).
+                If False, points are in symmetric range.
+                
+                .. versionadded:: 1.2
+        """
         if npoints is None:
             npoints = self.size
 
@@ -119,7 +130,13 @@ class AugmentedBasis(abstract.AbstractBasis):
         # use the size of self, we add two further points.  One then has to
         # hope that these give good sampling points.
 
-        return basis_get_default_tau_sampling_points_ext(self._basis._ptr, npoints)
+        points = basis_get_default_tau_sampling_points_ext(self._basis._ptr, npoints)
+        
+        if use_positive_taus:
+            points = np.mod(points, self.beta)
+            points = np.sort(points)
+        
+        return points
 
     def default_matsubara_sampling_points(self, *, positive_only=False):
         """Get default Matsubara sampling points for augmented basis.
@@ -234,20 +251,38 @@ class AbstractAugmentation:
 
 
 class TauConst(AbstractAugmentation):
-    """Constant in imaginary time/discrete delta in frequency"""
+    """Constant in imaginary time with statistics-dependent periodicity.
+    
+    Evaluates to a constant value in imaginary time with proper handling of
+    periodicity based on statistics:
+    - Fermions: Anti-periodic G(τ + β) = -G(τ)
+    - Bosons: Periodic G(τ + β) = G(τ)
+    
+    .. versionchanged:: 1.2
+        Added statistics parameter and support for [-β, β] range.
+    """
     @classmethod
     def create(cls, basis):
-        _check_bosonic_statistics(basis.statistics)
-        return cls(basis.beta)
+        return cls(basis.beta, basis.statistics)
 
-    def __init__(self, beta):
+    def __init__(self, beta, statistics='B'):
+        """
+        Arguments:
+            beta (float):
+                Inverse temperature.
+            statistics (str):
+                'F' for Fermionic or 'B' for Bosonic (default: 'B' for backward compatibility).
+        """
         if beta <= 0:
             raise ValueError("temperature must be positive")
+        if statistics not in ('F', 'B'):
+            raise ValueError("statistics must be 'F' or 'B'")
         self._beta = beta
+        self._statistics = statistics
 
     def __call__(self, tau):
-        tau = _util.check_range(tau, -self._beta, self._beta)
-        return np.broadcast_to(1 / np.sqrt(self._beta), tau.shape)
+        tau_normalized, sign = _util.normalize_tau(self._statistics, tau, self._beta)
+        return sign / np.sqrt(self._beta)
 
     def deriv(self, n=1):
         if n == 0:
@@ -256,27 +291,46 @@ class TauConst(AbstractAugmentation):
             return lambda tau: np.zeros_like(tau)
 
     def hat(self, n):
-        n = _util.check_reduced_matsubara(n, zeta=0)
+        zeta = 1 if self._statistics == 'F' else 0
+        n = _util.check_reduced_matsubara(n, zeta=zeta)
         return np.sqrt(self._beta) * (n == 0).astype(complex)
 
 
 class TauLinear(AbstractAugmentation):
-    """Linear function in imaginary time, antisymmetric around beta/2"""
+    """Linear function in imaginary time with statistics-dependent periodicity.
+    
+    Evaluates to a linear function antisymmetric around β/2 with proper handling
+    of periodicity based on statistics:
+    - Fermions: Anti-periodic G(τ + β) = -G(τ)
+    - Bosons: Periodic G(τ + β) = G(τ)
+    
+    .. versionchanged:: 1.2
+        Added statistics parameter and support for [-β, β] range.
+    """
     @classmethod
     def create(cls, basis):
-        _check_bosonic_statistics(basis.statistics)
-        return cls(basis.beta)
+        return cls(basis.beta, basis.statistics)
 
-    def __init__(self, beta):
+    def __init__(self, beta, statistics='B'):
+        """
+        Arguments:
+            beta (float):
+                Inverse temperature.
+            statistics (str):
+                'F' for Fermionic or 'B' for Bosonic (default: 'B' for backward compatibility).
+        """
         if beta <= 0:
             raise ValueError("temperature must be positive")
+        if statistics not in ('F', 'B'):
+            raise ValueError("statistics must be 'F' or 'B'")
         self._beta = beta
+        self._statistics = statistics
         self._norm = np.sqrt(3/beta)
 
     def __call__(self, tau):
-        tau = _util.check_range(tau, -self._beta, self._beta)
-        x = 2/self._beta * tau - 1
-        return self._norm * x
+        tau_normalized, sign = _util.normalize_tau(self._statistics, tau, self._beta)
+        x = 2/self._beta * tau_normalized - 1
+        return sign * self._norm * x
 
     def deriv(self, n=1):
         if n == 0:
@@ -288,22 +342,43 @@ class TauLinear(AbstractAugmentation):
             return lambda tau: np.zeros_like(tau)
 
     def hat(self, n):
-        n = _util.check_reduced_matsubara(n, zeta=0)
+        zeta = 1 if self._statistics == 'F' else 0
+        n = _util.check_reduced_matsubara(n, zeta=zeta)
         inv_w = np.pi/self._beta * n
         inv_w = np.reciprocal(inv_w, out=inv_w, where=n.astype(bool))
         return self._norm * 2/1j * inv_w
 
 
 class MatsubaraConst(AbstractAugmentation):
-    """Constant in Matsubara, undefined in imaginary time"""
+    """Constant in Matsubara, undefined in imaginary time.
+    
+    This augmentation is constant in Matsubara frequency space and returns NaN
+    in imaginary time. The statistics parameter is accepted for type consistency
+    but does not affect the behavior.
+    
+    .. versionchanged:: 1.2
+        Accepts tau in [-β, β] range (previously [0, β]).
+        Added statistics parameter for consistency.
+    """
     @classmethod
     def create(cls, basis):
-        return cls(basis.beta)
+        return cls(basis.beta, basis.statistics)
 
-    def __init__(self, beta):
+    def __init__(self, beta, statistics=None):
+        """
+        Arguments:
+            beta (float):
+                Inverse temperature.
+            statistics (str, optional):
+                'F' for Fermionic or 'B' for Bosonic. Accepted for type consistency
+                but behavior is identical for both.
+        """
         if beta <= 0:
             raise ValueError("temperature must be positive")
+        if statistics is not None and statistics not in ('F', 'B'):
+            raise ValueError("statistics must be 'F' or 'B'")
         self._beta = beta
+        self._statistics = statistics
 
     def __call__(self, tau):
         tau = _util.check_range(tau, -self._beta, self._beta)

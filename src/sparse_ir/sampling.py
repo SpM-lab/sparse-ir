@@ -37,9 +37,9 @@ class TauSampling:
         self.basis = basis
 
         if sampling_points is None:
-            self.sampling_points = basis.default_tau_sampling_points()
-            if use_positive_taus:
-                self.sampling_points = np.mod(self.sampling_points, basis.beta)
+            self.sampling_points = basis.default_tau_sampling_points(
+                use_positive_taus=use_positive_taus
+            )
         else:
             self.sampling_points = np.asarray(sampling_points, dtype=np.float64)
 

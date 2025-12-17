@@ -176,9 +176,23 @@ class FiniteTempBasis(AbstractBasis):
         """Shape of the basis function set"""
         return self.s.shape
 
-    def default_tau_sampling_points(self, npoints=None):
-        """Get default tau sampling points."""
-        return basis_get_default_tau_sampling_points(self._ptr)
+    def default_tau_sampling_points(self, npoints=None, use_positive_taus=True):
+        """Get default tau sampling points.
+        
+        Arguments:
+            npoints (int):
+                Minimum number of sampling points to return (currently unused).
+            use_positive_taus (bool):
+                If True, fold points to [0, β] range and sort them (default: True).
+                If False, points are in symmetric range around β/2.
+                
+                .. versionadded:: 1.2
+        """
+        points = basis_get_default_tau_sampling_points(self._ptr)
+        if use_positive_taus:
+            points = np.mod(points, self.beta)
+            points = np.sort(points)
+        return points
 
     def default_omega_sampling_points(self, npoints=None):
         """Return default sampling points in imaginary time.
