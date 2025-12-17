@@ -71,6 +71,72 @@ def check_range(x, xmin, xmax):
     return x
 
 
+def normalize_tau(statistics, tau, beta):
+    """Normalize τ to [0, β] with statistics-dependent periodicity.
+    
+    Handles boundary conditions based on statistics:
+    - Fermions ('F'): Anti-periodic G(τ + β) = -G(τ)
+    - Bosons ('B'): Periodic G(τ + β) = G(τ)
+    
+    This function maps τ values from the range [-β, β] to [0, β] with
+    appropriate sign factors, following the periodicity rules.
+    
+    Arguments:
+        statistics (str):
+            'F' for Fermionic or 'B' for Bosonic statistics.
+        tau (array_like):
+            Imaginary time value(s) in range [-β, β].
+        beta (float):
+            Inverse temperature.
+            
+    Returns:
+        tuple[ndarray, ndarray]:
+            (tau_normalized, sign) where:
+            - tau_normalized: τ values mapped to [0, β]
+            - sign: Sign factor (±1) for periodicity
+            
+    Raises:
+        ValueError: If tau is outside [-β, β] or statistics is invalid.
+        
+    Special cases:
+        - Negative zero (τ = -0.0) is treated as τ = β with appropriate sign
+        - For τ in [0, β]: returns (τ, +1)
+        - For τ in [-β, 0): returns (τ + β, sign) where sign depends on statistics
+        
+    .. versionadded:: 1.2
+    """
+    tau = np.asarray(tau, dtype=np.float64)
+    beta = float(beta)
+    
+    if statistics not in ('F', 'B'):
+        raise ValueError("statistics must be 'F' (Fermionic) or 'B' (Bosonic)")
+    
+    if np.any(tau < -beta) or np.any(tau > beta):
+        raise ValueError(f"τ must be in [-β, β] = [{-beta}, {beta}]")
+    
+    # Handle negative zero: τ = -0.0 → τ = β
+    is_neg_zero = (tau == 0.0) & np.signbit(tau)
+    
+    tau_normalized = np.where(is_neg_zero, beta, tau)
+    sign = np.ones_like(tau, dtype=np.float64)
+    
+    if statistics == 'F':
+        # Fermionic: anti-periodic
+        sign = np.where(is_neg_zero, -1.0, sign)
+    else:  # statistics == 'B'
+        # Bosonic: periodic
+        sign = np.where(is_neg_zero, 1.0, sign)
+    
+    # Normalize negative tau to [0, β]
+    mask_neg = tau_normalized < 0
+    tau_normalized = np.where(mask_neg, tau_normalized + beta, tau_normalized)
+    
+    if statistics == 'F':
+        sign = np.where(mask_neg, -sign, sign)
+    
+    return tau_normalized, sign
+
+
 def check_svd_result(svd_result, matrix_shape=None):
     """Checks that argument is a valid SVD triple (u, s, vH)"""
     u, s, vH = map(np.asarray, svd_result)

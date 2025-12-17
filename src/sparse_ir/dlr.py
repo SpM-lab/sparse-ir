@@ -209,8 +209,8 @@ class DiscreteLehmannRepresentation(AbstractBasis):
             raise RuntimeError(f"Failed to convert DLR to IR: {ret}")
         return output
 
-    def default_tau_sampling_points(self):
-        return self._basis.default_tau_sampling_points()
+    def default_tau_sampling_points(self, **kwargs):
+        return self._basis.default_tau_sampling_points(**kwargs)
 
     def default_matsubara_sampling_points(self, **kwargs):
         return self._basis.default_matsubara_sampling_points(**kwargs)
