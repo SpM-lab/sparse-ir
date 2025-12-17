@@ -138,15 +138,49 @@ MINIMAX isometry method (Merzuk Kaltak and Georg Kresse,
 
 Development
 -----------
-For developers, this repository includes tools to ensure consistency between
-different package managers:
+
+Updating pylibsparseir Dependency
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+When updating the ``pylibsparseir`` dependency version, you must update it in
+**both** ``pyproject.toml`` and ``.conda/meta.yaml`` to maintain consistency:
+
+1. **Update pyproject.toml**::
+
+       # Edit dependencies in pyproject.toml
+       dependencies = [
+           "pylibsparseir>=0.8.0,<0.9.0",  # Update version range
+       ]
+
+2. **Update .conda/meta.yaml**::
+
+       # Edit both host and run requirements in .conda/meta.yaml
+       requirements:
+         host:
+           - spm-lab::pylibsparseir >=0.8.0,<0.9.0
+         run:
+           - spm-lab::pylibsparseir >=0.8.0,<0.9.0
+
+3. **Verify consistency**::
+
+       python check_libsparseir_version_consistency.py
+
+   This should output ``✅ Version specifications are consistent!``
+
+4. **Commit changes**::
+
+       git add pyproject.toml .conda/meta.yaml
+       git commit -m "chore: update pylibsparseir dependency to >=0.8.0,<0.9.0"
+
+Version Consistency Check
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+This repository includes a tool to ensure consistency between different package managers:
 
 - **Version Consistency Check**: Ensures that ``pylibsparseir`` version
   specifications in ``pyproject.toml`` and ``.conda/meta.yaml`` are consistent.
 
   Run the check manually::
 
-      python check_version_consistency.py
+      python check_libsparseir_version_consistency.py
 
   Or install as a pre-commit hook::
 
