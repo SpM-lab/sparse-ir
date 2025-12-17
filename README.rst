@@ -152,3 +152,39 @@ different package managers:
 
       pip install pre-commit
       pre-commit install
+
+Release Process
+~~~~~~~~~~~~~~~
+To release a new version (e.g., ``2.0.0a10``):
+
+1. **Create a working branch for version bump**::
+
+       git checkout mainline
+       git pull origin mainline
+       git checkout -b bump-to-2.0.0a10
+
+2. **Update version in pyproject.toml**::
+
+       # Edit pyproject.toml: version = "2.0.0a10"
+
+3. **Commit and push**::
+
+       git add pyproject.toml
+       git commit -m "Bump to v2.0.0a10"
+       git push --set-upstream origin bump-to-2.0.0a10
+
+4. **Create Pull Request and merge to mainline**
+
+5. **Create and push tag**::
+
+       git checkout mainline
+       git pull origin mainline
+       git tag v2.0.0a10
+       git push origin v2.0.0a10
+
+6. **Automated builds** (triggered by tag push):
+
+   - PyPI: ``wheel.yml`` workflow builds and uploads to PyPI
+   - conda: ``conda.yml`` workflow builds and uploads to SpM-lab channel
+
+Both workflows are automatically triggered when a tag starting with ``v`` is pushed.
