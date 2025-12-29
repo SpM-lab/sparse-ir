@@ -5,12 +5,28 @@ High-level Python classes for FiniteTempBasis
 """
 from typing import Optional
 import numpy as np
-from pylibsparseir.core import basis_new, basis_get_size, basis_get_svals, basis_get_u, basis_get_v, basis_get_uhat, basis_get_default_tau_sampling_points, basis_get_default_omega_sampling_points, basis_get_default_matsubara_sampling_points
-from pylibsparseir.constants import SPIR_STATISTICS_FERMIONIC, SPIR_STATISTICS_BOSONIC
+from pylibsparseir.core import (
+    basis_new,
+    basis_get_svals,
+    basis_get_u,
+    basis_get_v,
+    basis_get_uhat,
+    basis_get_default_tau_sampling_points,
+    basis_get_default_matsubara_sampling_points,
+)
+from pylibsparseir.constants import (
+    SPIR_STATISTICS_FERMIONIC,
+    SPIR_STATISTICS_BOSONIC,
+)
 from .kernel import LogisticKernel
-from .abstract import AbstractBasis
+from .abstract import AbstractBasis, AbstractKernel
 from .sve import SVEResult
-from .poly import PiecewiseLegendrePolyVector, PiecewiseLegendrePolyFTVector, FunctionSet, FunctionSetFT
+from .poly import (
+    PiecewiseLegendrePolyVector,
+    PiecewiseLegendrePolyFTVector,
+    FunctionSet,
+    FunctionSetFT,
+)
 
 class FiniteTempBasis(AbstractBasis):
     r"""Intermediate representation (IR) basis for given temperature.
@@ -43,7 +59,17 @@ class FiniteTempBasis(AbstractBasis):
             giw = gl @ basis.uhat([1, 3, 5, 7])
     """
 
-    def __init__(self, statistics: str, beta: float, wmax: float, eps: float = np.finfo(np.float64).eps, sve_result: Optional[SVEResult] = None, max_size: int =-1):
+    def __init__(
+        self,
+        statistics: str,
+        beta: float,
+        wmax: float,
+        eps: Optional[float] = None,
+        *,
+        max_size: Optional[int] = None,
+        kernel: Optional[AbstractKernel] = None,
+        sve_result: Optional[SVEResult] = None,
+    ):
         """
         Initialize finite temperature basis.
 
@@ -55,31 +81,65 @@ class FiniteTempBasis(AbstractBasis):
             Inverse temperature
         wmax : float
             Frequency cutoff
-        eps : float
-            Relative truncation threshold for the singular values,
-            defaulting to the machine epsilon (2.2e-16)
+        eps : float, optional
+            Relative truncation threshold for the singular values.
+            Defaults to machine epsilon (~2.2e-16).
+        max_size : int, optional
+            Maximum basis size. If given, only at most the ``max_size`` most
+            significant singular values and associated basis functions are
+            retained.
+        kernel : AbstractKernel, optional
+            Kernel to use for the basis. If not given, a LogisticKernel is
+            created from beta * wmax. (Deprecated: kernel is inferred from
+            statistics.)
+        sve_result : SVEResult, optional
+            Precomputed SVE result. If not given, the SVE is computed.
         """
+        if not (beta > 0):
+            raise ValueError("inverse temperature beta must be positive")
+        if not (wmax >= 0):
+            raise ValueError("frequency cutoff must be non-negative")
+
         self._statistics = statistics
         self._beta = beta
         self._wmax = wmax
         self._lambda = beta * wmax
+
+        # Handle eps default
+        if eps is None:
+            eps = np.finfo(np.float64).eps
         self._eps = eps
 
-        # Create kernel
-        if statistics == 'F' or statistics == 'B':
+        # Handle max_size
+        if max_size is None:
+            max_size = -1
+
+        # Create or use provided kernel
+        if kernel is not None:
+            # Backward compatibility: use provided kernel
+            self._kernel = kernel
+        elif statistics in ('F', 'B'):
             self._kernel = LogisticKernel(self._lambda)
         else:
-            raise ValueError(f"Invalid statistics: {statistics} expected 'F' or 'B'")
+            raise ValueError(
+                f"Invalid statistics: {statistics}, expected 'F' or 'B'"
+            )
 
-        # Compute SVE
+        # Compute SVE if not provided
         if sve_result is None:
             self._sve = SVEResult(self._kernel, eps)
         else:
             self._sve = sve_result
 
         # Create basis
-        stats_int = SPIR_STATISTICS_FERMIONIC if statistics == 'F' else SPIR_STATISTICS_BOSONIC
-        self._ptr = basis_new(stats_int, self._beta, self._wmax, self._eps, self._kernel._ptr, self._sve._ptr, max_size)
+        stats_int = (
+            SPIR_STATISTICS_FERMIONIC if statistics == 'F'
+            else SPIR_STATISTICS_BOSONIC
+        )
+        self._ptr = basis_new(
+            stats_int, self._beta, self._wmax, self._eps,
+            self._kernel._ptr, self._sve._ptr, max_size
+        )
 
         u_funcs = FunctionSet(basis_get_u(self._ptr))
         v_funcs = FunctionSet(basis_get_v(self._ptr))
