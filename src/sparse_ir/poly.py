@@ -32,6 +32,23 @@ def funcs_get_slice(funcs_ptr, indices):
         raise RuntimeError(f"Failed to get basis function {indices}: {status.value}")
     return FunctionSet(funcs)
 
+def funcs_clone(funcs_ptr):
+    """Clone a function set."""
+    cloned = _lib.spir_funcs_clone(funcs_ptr)
+    if not cloned:
+        raise RuntimeError("Failed to clone function set")
+    return FunctionSet(cloned)
+
+def funcs_deriv(funcs_ptr, n):
+    """Compute the n-th derivative of a function set."""
+    status = c_int()
+    deriv_funcs = _lib.spir_funcs_deriv(funcs_ptr, n, status)
+    if status.value != 0:
+        raise RuntimeError(f"Failed to compute derivative of order {n}: {status.value}")
+    if not deriv_funcs:
+        raise RuntimeError(f"Failed to compute derivative of order {n}")
+    return FunctionSet(deriv_funcs)
+
 def funcs_ft_get_slice(funcs_ptr, indices):
     status = c_int()
     indices = np.asarray(indices, dtype=np.int32)
@@ -133,6 +150,25 @@ class FunctionSet:
                 indices = (index % sz).tolist()
 
         return funcs_get_slice(self._ptr, indices)
+
+    def deriv(self, n=1):
+        """Compute the n-th derivative of the basis functions.
+        
+        Args:
+            n (int): Order of the derivative (default: 1)
+            
+        Returns:
+            FunctionSet: New function set representing the n-th derivative
+        """
+        if self._released:
+            raise RuntimeError("Function set has been released")
+        if n < 0:
+            raise ValueError("Derivative order must be non-negative")
+        if n == 0:
+            # Return a clone
+            return funcs_clone(self._ptr)
+            
+        return funcs_deriv(self._ptr, n)
 
     def release(self):
         """Manually release the function set."""
@@ -373,6 +409,19 @@ class PiecewiseLegendrePolyVector:
             return PiecewiseLegendrePolyVector(funcs_slice, self._xmin,
                                              self._xmax, self._period,
                                              self._default_overlap_range)
+
+    def deriv(self, n=1):
+        """Compute the n-th derivative of the basis functions.
+        
+        Args:
+            n (int): Order of the derivative (default: 1)
+            
+        Returns:
+            PiecewiseLegendrePolyVector: New polynomial vector representing the n-th derivative
+        """
+        deriv_funcs = self._funcs.deriv(n)
+        return PiecewiseLegendrePolyVector(deriv_funcs, self._xmin, self._xmax,
+                                          self._period, self._default_overlap_range)
 
 
     def overlap(self, f, xmin: float = None, xmax: float = None, *, rtol=2.3e-16, return_error=False, points=None):
