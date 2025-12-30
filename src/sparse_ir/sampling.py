@@ -332,7 +332,7 @@ class MatsubaraSampling:
         )
         if status != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Failed to fit sampling: {status}")
-        return output['real']
+        return output['real'] + 1j * output['imag']
 
     @property
     def cond(self):
