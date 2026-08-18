@@ -228,8 +228,11 @@ class FiniteTempBasis(AbstractBasis):
 
     @property
     def accuracy(self):
-        """Overall accuracy bound."""
-        return self.s[-1] / self.s[0]
+        """Overall truncation error bound."""
+        sve_s = self.sve_result.s
+        if sve_s.size > self.size:
+            return sve_s[self.size] / sve_s[0]
+        return sve_s[-1] / sve_s[0]
 
     @property
     def shape(self):

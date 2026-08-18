@@ -19,14 +19,36 @@ class TestSVEAccuracy:
         """Test that basis accuracy meets expected bounds."""
         eps = 1e-6
         basis = sparse_ir.FiniteTempBasis(stat, beta, wmax, eps)
+        sve_s = basis.sve_result.s
 
-        # Basic properties
-        assert 0 < basis.accuracy <= basis.significance[-1]
+        # Accuracy is the relative significance of the first singular value
+        # excluded from the basis.
+        assert sve_s.size > basis.size
+        expected_accuracy = sve_s[basis.size] / sve_s[0]
+        assert basis.accuracy == expected_accuracy
         assert basis.significance[0] == 1.0
-        assert basis.accuracy <= basis.s[-1] / basis.s[0]
+        assert basis.accuracy < eps <= basis.significance[-1]
 
-        # Accuracy should be better than requested epsilon (with some tolerance)
-        assert basis.accuracy <= 10 * eps, f"Accuracy {basis.accuracy} should be close to eps {eps}"
+    def test_accuracy_with_max_size(self):
+        """Test accuracy when max_size, rather than epsilon, truncates."""
+        eps = 1e-6
+        basis = sparse_ir.FiniteTempBasis(
+            'F', 1.0, 42.0, eps, max_size=5
+        )
+        sve_s = basis.sve_result.s
+
+        assert basis.size == 5
+        assert basis.accuracy == sve_s[basis.size] / sve_s[0]
+        assert basis.accuracy > eps
+        assert basis.accuracy < basis.significance[-1]
+
+    def test_accuracy_without_excluded_singular_value(self):
+        """Test the fallback when the SVE contains no excluded value."""
+        basis = sparse_ir.FiniteTempBasis('F', 1e-3, 1e-3, 1e-100)
+        sve_s = basis.sve_result.s
+
+        assert sve_s.size == basis.size
+        assert basis.accuracy == sve_s[-1] / sve_s[0]
 
     @pytest.mark.parametrize("stat,beta,wmax", BASIS_PARAMS)
     def test_singular_value_properties(self, stat, beta, wmax):
@@ -132,5 +154,4 @@ class TestBasisConsistency:
         # We just check they're both reasonable
         assert 5 <= f_basis.size <= 100
         assert 5 <= b_basis.size <= 100
-
 
