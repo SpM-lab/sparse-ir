@@ -148,7 +148,7 @@ When updating the ``pylibsparseir`` dependency version, you must update it in
 
        # Edit dependencies in pyproject.toml
        dependencies = [
-           "pylibsparseir>=0.8.0,<0.9.0",  # Update version range
+           "pylibsparseir>=0.8.0,<0.10.0",  # Update version range
        ]
 
 2. **Update .conda/meta.yaml**::
