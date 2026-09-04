@@ -40,9 +40,6 @@ def sve_reg_bose():
 @pytest.fixture(scope="session")
 def test_bases():
     """Precomputed test bases for common parameter sets."""
-    print("Precomputing test bases ...")
-    bases = {}
-
     test_params = [
         ('F', 1.0, 10.0, 1e-6),    # Small fermion
         ('F', 1.0, 42.0, 1e-8),    # Medium fermion
@@ -50,14 +47,14 @@ def test_bases():
         ('F', 4.0, 20.0, 1e-6),    # Different beta
     ]
 
-    for stat, beta, wmax, eps in test_params:
-        try:
-            basis = pylibsparseir.FiniteTempBasis(stat, beta, wmax, eps)
-            bases[(stat, beta, wmax)] = basis
-        except Exception as e:
-            print(f"Failed to create basis {(stat, beta, wmax)}: {e}")
-
-    return bases
+    # A basis that cannot be constructed is a failure, not a missing
+    # precondition: let the exception propagate instead of silently handing
+    # tests an incomplete dict.
+    return {
+        (stat, beta, wmax):
+            pylibsparseir.FiniteTempBasis(stat, beta, wmax, eps)
+        for stat, beta, wmax, eps in test_params
+    }
 
 
 @pytest.fixture

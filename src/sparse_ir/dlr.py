@@ -16,8 +16,17 @@ from pylibsparseir.core import (
     COMPUTATION_SUCCESS,
     get_default_blas_backend,
     c_double_complex,
+    basis_get_u,
+    basis_get_uhat,
 )
 from pylibsparseir.constants import SPIR_ORDER_ROW_MAJOR
+from . import _util
+from .poly import (
+    FunctionSet,
+    FunctionSetFT,
+    PiecewiseLegendrePolyVector,
+    PiecewiseLegendrePolyFTVector,
+)
 
 class DiscreteLehmannRepresentation(AbstractBasis):
     """Discrete Lehmann representation (DLR), with poles being extrema of IR.
@@ -46,18 +55,65 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         status = ctypes.c_int()
         if poles is None:
             poles = basis_get_default_omega_sampling_points(basis._ptr)
+        # Normalize first, then take the pointer from the *normalized* object.
+        # Taking it from the caller's array instead silently hands C the
+        # buffer of a non-contiguous or non-float64 array.
+        poles = _util.as_boundary_real(poles, "poles")
+        if poles.ndim != 1:
+            raise ValueError(
+                f"poles must be one-dimensional, got shape {poles.shape}")
+        if poles.size == 0:
+            raise ValueError("poles must not be empty")
         self._basis = basis
-        self._poles = np.ascontiguousarray(poles)
+        self._poles = poles
+        self._u = None
+        self._uhat = None
         self._backend = get_default_blas_backend()
-        self._ptr = _lib.spir_dlr_new_with_poles(basis._ptr, len(poles), poles.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), status)
+        self._ptr = _lib.spir_dlr_new_with_poles(
+            basis._ptr,
+            poles.size,
+            poles.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            status,
+        )
         if status.value != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Failed to create DLR basis: {status.value}")
+        if not self._ptr:
+            raise RuntimeError("Failed to create DLR basis: null handle")
 
     @property
-    def u(self): return self._basis._u
+    def u(self):
+        r"""DLR basis functions on the imaginary-time axis.
+
+        These are the *DLR* basis functions, i.e. ``u[i](tau)`` is the
+        imaginary-time kernel evaluated at the ``i``-th pole, so that::
+
+            gtau == g_dlr @ dlr.u(tau)
+
+        holds for DLR coefficients ``g_dlr``.  They are **not** the basis
+        functions of the underlying IR basis.
+        """
+        if self._u is None:
+            beta = self._basis.beta
+            self._u = PiecewiseLegendrePolyVector(
+                FunctionSet(basis_get_u(self._ptr)),
+                -beta, beta, beta, default_overlap_range=(0, beta))
+        return self._u
 
     @property
-    def uhat(self): return self._basis._uhat
+    def uhat(self):
+        r"""DLR basis functions on the reduced Matsubara frequency axis.
+
+        ``uhat[i](n)`` is the Fourier transform of :py:attr:`u`, so that::
+
+            giv == g_dlr @ dlr.uhat(n)
+
+        holds for DLR coefficients ``g_dlr``.  They are **not** the Matsubara
+        basis functions of the underlying IR basis.
+        """
+        if self._uhat is None:
+            self._uhat = PiecewiseLegendrePolyFTVector(
+                FunctionSetFT(basis_get_uhat(self._ptr)))
+        return self._uhat
 
     @property
     def statistics(self):
@@ -115,19 +171,25 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         array_like
             Expansion coefficients in DLR
         """
-        gl = np.ascontiguousarray(gl)
+        gl = np.asarray(gl)
+        if gl.ndim == 0:
+            raise ValueError("IR coefficients must be at least one-dimensional")
+        axis = _util.normalize_axis(axis, gl.ndim)
         if gl.shape[axis] != self.basis.size:
-            raise ValueError(f"Input array has wrong size along dimension {axis}")
+            raise ValueError(
+                f"IR coefficients have length {gl.shape[axis]} along axis "
+                f"{axis}, expected {self.basis.size}")
 
         output_dims = list(gl.shape)
         output_dims[axis] = self.size
 
-        ndim = len(gl.shape)
-        input_dims = np.asarray(gl.shape, dtype=np.int32)
+        ndim = gl.ndim
+        input_dims = np.ascontiguousarray(gl.shape, dtype=np.int32)
         target_dim = axis
         order = SPIR_ORDER_ROW_MAJOR
 
-        if gl.dtype.kind == 'f':
+        if gl.dtype.kind != 'c':
+            gl = _util.as_boundary_real(gl, "IR coefficients")
             output = np.zeros(output_dims, dtype=np.float64)
             ret = _lib.spir_ir2dlr_dd(
                 self._ptr,
@@ -139,8 +201,8 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 gl.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                 output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
             )
-        elif gl.dtype.kind == 'c':
-            gl = np.ascontiguousarray(gl, dtype=np.complex128)
+        else:
+            gl = _util.as_boundary_complex(gl, "IR coefficients")
             output_c = np.zeros(output_dims, dtype=c_double_complex)
             ret = _lib.spir_ir2dlr_zz(
                 self._ptr,
@@ -153,8 +215,6 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 output_c.ctypes.data_as(ctypes.POINTER(c_double_complex)),
             )
             output = output_c['real'] + 1j * output_c['imag']
-        else:
-            raise ValueError(f"Unsupported dtype: {gl.dtype}")
         if ret != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Failed to convert IR to DLR: {ret}")
         return output
@@ -176,17 +236,23 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         array_like
             Expansion coefficients in IR
         """
-        g_dlr = np.ascontiguousarray(g_dlr)
+        g_dlr = np.asarray(g_dlr)
+        if g_dlr.ndim == 0:
+            raise ValueError("DLR coefficients must be at least one-dimensional")
+        axis = _util.normalize_axis(axis, g_dlr.ndim)
         if g_dlr.shape[axis] != self.size:
-            raise ValueError(f"Input array has wrong size along dimension {axis}")
-        output_dims = np.asarray(g_dlr.shape, dtype=np.int32)
+            raise ValueError(
+                f"DLR coefficients have length {g_dlr.shape[axis]} along axis "
+                f"{axis}, expected {self.size}")
+        output_dims = list(g_dlr.shape)
         output_dims[axis] = self.basis.size
-        ndim = len(g_dlr.shape)
-        input_dims = np.asarray(g_dlr.shape, dtype=np.int32)
+        ndim = g_dlr.ndim
+        input_dims = np.ascontiguousarray(g_dlr.shape, dtype=np.int32)
         target_dim = axis
         order = SPIR_ORDER_ROW_MAJOR
 
-        if g_dlr.dtype.kind == 'f':
+        if g_dlr.dtype.kind != 'c':
+            g_dlr = _util.as_boundary_real(g_dlr, "DLR coefficients")
             output = np.zeros(output_dims, dtype=np.float64)
             ret = _lib.spir_dlr2ir_dd(
                 self._ptr,
@@ -198,8 +264,8 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 g_dlr.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                 output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
             )
-        elif g_dlr.dtype.kind == 'c':
-            g_dlr = np.ascontiguousarray(g_dlr, dtype=np.complex128)
+        else:
+            g_dlr = _util.as_boundary_complex(g_dlr, "DLR coefficients")
             output_c = np.zeros(output_dims, dtype=c_double_complex)
             ret = _lib.spir_dlr2ir_zz(
                 self._ptr,
@@ -212,8 +278,6 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 output_c.ctypes.data_as(ctypes.POINTER(c_double_complex)),
             )
             output = output_c['real'] + 1j * output_c['imag']
-        else:
-            raise ValueError(f"Unsupported dtype: {g_dlr.dtype}")
         if ret != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Failed to convert DLR to IR: {ret}")
         return output

@@ -100,20 +100,12 @@ class TestMatsubaraSamplingBasic:
         """Test basic Matsubara sampling creation."""
         basis = sparse_ir.FiniteTempBasis('F', 1.0, 10.0, 1e-6)
 
-        # This might fail due to current implementation issues
-        # But let's test what we can
-        try:
-            # Test with very simple custom points
-            simple_points = np.array([1, 3], dtype=np.int64)
-            smpl = sparse_ir.MatsubaraSampling(basis, sampling_points=simple_points)
+        # Test with very simple custom points
+        simple_points = np.array([1, 3], dtype=np.int64)
+        smpl = sparse_ir.MatsubaraSampling(basis, sampling_points=simple_points)
 
-            assert len(smpl.wn) == 2
-            np.testing.assert_array_equal(smpl.wn, simple_points)
-
-        except RuntimeError as e:
-            # If it fails, at least check the error is consistent
-            assert "Failed to create Matsubara sampling" in str(e)
-            pytest.skip(f"Matsubara sampling not yet fully implemented: {e}")
+        assert len(smpl.wn) == 2
+        np.testing.assert_array_equal(smpl.wn, simple_points)
 
 
 class TestSamplingEdgeCases:

@@ -24,22 +24,21 @@ class TestSVEProperties:
         epsilons = [1e-4, 1e-6, 1e-8, 1e-10]
 
         for eps in epsilons:
-            try:
-                sve = sve_result_new(kernel, eps)
-                size = sve_result_get_size(sve)
-                svals = sve_result_get_svals(sve)
+            # The C entry point takes the kernel *handle*, not the Python
+            # wrapper object.
+            sve = sve_result_new(kernel._ptr, eps)
+            size = sve_result_get_size(sve)
+            svals = sve_result_get_svals(sve)
 
-                # Actual accuracy should be <= requested epsilon
-                actual_accuracy = svals[-1] / svals[0]
-                assert actual_accuracy <= eps, \
-                    f"Actual accuracy {actual_accuracy} > requested {eps}"
+            # Actual accuracy should be <= requested epsilon
+            actual_accuracy = svals[-1] / svals[0]
+            assert actual_accuracy <= eps, \
+                f"Actual accuracy {actual_accuracy} > requested {eps}"
 
-                # Should have at least 1 singular value
-                assert size >= 1
-                assert len(svals) == size
-
-            except Exception as e:
-                pytest.skip(f"SVE test failed for λ={lambda_}, ε={eps}: {e}")
+            # Should have at least 1 singular value
+            assert size >= 1
+            assert len(svals) == size
+            assert np.all(svals > 0)
 
     @pytest.mark.parametrize("lambda_", [10, 42])
     def test_sve_convergence(self, lambda_):
@@ -50,12 +49,8 @@ class TestSVEProperties:
         sizes = []
 
         for eps in epsilons:
-            try:
-                sve = sve_result_new(kernel, eps)
-                size = sve_result_get_size(sve)
-                sizes.append(size)
-            except Exception as e:
-                pytest.skip(f"SVE convergence test failed: {e}")
+            sve = sve_result_new(kernel._ptr, eps)
+            sizes.append(sve_result_get_size(sve))
 
         # Sizes should be non-decreasing as epsilon decreases
         for i in range(len(sizes) - 1):
@@ -73,32 +68,31 @@ class TestBasisFromSVE:
         beta = 1.0
         wmax = lambda_ / beta
 
-        try:
-            # Create kernel and SVE
-            if statistics == 'F':
-                kernel = LogisticKernel(lambda_)
-            else:
-                kernel = RegularizedBoseKernel(lambda_)
+        eps = 1e-6
 
-            sve = sve_result_new(kernel, 1e-6)
+        # Create kernel and SVE
+        if statistics == 'F':
+            kernel = LogisticKernel(lambda_)
+        else:
+            kernel = RegularizedBoseKernel(lambda_)
 
-            # Create basis using C API directly
-            stats_int = 1 if statistics == 'F' else 0
-            basis_c = basis_new(stats_int, beta, wmax, kernel, sve)
+        sve = sve_result_new(kernel._ptr, eps)
 
-            # Test basic properties
-            size = basis_get_size(basis_c)
-            assert size > 0
+        # Create basis using C API directly.  Both the kernel and the SVE are
+        # passed as handles, and ``basis_new`` takes epsilon and max_size.
+        stats_int = 1 if statistics == 'F' else 0
+        basis_c = basis_new(stats_int, beta, wmax, eps, kernel._ptr, sve, -1)
 
-            svals = basis_get_svals(basis_c)
-            assert len(svals) == size
-            assert np.all(svals > 0)
+        # Test basic properties
+        size = basis_get_size(basis_c)
+        assert size > 0
 
-            stats_recovered = basis_get_stats(basis_c)
-            assert stats_recovered == stats_int
+        svals = basis_get_svals(basis_c)
+        assert len(svals) == size
+        assert np.all(svals > 0)
 
-        except Exception as e:
-            pytest.skip(f"Basis from SVE test failed for {statistics}: {e}")
+        stats_recovered = basis_get_stats(basis_c)
+        assert stats_recovered == stats_int
 
 
 class TestSVEErrorHandling:
@@ -110,8 +104,8 @@ class TestSVEErrorHandling:
 
         # Test negative epsilon
         with pytest.raises(RuntimeError, match="Failed to create"):
-            sve_result_new(kernel, -1e-6)
+            sve_result_new(kernel._ptr, -1e-6)
 
         # Test zero epsilon
         with pytest.raises(RuntimeError, match="Failed to create"):
-            sve_result_new(kernel, 0.0)
+            sve_result_new(kernel._ptr, 0.0)

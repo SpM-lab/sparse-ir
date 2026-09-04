@@ -303,16 +303,16 @@ class FiniteTempBasis(AbstractBasis):
         temperature.  Note that this implies a different UV cutoff ``wmax``,
         since ``lambda_ == beta * wmax`` stays constant.
         """
-        # Calculate new beta and wmax that give the desired lambda
-        # We keep the ratio beta/wmax constant
-        ratio = self.beta / self.wmax
-        new_wmax = np.sqrt(new_lambda / ratio)
-        new_beta = new_lambda / new_wmax
+        new_beta = float(new_beta)
+        if not new_beta > 0:
+            raise ValueError(
+                f"inverse temperature must be positive, got {new_beta!r}")
 
-        # Get epsilon from the current basis accuracy
-        eps = self.accuracy
-
-        return FiniteTempBasis(self.statistics, new_beta, new_wmax, eps)
+        # lambda_ == beta * wmax is held fixed, so the SVE (which depends only
+        # on lambda_ and eps) can be reused as is.
+        new_wmax = self._lambda / new_beta
+        return FiniteTempBasis(self.statistics, new_beta, new_wmax, self._eps,
+                               kernel=self._kernel, sve_result=self._sve)
 
 
 def finite_temp_bases(beta, wmax, eps=None, sve_result=None):
