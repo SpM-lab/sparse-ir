@@ -11,7 +11,12 @@ import ctypes
 import numpy as np
 from .abstract import AbstractBasis
 from pylibsparseir.core import basis_get_default_omega_sampling_points
-from pylibsparseir.core import _lib, COMPUTATION_SUCCESS, get_default_blas_backend
+from pylibsparseir.core import (
+    _lib,
+    COMPUTATION_SUCCESS,
+    get_default_blas_backend,
+    c_double_complex,
+)
 from pylibsparseir.constants import SPIR_ORDER_ROW_MAJOR
 
 class DiscreteLehmannRepresentation(AbstractBasis):
@@ -116,7 +121,6 @@ class DiscreteLehmannRepresentation(AbstractBasis):
 
         output_dims = list(gl.shape)
         output_dims[axis] = self.size
-        output = np.zeros(output_dims, dtype=gl.dtype)
 
         ndim = len(gl.shape)
         input_dims = np.asarray(gl.shape, dtype=np.int32)
@@ -124,6 +128,7 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         order = SPIR_ORDER_ROW_MAJOR
 
         if gl.dtype.kind == 'f':
+            output = np.zeros(output_dims, dtype=np.float64)
             ret = _lib.spir_ir2dlr_dd(
                 self._ptr,
                 self._backend,
@@ -135,6 +140,8 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
             )
         elif gl.dtype.kind == 'c':
+            gl = np.ascontiguousarray(gl, dtype=np.complex128)
+            output_c = np.zeros(output_dims, dtype=c_double_complex)
             ret = _lib.spir_ir2dlr_zz(
                 self._ptr,
                 self._backend,
@@ -142,10 +149,10 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 ndim,
                 input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
                 target_dim,
-                # TODO: use complex data
-                gl.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                gl.ctypes.data_as(ctypes.POINTER(c_double_complex)),
+                output_c.ctypes.data_as(ctypes.POINTER(c_double_complex)),
             )
+            output = output_c['real'] + 1j * output_c['imag']
         else:
             raise ValueError(f"Unsupported dtype: {gl.dtype}")
         if ret != COMPUTATION_SUCCESS:
@@ -174,13 +181,13 @@ class DiscreteLehmannRepresentation(AbstractBasis):
             raise ValueError(f"Input array has wrong size along dimension {axis}")
         output_dims = np.asarray(g_dlr.shape, dtype=np.int32)
         output_dims[axis] = self.basis.size
-        output = np.zeros(output_dims, dtype=g_dlr.dtype)
         ndim = len(g_dlr.shape)
         input_dims = np.asarray(g_dlr.shape, dtype=np.int32)
         target_dim = axis
         order = SPIR_ORDER_ROW_MAJOR
 
         if g_dlr.dtype.kind == 'f':
+            output = np.zeros(output_dims, dtype=np.float64)
             ret = _lib.spir_dlr2ir_dd(
                 self._ptr,
                 self._backend,
@@ -192,6 +199,8 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
             )
         elif g_dlr.dtype.kind == 'c':
+            g_dlr = np.ascontiguousarray(g_dlr, dtype=np.complex128)
+            output_c = np.zeros(output_dims, dtype=c_double_complex)
             ret = _lib.spir_dlr2ir_zz(
                 self._ptr,
                 self._backend,
@@ -199,10 +208,10 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 ndim,
                 input_dims.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
                 target_dim,
-                # TODO: use complex data
-                g_dlr.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                g_dlr.ctypes.data_as(ctypes.POINTER(c_double_complex)),
+                output_c.ctypes.data_as(ctypes.POINTER(c_double_complex)),
             )
+            output = output_c['real'] + 1j * output_c['imag']
         else:
             raise ValueError(f"Unsupported dtype: {g_dlr.dtype}")
         if ret != COMPUTATION_SUCCESS:
