@@ -313,7 +313,16 @@ class MatsubaraSampling:
         """
         Fit basis coefficients from Matsubara frequency values.
         """
-        ax = np.ascontiguousarray(ax)
+        ax = np.asarray(ax)
+        if ax.dtype.kind not in ("f", "c"):
+            raise ValueError(f"Unsupported dtype: {ax.dtype}")
+        # The underlying C entry point (spir_sampling_fit_zz) always expects
+        # complex128 data. Real-valued input must be normalized to
+        # complex128 here; otherwise the raw buffer of a float64 array would
+        # be reinterpreted as complex128 (reading twice as many bytes as
+        # were allocated), producing an out-of-bounds read and silent
+        # garbage output instead of a clear error.
+        ax = np.ascontiguousarray(ax, dtype=np.complex128)
         ndim = len(ax.shape)
         input_dims = np.asarray(ax.shape, dtype=np.int32)
         output_dims = list(ax.shape)

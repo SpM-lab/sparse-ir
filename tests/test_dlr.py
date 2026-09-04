@@ -76,3 +76,37 @@ def test_boson():
     gl_pole2 = sp.to_IR(coeff)
 
     np.testing.assert_allclose(gl_pole, gl_pole2, atol=300*eps, rtol=0)
+
+
+def test_complex_roundtrip():
+    """Regression test: from_IR/to_IR must support complex128 coefficients
+    (e.g. off-diagonal Green's functions) instead of raising a ctypes
+    TypeError when the complex path is exercised.
+
+    Mirrors test_compression's poles-based construction (so that the IR
+    coefficients actually lie in the DLR's representable subspace and the
+    round trip is expected to be near-exact), but with complex coefficients.
+    """
+    beta = 10_000
+    wmax = 1
+    eps = 1e-12
+    basis = FiniteTempBasis("F", beta, wmax, eps=eps)
+
+    dlr = DiscreteLehmannRepresentation(basis)
+
+    rng = np.random.default_rng(42)
+    num_poles = 10
+    poles = wmax * (2 * rng.random(num_poles) - 1)
+    coeffs = (2 * rng.random(num_poles) - 1) + 1j * (2 * rng.random(num_poles) - 1)
+
+    Gl = DiscreteLehmannRepresentation(basis, poles).to_IR(coeffs)
+    assert np.iscomplexobj(Gl)
+
+    g_dlr = dlr.from_IR(Gl)
+    assert np.iscomplexobj(g_dlr)
+
+    Gl_recovered = dlr.to_IR(g_dlr)
+    assert np.iscomplexobj(Gl_recovered)
+
+    np.testing.assert_allclose(Gl, Gl_recovered, atol=300 * eps, rtol=0)
+    np.testing.assert_allclose(Gl.imag, Gl_recovered.imag, atol=300 * eps, rtol=0)

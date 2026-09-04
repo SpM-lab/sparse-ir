@@ -56,6 +56,21 @@ class TestTauSampling:
             error = np.max(np.abs(al_original - al_recovered))
             assert error < 1e-12, f"Roundtrip error too large: {error}"
 
+    def test_evaluate_fit_roundtrip_complex(self, basis):
+        """Complex coefficients (e.g. off-diagonal G) must roundtrip with
+        their imaginary part intact."""
+        sampling = sparse_ir.TauSampling(basis)
+        rng = np.random.default_rng(42)
+        al_original = rng.normal(size=basis.size) + 1j * rng.normal(size=basis.size)
+
+        ax = sampling.evaluate(al_original)
+        assert np.iscomplexobj(ax)
+        al_recovered = sampling.fit(ax)
+
+        assert np.iscomplexobj(al_recovered)
+        assert np.max(np.abs(al_original - al_recovered)) < 1e-12
+        assert np.max(np.abs(al_original.imag - al_recovered.imag)) < 1e-12
+
     def test_evaluate_shape(self, basis):
         """Test evaluate output shape."""
         sampling = sparse_ir.TauSampling(basis)
@@ -113,6 +128,41 @@ class TestMatsubaraSampling:
 
         assert len(sampling.wn) == len(custom_wn)
         np.testing.assert_array_equal(sampling.wn, custom_wn)
+
+    def test_evaluate_fit_roundtrip_complex(self, basis):
+        """Complex coefficients (e.g. off-diagonal G) must roundtrip with
+        their imaginary part intact."""
+        sampling = sparse_ir.MatsubaraSampling(basis)
+        rng = np.random.default_rng(42)
+        al_original = rng.normal(size=basis.size) + 1j * rng.normal(size=basis.size)
+
+        ax = sampling.evaluate(al_original)
+        al_recovered = sampling.fit(ax)
+
+        assert np.iscomplexobj(al_recovered)
+        assert np.max(np.abs(al_original - al_recovered)) < 1e-12
+        assert np.max(np.abs(al_original.imag - al_recovered.imag)) < 1e-12
+
+    def test_fit_real_input_matches_complex_reference(self, basis):
+        """Regression test: MatsubaraSampling.fit with real float64 input
+        must not be silently misread as complex128 data (out-of-bounds
+        read producing garbage). The real-input result must agree with
+        the complex128 reference obtained by fitting the same values cast
+        to complex128."""
+        sampling = sparse_ir.MatsubaraSampling(basis)
+        rng = np.random.default_rng(42)
+        al_original = rng.normal(size=basis.size)
+
+        ax = sampling.evaluate(al_original)
+        # ax is complex (Matsubara values are always complex); take the
+        # real part to exercise the real-dtype input code path of fit().
+        ax_real = np.ascontiguousarray(ax.real)
+        ax_complex_ref = np.ascontiguousarray(ax_real, dtype=np.complex128)
+
+        al_from_real = sampling.fit(ax_real)
+        al_from_complex_ref = sampling.fit(ax_complex_ref)
+
+        assert np.max(np.abs(al_from_real - al_from_complex_ref)) < 1e-12
 
     def test_repr(self, basis):
         """Test string representation."""
