@@ -30,12 +30,12 @@ __all__ = [
     'AbstractBasis', 'FiniteTempBasis', 'finite_temp_bases',
     'TauSampling', 'MatsubaraSampling', 'FiniteTempBasisSet',
     'LogisticKernel', 'RegularizedBoseKernel',
-    'SVEResult', 'compute',
+    'SVEResult', 'compute', 'compute_sve',
 
     # Augmented functionality
     'AugmentedBasis', 'AugmentedTauFunction', 'AugmentedMatsubaraFunction',
     'AbstractAugmentation', 'TauConst', 'TauLinear', 'MatsubaraConst',
 
     # DLR functionality
-    'DiscreteLehmannRepresentation', 'TauPoles', 'MatsubaraPoles',
+    'DiscreteLehmannRepresentation',
 ]

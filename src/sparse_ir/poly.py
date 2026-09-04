@@ -15,10 +15,11 @@ import numpy as np
 import weakref
 import threading
 
-from pylibsparseir.core import _lib, c_double_complex
+from pylibsparseir.core import _lib, c_double_complex, COMPUTATION_SUCCESS
 from pylibsparseir.core import funcs_eval_single_float64, funcs_eval_single_complex128
 from pylibsparseir.core import funcs_get_size, funcs_get_knots, SPIR_ORDER_COLUMN_MAJOR
 from ._gauss import kronrod_31_15
+from . import _util
 
 # Global registry to track pointer usage
 _pointer_registry = weakref.WeakSet()
@@ -71,42 +72,41 @@ class FunctionSet:
     def size(self):
         return self._size
 
-    """
-    Size of returned array is (n_funcs, n_points).
-    """
     def __call__(self, x):
-        """Evaluate basis functions at given points."""
+        """Evaluate basis functions at the given point(s).
+
+        The returned shape is ``(n_funcs,) + np.shape(x)``, with singleton
+        axes dropped only where they carry no information:
+
+        - a set of ``n_funcs > 1`` functions at a scalar ``x`` gives shape
+          ``(n_funcs,)``;
+        - a single function (``n_funcs == 1``) gives exactly ``np.shape(x)``,
+          i.e. a scalar for scalar ``x``;
+        - otherwise the full ``(n_funcs,) + np.shape(x)`` is returned, so a
+          multi-dimensional ``x`` keeps its shape.
+        """
         if self._released:
             raise RuntimeError("Function set has been released")
-        x = np.ascontiguousarray(x)
+        x = np.asarray(x)
         if x.ndim == 0:
-            o = funcs_eval_single_float64(self._ptr, x.item())
-            if len(o) == 1:
-                return o[0]
-            else:
-                return o
+            o = np.asarray(funcs_eval_single_float64(self._ptr, float(x)))
+            return o[0] if self._size == 1 else o
 
         o = self.__call_batch(x)
-
-        if x.size == 1 and self._size == 1:
-            return o.flat[0]
-        elif x.size == 1 and self._size > 1:
-            return o.ravel()
-        elif x.size > 1 and self._size == 1:
-            return o.ravel()
-        else:
-            return o
+        if self._size == 1:
+            # Single function: drop the leading function axis, keep x's shape.
+            return o.reshape(x.shape)
+        return o
 
     def __call_batch(self, x: np.ndarray):
-        # Use batch evaluation for arrays
-        x = np.ascontiguousarray(x)
-        original_shape = x.shape
-        x_flat = x.ravel()
-        n_points = len(x_flat)
+        original_shape = np.shape(x)
         n_funcs = self._size
 
-        # Prepare input array (double)
-        x_double = x_flat.astype(np.float64)
+        # Normalize with an explicit dtype and take the pointer from the
+        # normalized object: a float32/int array reinterpreted through a
+        # c_double pointer would read 8 bytes per 4-byte element.
+        x_double = _util.as_boundary_real(np.ravel(x), "evaluation points")
+        n_points = x_double.size
 
         # Prepare output array (double)
         output = np.zeros((n_funcs, n_points), dtype=np.float64)
@@ -120,7 +120,7 @@ class FunctionSet:
             output.ctypes.data_as(POINTER(c_double))
         )
 
-        if status != 0:
+        if status != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Batch evaluation failed with status {status}")
 
         # Reshape output to match input shape: (n_funcs, ...) + original_shape
@@ -130,26 +130,17 @@ class FunctionSet:
 
 
     def __getitem__(self, index):
-        """Get a single basis function or slice of functions."""
+        """Get a single basis function or slice of functions.
+
+        Negative indices are resolved with Python semantics; an index outside
+        ``[-size, size)`` raises :class:`IndexError` rather than being wrapped
+        around with a modulo.
+        """
         if self._released:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
-
-        if isinstance(index, slice):
-            # Handle slice
-            start, stop, step = index.indices(sz)
-            indices = list(range(start, stop, step))
-        else:
-            # Handle single index or list of indices
-            index = np.asarray(index)
-            if index.ndim == 0:
-                # Single index
-                indices = [int(index) % sz]
-            else:
-                # List/array of indices
-                indices = (index % sz).tolist()
-
-        return funcs_get_slice(self._ptr, indices)
+        return funcs_get_slice(self._ptr,
+                               _util.resolve_function_indices(index, sz))
 
     def deriv(self, n=1):
         """Compute the n-th derivative of the basis functions.
@@ -173,10 +164,7 @@ class FunctionSet:
     def release(self):
         """Manually release the function set."""
         if not self._released and self._ptr:
-            try:
-                _lib.spir_funcs_release(self._ptr)
-            except:
-                pass
+            _lib.spir_funcs_release(self._ptr)
             self._released = True
             self._ptr = None
 
@@ -200,82 +188,65 @@ class FunctionSetFT:
         return self._size
 
     def __call__(self, x):
-        """Evaluate basis functions at given points."""
+        """Evaluate the basis functions at reduced Matsubara frequencies.
+
+        The returned shape follows the same convention as
+        :py:meth:`FunctionSet.__call__`: ``(n_funcs,) + np.shape(x)``, with
+        the leading axis dropped if the set holds a single function and the
+        trailing axes dropped if ``x`` is a scalar.
+
+        Raises:
+            ValueError: if any element of ``x`` is not an integer.  Reduced
+                Matsubara frequencies are integers and are never truncated.
+        """
         if self._released:
             raise RuntimeError("Function set has been released")
-        x = np.ascontiguousarray(x)
-        if x.ndim == 0:
-            o = funcs_eval_single_complex128(self._ptr, x.item())
-            if len(o) == 1:
-                return o[0]
-            else:
-                return o
-        else:
-            # Use batch evaluation for arrays
-            original_shape = x.shape
-            x_flat = x.ravel()
-            n_points = len(x_flat)
-            n_funcs = self._size
+        # Validate integrality *before* the int64 conversion: ``astype`` would
+        # silently turn 1.9 into 1.
+        x_checked = _util.check_reduced_matsubara(x)
+        original_shape = x_checked.shape
+        if x_checked.ndim == 0:
+            o = np.asarray(
+                funcs_eval_single_complex128(self._ptr, int(x_checked)))
+            return o[0] if self._size == 1 else o
 
-            # Prepare input array
-            x_int64 = x_flat.astype(np.int64)
+        x_int64 = np.ascontiguousarray(np.ravel(x_checked), dtype=np.int64)
+        n_points = x_int64.size
+        n_funcs = self._size
+        output = np.zeros((n_funcs, n_points), dtype=np.complex128)
 
-            # Prepare output array (complex128)
-            output = np.zeros((n_funcs, n_points), dtype=np.complex128)
+        status = _lib.spir_funcs_batch_eval_matsu(
+            self._ptr,
+            SPIR_ORDER_COLUMN_MAJOR,
+            n_points,
+            x_int64.ctypes.data_as(POINTER(c_int64)),
+            output.ctypes.data_as(POINTER(c_double_complex))
+        )
+        if status != COMPUTATION_SUCCESS:
+            raise RuntimeError(f"Batch evaluation failed with status {status}")
 
-            # Call batch evaluation function
-            status = _lib.spir_funcs_batch_eval_matsu(
-                self._ptr,
-                SPIR_ORDER_COLUMN_MAJOR,
-                n_points,
-                x_int64.ctypes.data_as(POINTER(c_int64)),
-                output.ctypes.data_as(POINTER(c_double_complex))  # FIX: Matsubara returns complex values
-            )
-
-            if status != 0:
-                raise RuntimeError(f"Batch evaluation failed with status {status}")
-
-            # Reshape output to match input shape: (n_funcs, ...) + original_shape
-            output = output.reshape((n_funcs,) + original_shape)
-
-            if x.size == 1 and self._size == 1:
-                return output.flat[0]
-            elif x.size == 1 and self._size > 1:
-                return output.ravel()
-            elif x.size > 1 and self._size == 1:
-                return output.ravel()
-            else:
-                return output
+        output = output.reshape((n_funcs,) + original_shape)
+        if n_funcs == 1:
+            return output.reshape(original_shape)
+        return output
 
     def __getitem__(self, index):
-        """Get a single basis function or slice of functions."""
+        """Get a single basis function or slice of functions.
+
+        Negative indices are resolved with Python semantics; an index outside
+        ``[-size, size)`` raises :class:`IndexError` rather than being wrapped
+        around with a modulo.
+        """
         if self._released:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
-
-        if isinstance(index, slice):
-            # Handle slice
-            start, stop, step = index.indices(sz)
-            indices = list(range(start, stop, step))
-        else:
-            # Handle single index or list of indices
-            index = np.asarray(index)
-            if index.ndim == 0:
-                # Single index
-                indices = [int(index) % sz]
-            else:
-                # List/array of indices
-                indices = (index % sz).tolist()
-
-        return funcs_ft_get_slice(self._ptr, indices)
+        return funcs_ft_get_slice(self._ptr,
+                                  _util.resolve_function_indices(index, sz))
 
     def release(self):
         """Manually release the function set."""
         if not self._released and self._ptr:
-            try:
-                _lib.spir_funcs_release(self._ptr)
-            except:
-                pass
+            _lib.spir_funcs_release(self._ptr)
             self._released = True
             self._ptr = None
 
@@ -364,8 +335,6 @@ class PiecewiseLegendrePoly:
 
         int_result = int_result.reshape(int_result.shape[1:])
         int_error = int_error.reshape(int_error.shape[1:])
-
-        print(type(int_result), type(int_error))
 
         if int_result.shape == ():
             int_result = int_result.item()

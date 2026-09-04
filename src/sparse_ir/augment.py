@@ -77,7 +77,7 @@ class AugmentedBasis(abstract.AbstractBasis):
         return self._basis.statistics
 
     def __getitem__(self, index):
-        stop = basis._slice_to_size(index)
+        stop = _slice_to_size(index, self.size)
         if stop <= self._naug:
             raise ValueError("Cannot truncate to only augmentation")
         return AugmentedBasis(self._basis[:stop - self._naug],
@@ -202,7 +202,7 @@ class _AugmentedFunction:
     def __getitem__(self, l):
         # TODO make this more general
         if isinstance(l, slice):
-            stop = basis._slice_to_size(l)
+            stop = _slice_to_size(l, self.size)
             if stop <= self._naug:
                 raise NotImplementedError("Don't truncate to only augmentation")
             return _AugmentedFunction(self._fbasis[:stop-self._naug], self._faug)
@@ -221,13 +221,13 @@ class AugmentedTauFunction(_AugmentedFunction):
 
     @property
     def xmax(self):
-        return self._fbasis.xmin
+        return self._fbasis.xmax
 
     def deriv(self, n=1):
         """Get polynomial for the n'th derivative"""
         dbasis = self._fbasis.deriv(n)
         daug = [faug_l.deriv(n) for faug_l in self._faug]
-        return AugmentedTauFunction(dbasis, *daug)
+        return AugmentedTauFunction(dbasis, daug)
 
 
 class AugmentedMatsubaraFunction(_AugmentedFunction):
@@ -291,6 +291,12 @@ class TauConst(AbstractAugmentation):
             raise ValueError("temperature must be positive")
         if statistics not in ('F', 'B'):
             raise ValueError("statistics must be 'F' or 'B'")
+        # A fermionic TauConst is not merely ill-conditioned, it is useless:
+        # its Fourier transform is sqrt(beta) * (n == 0), and fermionic reduced
+        # frequencies are odd, so the augmentation column vanishes identically
+        # and the augmented basis is rank-deficient.  Refuse instead of
+        # silently returning a singular fit.
+        _check_bosonic_statistics(statistics)
         self._beta = beta
         self._statistics = statistics
 
@@ -406,6 +412,31 @@ class MatsubaraConst(AbstractAugmentation):
         return np.broadcast_to(1.0, n.shape)
 
 
+def _slice_to_size(index, size):
+    """Return the number of basis functions selected by ``index``.
+
+    Only ``basis[:stop]``-style truncation is supported, mirroring
+    :py:meth:`FiniteTempBasis.__getitem__`.
+    """
+    if not isinstance(index, slice):
+        raise TypeError(
+            f"only slice truncation is supported, got {index!r}")
+    if index.start not in (None, 0):
+        raise ValueError(
+            f"basis truncation must start at 0, got {index.start!r}")
+    if index.step not in (None, 1):
+        raise ValueError(
+            f"basis truncation must have unit step, got {index.step!r}")
+    if index.stop is None:
+        return size
+    stop = int(index.stop)
+    if not 0 < stop <= size:
+        raise IndexError(
+            f"truncation to {stop} functions is out of range for a basis of "
+            f"size {size}")
+    return stop
+
+
 def _augmentation_factory(basis, *augs):
     for aug in augs:
         if isinstance(aug, AbstractAugmentation):
@@ -418,6 +449,10 @@ def _check_bosonic_statistics(statistics):
     if statistics == 'B':
         return
     elif statistics == 'F':
-        raise ValueError("term only allowed for bosonic basis")
+        raise ValueError(
+            "TauConst augmentation is only allowed for a bosonic basis: for "
+            "fermionic statistics its Fourier transform vanishes at every "
+            "(odd) reduced Matsubara frequency, which makes the augmented "
+            "basis rank-deficient")
     else:
-        raise ValueError("invalid statistics")
+        raise ValueError(f"invalid statistics {statistics!r}, expected 'F' or 'B'")

@@ -16,12 +16,47 @@ from pylibsparseir.core import (
 )
 from pylibsparseir.constants import COMPUTATION_SUCCESS, SPIR_ORDER_ROW_MAJOR
 from . import augment
+from . import _util
+
+
+def _zeta(statistics):
+    """Reduced-frequency offset: 1 for fermions (odd n), 0 for bosons (even n)."""
+    if statistics == 'F':
+        return 1
+    if statistics == 'B':
+        return 0
+    raise ValueError(f"invalid statistics {statistics!r}, expected 'F' or 'B'")
+
+
+def _prepare_input(a, axis, expected, what):
+    """Validate an input array's axis and length before it crosses to C.
+
+    Returns ``(array, axis, ndim)`` with ``axis`` resolved to a non-negative
+    dimension index (the C API takes a non-negative target dimension).
+    """
+    a = np.asarray(a)
+    if a.ndim == 0:
+        raise ValueError(f"{what} must be at least one-dimensional")
+    axis = _util.normalize_axis(axis, a.ndim)
+    if a.shape[axis] != expected:
+        raise ValueError(
+            f"{what} has length {a.shape[axis]} along axis {axis}, "
+            f"expected {expected}")
+    return a, axis, a.ndim
+
 
 class TauSampling:
     """Sparse sampling in imaginary time.
 
     Allows the transformation between the IR basis and a set of sampling points
     in (scaled/unscaled) imaginary time.
+
+    Note:
+        Real-valued input (any of ``bool``, integer, ``float32``, ``float64``)
+        is normalized to ``float64`` and complex input to ``complex128`` before
+        it crosses the C boundary; narrow types therefore agree with the
+        ``float64``/``complex128`` result to their own input precision rather
+        than producing garbage.
     """
 
     def __init__(self, basis, sampling_points=None, use_positive_taus=True):
@@ -43,18 +78,34 @@ class TauSampling:
         self.basis = basis
 
         if sampling_points is None:
-            self.sampling_points = basis.default_tau_sampling_points(
+            points = basis.default_tau_sampling_points(
                 use_positive_taus=use_positive_taus
             )
         else:
-            self.sampling_points = np.asarray(sampling_points, dtype=np.float64)
+            points = sampling_points
+        points = _util.as_boundary_real(points, "sampling_points")
+        if points.ndim != 1:
+            raise ValueError(
+                f"sampling_points must be one-dimensional, got shape {points.shape}")
+        if points.size == 0:
+            raise ValueError("sampling_points must not be empty")
+        # np.sort returns a fresh C-contiguous array; the pointer below is
+        # taken from this object, not from the caller's array.
+        self.sampling_points = np.ascontiguousarray(np.sort(points),
+                                                    dtype=np.float64)
 
-        self.sampling_points = np.sort(self.sampling_points)
         self._backend = get_default_blas_backend()
         if isinstance(basis, augment.AugmentedBasis):
             # Create sampling object
             # matrix: (n_points, n_funcs)
-            matrix = np.ascontiguousarray(basis.u(self.sampling_points).T)
+            matrix = np.asarray(basis.u(self.sampling_points).T)
+            if matrix.size and not np.all(np.isfinite(matrix)):
+                raise ValueError(
+                    "tau sampling matrix is not finite: at least one "
+                    "augmentation of this basis is undefined in imaginary "
+                    "time (MatsubaraConst is NaN in tau), so tau sampling "
+                    "cannot be constructed for it")
+            matrix = _util.as_boundary_real(matrix, "tau sampling matrix")
             status = c_int()
             sampling = _lib.spir_tau_sampling_new_with_matrix(
                 SPIR_ORDER_ROW_MAJOR,
@@ -67,6 +118,8 @@ class TauSampling:
             )
             if status.value != COMPUTATION_SUCCESS:
                 raise RuntimeError(f"Failed to create tau sampling: {status.value}")
+            if not sampling:
+                raise RuntimeError("Failed to create tau sampling: null handle")
             self._ptr = sampling
         else:
             # Create sampling object
@@ -91,29 +144,18 @@ class TauSampling:
         Returns:
         --------
         ndarray
-            Values at sampling points
+            Values at sampling points. ``float64`` for real input,
+            ``complex128`` for complex input.
         """
-        al = np.ascontiguousarray(al)
+        al, axis, ndim = _prepare_input(al, axis, self.basis.size,
+                                        "basis coefficients")
         output_dims = list(al.shape)
-        ndim = len(output_dims)
-        input_dims = np.asarray(al.shape, dtype=np.int32)
         output_dims[axis] = len(self.sampling_points)
-        if al.dtype.kind == "f":
-            output = np.zeros(output_dims, dtype=np.float64)
+        input_dims = np.ascontiguousarray(al.shape, dtype=np.int32)
 
-            status = _lib.spir_sampling_eval_dd(
-                self._ptr,
-                self._backend,
-                SPIR_ORDER_ROW_MAJOR,
-                ndim,
-                input_dims.ctypes.data_as(POINTER(c_int)),
-                axis,
-                al.ctypes.data_as(POINTER(c_double)),
-                output.ctypes.data_as(POINTER(c_double))
-            )
-        elif al.dtype.kind == "c":
+        if al.dtype.kind == "c":
+            al = _util.as_boundary_complex(al, "basis coefficients")
             output = np.zeros(output_dims, dtype=c_double_complex)
-
             status = _lib.spir_sampling_eval_zz(
                 self._ptr,
                 self._backend,
@@ -124,37 +166,42 @@ class TauSampling:
                 al.ctypes.data_as(POINTER(c_double_complex)),
                 output.ctypes.data_as(POINTER(c_double_complex))
             )
-            output = output['real'] + 1j * output['imag']
+            result = output['real'] + 1j * output['imag']
         else:
-            raise ValueError(f"Unsupported dtype: {al.dtype}")
-
-        if status != COMPUTATION_SUCCESS:
-            raise RuntimeError(f"Failed to evaluate sampling: {status}")
-
-        return output
-
-    def fit(self, ax, axis=0):
-        """
-        Fit basis coefficients from sampling point values.
-        """
-        ax = np.ascontiguousarray(ax)
-        ndim = len(ax.shape)
-        input_dims = np.asarray(ax.shape, dtype=np.int32)
-        output_dims = list(ax.shape)
-        output_dims[axis] = self.basis.size
-        if ax.dtype.kind == "f":
+            al = _util.as_boundary_real(al, "basis coefficients")
             output = np.zeros(output_dims, dtype=np.float64)
-            status = _lib.spir_sampling_fit_dd(
+            status = _lib.spir_sampling_eval_dd(
                 self._ptr,
                 self._backend,
                 SPIR_ORDER_ROW_MAJOR,
                 ndim,
                 input_dims.ctypes.data_as(POINTER(c_int)),
                 axis,
-                ax.ctypes.data_as(POINTER(c_double)),
+                al.ctypes.data_as(POINTER(c_double)),
                 output.ctypes.data_as(POINTER(c_double))
             )
-        elif ax.dtype.kind == "c":
+            result = output
+
+        if status != COMPUTATION_SUCCESS:
+            raise RuntimeError(f"Failed to evaluate sampling: {status}")
+
+        return result
+
+    def fit(self, ax, axis=0):
+        """
+        Fit basis coefficients from sampling point values.
+
+        Returns ``float64`` for real input and ``complex128`` for complex
+        input.
+        """
+        ax, axis, ndim = _prepare_input(ax, axis, len(self.sampling_points),
+                                        "sampling point values")
+        output_dims = list(ax.shape)
+        output_dims[axis] = self.basis.size
+        input_dims = np.ascontiguousarray(ax.shape, dtype=np.int32)
+
+        if ax.dtype.kind == "c":
+            ax = _util.as_boundary_complex(ax, "sampling point values")
             output = np.zeros(output_dims, dtype=c_double_complex)
             status = _lib.spir_sampling_fit_zz(
                 self._ptr,
@@ -166,14 +213,26 @@ class TauSampling:
                 ax.ctypes.data_as(POINTER(c_double_complex)),
                 output.ctypes.data_as(POINTER(c_double_complex))
             )
-            output = output['real'] + 1j * output['imag']
+            result = output['real'] + 1j * output['imag']
         else:
-            raise ValueError(f"Unsupported dtype: {ax.dtype}")
+            ax = _util.as_boundary_real(ax, "sampling point values")
+            output = np.zeros(output_dims, dtype=np.float64)
+            status = _lib.spir_sampling_fit_dd(
+                self._ptr,
+                self._backend,
+                SPIR_ORDER_ROW_MAJOR,
+                ndim,
+                input_dims.ctypes.data_as(POINTER(c_int)),
+                axis,
+                ax.ctypes.data_as(POINTER(c_double)),
+                output.ctypes.data_as(POINTER(c_double))
+            )
+            result = output
 
         if status != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Failed to fit sampling: {status}")
 
-        return output
+        return result
 
     @property
     def cond(self):
@@ -202,6 +261,12 @@ class MatsubaraSampling:
     or equivalently, that they are purely real in imaginary time.  In this
     case, sparse sampling is performed over non-negative frequencies only,
     cutting away half of the necessary sampling space.
+
+    Note:
+        ``sampling_points`` are *reduced* Matsubara indices: odd integers for
+        a fermionic and even integers for a bosonic basis.  A non-integral or
+        wrong-parity index raises :class:`ValueError`; it is never truncated
+        or adjusted.
     """
 
     def __init__(self, basis, sampling_points=None, positive_only=False):
@@ -218,25 +283,36 @@ class MatsubaraSampling:
             If True, use only positive frequencies
         """
         self.basis = basis
-        self.positive_only = positive_only
+        self.positive_only = bool(positive_only)
+        zeta = _zeta(basis.statistics)
 
         if sampling_points is None:
-            self.sampling_points = basis.default_matsubara_sampling_points(positive_only=positive_only)
+            points = basis.default_matsubara_sampling_points(
+                positive_only=self.positive_only)
         else:
-            self.sampling_points = np.asarray(sampling_points, dtype=np.int64)
+            points = sampling_points
+        points = _util.as_boundary_matsubara(points, "sampling_points",
+                                             zeta=zeta)
+        if points.ndim != 1:
+            raise ValueError(
+                f"sampling_points must be one-dimensional, got shape {points.shape}")
+        if points.size == 0:
+            raise ValueError("sampling_points must not be empty")
+        self.sampling_points = points
 
         self._backend = get_default_blas_backend()
         if isinstance(basis, augment.AugmentedBasis):
             # Create sampling object
-            matrix = basis.uhat(self.sampling_points).T
-            matrix = np.ascontiguousarray(matrix, dtype=np.complex128)
+            matrix = _util.as_boundary_complex(
+                basis.uhat(self.sampling_points).T,
+                "Matsubara sampling matrix")
 
             status = c_int()
             sampling = _lib.spir_matsu_sampling_new_with_matrix(
                 SPIR_ORDER_ROW_MAJOR,                           # order
                 _statistics_to_c(basis.statistics),                   # statistics
                 c_int(basis.size),                              # basis_size
-                c_bool(positive_only),                          # positive_only
+                c_bool(self.positive_only),                     # positive_only
                 c_int(len(self.sampling_points)),                    # num_points
                 self.sampling_points.ctypes.data_as(POINTER(c_int64)), # points
                 matrix.ctypes.data_as(POINTER(c_double_complex)), # matrix
@@ -244,10 +320,14 @@ class MatsubaraSampling:
             )
             if status.value != COMPUTATION_SUCCESS:
                 raise RuntimeError(f"Failed to create matsubara sampling: {status.value}")
+            if not sampling:
+                raise RuntimeError(
+                    "Failed to create matsubara sampling: null handle")
             self._ptr = sampling
         else:
             # Create sampling object
-            self._ptr = matsubara_sampling_new(basis._ptr, positive_only, self.sampling_points)
+            self._ptr = matsubara_sampling_new(basis._ptr, self.positive_only,
+                                               self.sampling_points)
 
     @property
     def wn(self):
@@ -268,28 +348,17 @@ class MatsubaraSampling:
         Returns:
         --------
         ndarray
-            Values at Matsubara frequencies (complex)
+            Values at Matsubara frequencies (always ``complex128``)
         """
-        # For better numerical stability, we need to make the input array contiguous.
-        al = np.ascontiguousarray(al)
+        al, axis, ndim = _prepare_input(al, axis, self.basis.size,
+                                        "basis coefficients")
         output_dims = list(al.shape)
-        ndim = len(output_dims)
-        input_dims = np.asarray(al.shape, dtype=np.int32)
         output_dims[axis] = len(self.sampling_points)
-        output_cdouble_complex = np.zeros(output_dims, dtype=c_double_complex)
-        if al.dtype.kind == "f":
-            status = _lib.spir_sampling_eval_dz(
-                self._ptr,
-                self._backend,
-                SPIR_ORDER_ROW_MAJOR,
-                ndim,
-                input_dims.ctypes.data_as(POINTER(c_int)),
-                axis,
-                al.ctypes.data_as(POINTER(c_double)),
-                output_cdouble_complex.ctypes.data_as(POINTER(c_double_complex))
-            )
-            output = output_cdouble_complex['real'] + 1j * output_cdouble_complex['imag']
-        elif al.dtype.kind == "c":
+        input_dims = np.ascontiguousarray(al.shape, dtype=np.int32)
+        output = np.zeros(output_dims, dtype=c_double_complex)
+
+        if al.dtype.kind == "c":
+            al = _util.as_boundary_complex(al, "basis coefficients")
             status = _lib.spir_sampling_eval_zz(
                 self._ptr,
                 self._backend,
@@ -298,35 +367,42 @@ class MatsubaraSampling:
                 input_dims.ctypes.data_as(POINTER(c_int)),
                 axis,
                 al.ctypes.data_as(POINTER(c_double_complex)),
-                output_cdouble_complex.ctypes.data_as(POINTER(c_double_complex))
+                output.ctypes.data_as(POINTER(c_double_complex))
             )
-            output = output_cdouble_complex['real'] + 1j * output_cdouble_complex['imag']
         else:
-            raise ValueError(f"Unsupported dtype: {al.dtype}")
+            al = _util.as_boundary_real(al, "basis coefficients")
+            status = _lib.spir_sampling_eval_dz(
+                self._ptr,
+                self._backend,
+                SPIR_ORDER_ROW_MAJOR,
+                ndim,
+                input_dims.ctypes.data_as(POINTER(c_int)),
+                axis,
+                al.ctypes.data_as(POINTER(c_double)),
+                output.ctypes.data_as(POINTER(c_double_complex))
+            )
 
         if status != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Failed to evaluate sampling: {status}")
 
-        return output
+        return output['real'] + 1j * output['imag']
 
     def fit(self, ax, axis=0):
         """
         Fit basis coefficients from Matsubara frequency values.
+
+        Returns ``complex128``; the underlying C entry point
+        (``spir_sampling_fit_zz``) only exists in the complex flavour, so
+        real-valued input is widened to ``complex128`` here.  Passing the raw
+        buffer of a real array through a complex pointer would read twice as
+        many bytes as were allocated.
         """
-        ax = np.asarray(ax)
-        if ax.dtype.kind not in ("f", "c"):
-            raise ValueError(f"Unsupported dtype: {ax.dtype}")
-        # The underlying C entry point (spir_sampling_fit_zz) always expects
-        # complex128 data. Real-valued input must be normalized to
-        # complex128 here; otherwise the raw buffer of a float64 array would
-        # be reinterpreted as complex128 (reading twice as many bytes as
-        # were allocated), producing an out-of-bounds read and silent
-        # garbage output instead of a clear error.
-        ax = np.ascontiguousarray(ax, dtype=np.complex128)
-        ndim = len(ax.shape)
-        input_dims = np.asarray(ax.shape, dtype=np.int32)
+        ax, axis, ndim = _prepare_input(ax, axis, len(self.sampling_points),
+                                        "Matsubara frequency values")
+        ax = _util.as_boundary_complex(ax, "Matsubara frequency values")
         output_dims = list(ax.shape)
         output_dims[axis] = self.basis.size
+        input_dims = np.ascontiguousarray(ax.shape, dtype=np.int32)
         output = np.zeros(output_dims, dtype=c_double_complex)
 
         status = _lib.spir_sampling_fit_zz(

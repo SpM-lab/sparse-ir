@@ -127,29 +127,27 @@ def test_normalize_tau_errors():
         _util.normalize_tau('X', 0.0, beta)
 
 
-@pytest.mark.parametrize("stat", ["F", "B"])
-def test_tau_const_periodicity(stat):
-    """Test TauConst with statistics-dependent periodicity"""
+def test_tau_const_rejects_fermionic():
+    """A fermionic TauConst would be identically zero in Matsubara."""
+    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
+        augment.TauConst(10.0, 'F')
+
+    basis = sparse_ir.FiniteTempBasis('F', 10.0, wmax=2.0, eps=1e-6)
+    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
+        augment.TauConst.create(basis)
+    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
+        augment.AugmentedBasis(basis, augment.TauConst)
+
+
+def test_tau_const_periodicity():
+    """Test TauConst periodicity (bosonic: periodic in beta)"""
     beta = 10.0
-    tc = augment.TauConst(beta, stat)
-    
-    # Test at tau=0
-    val0 = tc(0.0)
-    assert np.isclose(val0, 1.0 / np.sqrt(beta))
-    
-    # Test at tau=5
-    val_pos = tc(5.0)
-    assert np.isclose(val_pos, 1.0 / np.sqrt(beta))
-    
-    # Test at tau=-5 (should apply periodicity)
-    val_neg = tc(-5.0)
-    
-    if stat == 'F':
-        # Fermionic: anti-periodic
-        assert np.isclose(val_neg, -1.0 / np.sqrt(beta))
-    else:
-        # Bosonic: periodic
-        assert np.isclose(val_neg, 1.0 / np.sqrt(beta))
+    tc = augment.TauConst(beta, 'B')
+
+    assert np.isclose(tc(0.0), 1.0 / np.sqrt(beta))
+    assert np.isclose(tc(5.0), 1.0 / np.sqrt(beta))
+    # tau=-5 goes through the periodicity branch
+    assert np.isclose(tc(-5.0), 1.0 / np.sqrt(beta))
 
 
 @pytest.mark.parametrize("stat", ["F", "B"])
@@ -198,19 +196,18 @@ def test_matsubara_const_range():
         mc(beta + 1)
 
 
-@pytest.mark.parametrize("stat", ["F", "B"])
-def test_tau_const_with_statistics(stat):
+def test_tau_const_with_statistics():
     """Test TauConst can be created with statistics parameter"""
     beta = 10.0
-    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax=2.0, eps=1e-6)
-    
+    basis = sparse_ir.FiniteTempBasis('B', beta, wmax=2.0, eps=1e-6)
+
     # Test factory method
     tc = augment.TauConst.create(basis)
-    assert tc._statistics == stat
-    
+    assert tc._statistics == 'B'
+
     # Test direct creation
-    tc2 = augment.TauConst(beta, stat)
-    assert tc2._statistics == stat
+    tc2 = augment.TauConst(beta, 'B')
+    assert tc2._statistics == 'B'
     
     # Test evaluation works
     val = tc(5.0)
