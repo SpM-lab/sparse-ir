@@ -18,9 +18,10 @@ defines two kernels:
 
  - :class:`sparse_ir.LogisticKernel`: continuation of *fermionic/bosonic*
    spectral functions with w(ω)=1 for fermions
-   and w(ω)=1/tanh(ω/ωmax) for bosons.
- - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions
-   with w(ω)=1/ω.
+   and w(ω)=1/tanh(βω/2) for bosons.
+ - :class:`sparse_ir.RegularizedBoseKernel` (deprecated; use
+   :class:`sparse_ir.LogisticKernel`): continuation of *bosonic* spectral
+   functions with w(ω)=1/ω.
 
 By default, :class:`sparse_ir.LogisticKernel` is used.
 Kernels can be fed directly into :class:`sparse_ir.FiniteTempBasis` to
