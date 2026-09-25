@@ -176,3 +176,14 @@ def test_basis_truncation():
         basis[:basis.size + 1]
     with pytest.raises(TypeError, match="slice"):
         basis[2]
+
+
+def test_basis_set_rescale_keeps_eps():
+    """FiniteTempBasisSet.rescale uses the same eps, as FiniteTempBasis.rescale does."""
+    bset = sparse_ir.FiniteTempBasisSet(10.0, 8.0, 1e-6)
+    new = bset.rescale(20.0)
+    for stat, basis in (("F", new.basis_f), ("B", new.basis_b)):
+        ref = sparse_ir.FiniteTempBasis(stat, 20.0, 4.0, 1e-6)   # same lambda and eps
+        assert basis.size == ref.size
+        np.testing.assert_allclose(basis.s, ref.s, rtol=1e-12, atol=0)
+    assert new.basis_f.size == bset.basis_f.rescale(20.0).size

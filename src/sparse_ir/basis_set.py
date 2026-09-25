@@ -139,6 +139,6 @@ class FiniteTempBasisSet:
         new_wmax = self.basis_f.lambda_ / new_beta
         return FiniteTempBasisSet(
             new_beta, new_wmax,
-            eps=self.basis_f.accuracy,  # Use accuracy instead of eps
+            eps=self.basis_f._eps,
             sve_result=self.basis_f.sve_result
         )
