@@ -279,13 +279,12 @@ class AbstractAugmentation:
 
 
 class TauConst(AbstractAugmentation):
-    """Constant in imaginary time with statistics-dependent periodicity.
-    
-    Evaluates to a constant value in imaginary time with proper handling of
-    periodicity based on statistics:
-    - Fermions: Anti-periodic G(τ + β) = -G(τ)
-    - Bosons: Periodic G(τ + β) = G(τ)
-    
+    """Constant in imaginary time: ``1/sqrt(beta)`` on [0, β], periodic.
+
+    Its Fourier transform is ``sqrt(beta)`` at n = 0 and zero at every other
+    reduced frequency.  Defined for bosons only; ``statistics='F'`` raises
+    :class:`ValueError`.
+
     .. versionchanged:: 1.2
         Added statistics parameter and support for [-β, β] range.
     """
@@ -299,18 +298,13 @@ class TauConst(AbstractAugmentation):
             beta (float):
                 Inverse temperature.
             statistics (str):
-                'F' for Fermionic or 'B' for Bosonic (default: 'B' for backward compatibility).
+                'B' (default); 'F' raises ValueError.
         """
         if beta <= 0:
             raise ValueError("temperature must be positive")
         if statistics not in ('F', 'B'):
             raise ValueError("statistics must be 'F' or 'B'")
-        # A fermionic TauConst is not merely ill-conditioned, it is useless:
-        # its Fourier transform is sqrt(beta) * (n == 0), and fermionic reduced
-        # frequencies are odd, so the augmentation column vanishes identically
-        # and the augmented basis is rank-deficient.  Refuse instead of
-        # silently returning a singular fit.
-        _check_bosonic_statistics(statistics)
+        _check_bosonic_statistics(statistics, "TauConst")
         self._beta = beta
         self._statistics = statistics
 
@@ -322,7 +316,7 @@ class TauConst(AbstractAugmentation):
         if n == 0:
             return self
         else:
-            return lambda tau: np.zeros_like(tau)
+            return lambda tau: np.zeros(np.shape(tau))
 
     def hat(self, n):
         zeta = 1 if self._statistics == 'F' else 0
@@ -331,13 +325,12 @@ class TauConst(AbstractAugmentation):
 
 
 class TauLinear(AbstractAugmentation):
-    """Linear function in imaginary time with statistics-dependent periodicity.
-    
-    Evaluates to a linear function antisymmetric around β/2 with proper handling
-    of periodicity based on statistics:
-    - Fermions: Anti-periodic G(τ + β) = -G(τ)
-    - Bosons: Periodic G(τ + β) = G(τ)
-    
+    """Linear in imaginary time: ``sqrt(3/beta) * (2*tau/beta - 1)`` on [0, β], periodic.
+
+    It is antisymmetric around β/2; its Fourier transform is
+    ``2*sqrt(3/beta)/(1j*nu)`` and zero at n = 0.  Defined for bosons only;
+    ``statistics='F'`` raises :class:`ValueError`.
+
     .. versionchanged:: 1.2
         Added statistics parameter and support for [-β, β] range.
     """
@@ -351,12 +344,13 @@ class TauLinear(AbstractAugmentation):
             beta (float):
                 Inverse temperature.
             statistics (str):
-                'F' for Fermionic or 'B' for Bosonic (default: 'B' for backward compatibility).
+                'B' (default); 'F' raises ValueError.
         """
         if beta <= 0:
             raise ValueError("temperature must be positive")
         if statistics not in ('F', 'B'):
             raise ValueError("statistics must be 'F' or 'B'")
+        _check_bosonic_statistics(statistics, "TauLinear")
         self._beta = beta
         self._statistics = statistics
         self._norm = np.sqrt(3/beta)
@@ -371,9 +365,9 @@ class TauLinear(AbstractAugmentation):
             return self
         elif n == 1:
             c = self._norm * 2/self._beta
-            return lambda tau: np.full_like(tau, c)
+            return lambda tau: np.full(np.shape(tau), c)
         else:
-            return lambda tau: np.zeros_like(tau)
+            return lambda tau: np.zeros(np.shape(tau))
 
     def hat(self, n):
         zeta = 1 if self._statistics == 'F' else 0
@@ -437,14 +431,10 @@ def _augmentation_factory(basis, *augs):
             yield aug.create(basis)
 
 
-def _check_bosonic_statistics(statistics):
+def _check_bosonic_statistics(statistics, name):
     if statistics == 'B':
         return
     elif statistics == 'F':
-        raise ValueError(
-            "TauConst augmentation is only allowed for a bosonic basis: for "
-            "fermionic statistics its Fourier transform vanishes at every "
-            "(odd) reduced Matsubara frequency, which makes the augmented "
-            "basis rank-deficient")
+        raise ValueError(f"{name} is defined for bosons only, got statistics 'F'")
     else:
         raise ValueError(f"invalid statistics {statistics!r}, expected 'F' or 'B'")

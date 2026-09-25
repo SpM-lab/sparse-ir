@@ -497,9 +497,9 @@ def test_fermionic_tau_const_rejected():
     import sparse_ir.augment as aug
 
     fermionic = sparse_ir.FiniteTempBasis('F', 2.0, 5.0, 1e-6)
-    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
+    with pytest.raises(ValueError, match="bosons only"):
         aug.TauConst(2.0, 'F')
-    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
+    with pytest.raises(ValueError, match="bosons only"):
         aug.AugmentedBasis(fermionic, aug.TauConst)
 
     # The bosonic case still works and is full rank in Matsubara

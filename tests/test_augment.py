@@ -171,16 +171,17 @@ def test_normalize_tau_errors():
         _util.normalize_tau('X', 0.0, beta)
 
 
-def test_tau_const_rejects_fermionic():
-    """A fermionic TauConst would be identically zero in Matsubara."""
-    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
-        augment.TauConst(10.0, 'F')
+@pytest.mark.parametrize("aug", [augment.TauConst, augment.TauLinear])
+def test_tau_augmentations_are_bosonic_only(aug):
+    """TauConst and TauLinear are defined for bosons only."""
+    with pytest.raises(ValueError, match="bosons only"):
+        aug(10.0, 'F')
 
     basis = sparse_ir.FiniteTempBasis('F', 10.0, wmax=2.0, eps=1e-6)
-    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
-        augment.TauConst.create(basis)
-    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
-        augment.AugmentedBasis(basis, augment.TauConst)
+    with pytest.raises(ValueError, match="bosons only"):
+        aug.create(basis)
+    with pytest.raises(ValueError, match="bosons only"):
+        augment.AugmentedBasis(basis, aug)
 
 
 def test_tau_const_periodicity():
@@ -194,11 +195,10 @@ def test_tau_const_periodicity():
     assert np.isclose(tc(-5.0), 1.0 / np.sqrt(beta))
 
 
-@pytest.mark.parametrize("stat", ["F", "B"])
-def test_tau_linear_periodicity(stat):
-    """Test TauLinear with statistics-dependent periodicity"""
+def test_tau_linear_periodicity():
+    """TauLinear is periodic in beta (bosonic)"""
     beta = 10.0
-    tl = augment.TauLinear(beta, stat)
+    tl = augment.TauLinear(beta, 'B')
     
     # Test at tau=0
     val0 = tl(0.0)
@@ -209,10 +209,14 @@ def test_tau_linear_periodicity(stat):
     val_mid = tl(5.0)
     assert np.isclose(val_mid, 0.0)  # x = 2*5/10 - 1 = 0
     
-    # tau = -beta/4 maps to 3*beta/4 (x = 1/2); the sign depends on statistics
-    val_neg = tl(-beta / 4)
-    expected_sign = -1.0 if stat == 'F' else 1.0
-    assert np.isclose(val_neg, expected_sign * norm * 0.5)
+    # tau = -beta/4 maps to 3*beta/4 (x = 1/2)
+    assert np.isclose(tl(-beta / 4), norm * 0.5)
+
+    # The derivative is the constant slope, also for integer tau arrays
+    slope = norm * 2 / beta
+    np.testing.assert_array_equal(tl.deriv()(np.array([1, 2])), [slope, slope])
+    np.testing.assert_array_equal(augment.TauConst(beta).deriv()(np.array([1, 2])),
+                                  [0.0, 0.0])
 
 
 def test_matsubara_const_range():
@@ -251,19 +255,18 @@ def test_tau_const_with_statistics():
     assert np.isclose(tc(5.0), 1 / np.sqrt(beta))
 
 
-@pytest.mark.parametrize("stat", ["F", "B"])
-def test_tau_linear_with_statistics(stat):
+def test_tau_linear_with_statistics():
     """Test TauLinear can be created with statistics parameter"""
     beta = 10.0
-    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax=2.0, eps=1e-6)
-    
+    basis = sparse_ir.FiniteTempBasis('B', beta, wmax=2.0, eps=1e-6)
+
     # Test factory method
     tl = augment.TauLinear.create(basis)
-    assert tl._statistics == stat
-    
+    assert tl._statistics == 'B'
+
     # Test direct creation
-    tl2 = augment.TauLinear(beta, stat)
-    assert tl2._statistics == stat
+    tl2 = augment.TauLinear(beta, 'B')
+    assert tl2._statistics == 'B'
     
     # tau = beta/2 is the zero of the linear function
     assert np.isclose(tl(5.0), 0.0)
