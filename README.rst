@@ -20,7 +20,7 @@ Install via `conda <https://anaconda.org/spm-lab/sparse-ir>`_::
 
 sparse-ir requires `numpy <https://numpy.org/>`_, `scipy <https://scipy.org/>`_,
 and `pylibsparseir <https://pypi.org/project/pylibsparseir>`_ (a thin Python wrapper
-for the `libsparseir <https://github.com/SpM-lab/libsparseir>`_ C API).
+for the libsparseir C API from `sparse-ir-rs <https://github.com/SpM-lab/sparse-ir-rs>`_).
 
 To manually install the current development version, you can use the following::
 
@@ -56,10 +56,10 @@ with the python library.
 There is also a `Julia library`_ and (currently somewhat restricted)
 `C library with Fortran bindings`_ available for the IR basis and sparse sampling.
 
-.. _comprehensive tutorial: https://spm-lab.github.io/sparse-ir-tutorial
+.. _comprehensive tutorial: https://spm-lab.github.io/sparse-ir-tutorial-v2/
 .. _API documentation: https://sparse-ir.readthedocs.io
 .. _Julia library: https://github.com/SpM-lab/SparseIR.jl
-.. _C library with Fortran bindings: https://github.com/SpM-lab/libsparseir
+.. _C library with Fortran bindings: https://github.com/SpM-lab/sparse-ir-rs
 
 Getting started
 ---------------

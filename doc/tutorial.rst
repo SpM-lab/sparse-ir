@@ -2,7 +2,7 @@ Getting started
 ===============
 
 A comprehensive introduction is available at
-`<https://spm-lab.github.io/sparse-ir-tutorial>`_.
+`<https://spm-lab.github.io/sparse-ir-tutorial-v2/>`_.
 
 It includes a set of self-contained notebooks for a variety of
 many-body applications using sparse-ir:
