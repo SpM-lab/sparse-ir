@@ -337,3 +337,27 @@ def check_svd_result(svd_result, matrix_shape=None):
             raise ValueError(f"shape mismatch between SVD ({m_u}, {n_v}) "
                              f"and matrix ({m}, {n})")
     return u, s, vH
+
+def slice_to_size(index, size):
+    """Return the number of basis functions selected by ``index``.
+
+    Only ``basis[:stop]``-style truncation is supported, mirroring
+    :py:meth:`FiniteTempBasis.__getitem__`.
+    """
+    if not isinstance(index, slice):
+        raise TypeError(
+            f"only slice truncation is supported, got {index!r}")
+    if index.start not in (None, 0):
+        raise ValueError(
+            f"basis truncation must start at 0, got {index.start!r}")
+    if index.step not in (None, 1):
+        raise ValueError(
+            f"basis truncation must have unit step, got {index.step!r}")
+    if index.stop is None:
+        return size
+    stop = int(index.stop)
+    if not 0 < stop <= size:
+        raise IndexError(
+            f"truncation to {stop} functions is out of range for a basis of "
+            f"size {size}")
+    return stop

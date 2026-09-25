@@ -43,7 +43,8 @@ class AbstractBasis(ABC):
         r"""Basis functions on the imaginary time axis.
 
         Set of IR basis functions on the imaginary time (tau) axis, where tau
-        is a real number between zero and beta. To get the l-th basis function
+        is a real number in [-beta, beta]; negative times follow the
+        (anti-)periodicity of the statistics. To get the l-th basis function
         at imaginary time tau of some basis, use:
 
             ultau = basis.u[l](tau)        # l-th basis function at time tau

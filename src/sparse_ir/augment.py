@@ -77,7 +77,7 @@ class AugmentedBasis(abstract.AbstractBasis):
         return self._basis.statistics
 
     def __getitem__(self, index):
-        stop = _slice_to_size(index, self.size)
+        stop = _util.slice_to_size(index, self.size)
         if stop <= self._naug:
             raise ValueError("Cannot truncate to only augmentation")
         return AugmentedBasis(self._basis[:stop - self._naug],
@@ -206,12 +206,16 @@ class _AugmentedFunction:
         return f_x
 
     def __getitem__(self, l):
-        # TODO make this more general
         if isinstance(l, slice):
-            stop = _slice_to_size(l, self.size)
+            stop = _util.slice_to_size(l, self.size)
             if stop <= self._naug:
-                raise NotImplementedError("Don't truncate to only augmentation")
-            return _AugmentedFunction(self._fbasis[:stop-self._naug], self._faug)
+                raise ValueError(
+                    "cannot truncate to only the augmentation functions")
+            # Keep the subclass: it carries xmin/xmax/deriv or zeta.
+            return type(self)(self._fbasis[:stop-self._naug], self._faug)
+        elif np.ndim(l) != 0:
+            raise TypeError("augmented function sets take an integer index or "
+                            f"a slice, got {l!r}")
         else:
             # Resolve a negative index against the whole set: without this,
             # u[-1] would return the last *augmentation* instead of the last
@@ -418,33 +422,11 @@ class MatsubaraConst(AbstractAugmentation):
         return self
 
     def hat(self, n):
-        n = _util.check_reduced_matsubara(n)
+        zeta = None if self._statistics is None else (1 if self._statistics == 'F' else 0)
+        n = _util.check_reduced_matsubara(n, zeta=zeta)
         return np.broadcast_to(1.0, n.shape)
 
 
-def _slice_to_size(index, size):
-    """Return the number of basis functions selected by ``index``.
-
-    Only ``basis[:stop]``-style truncation is supported, mirroring
-    :py:meth:`FiniteTempBasis.__getitem__`.
-    """
-    if not isinstance(index, slice):
-        raise TypeError(
-            f"only slice truncation is supported, got {index!r}")
-    if index.start not in (None, 0):
-        raise ValueError(
-            f"basis truncation must start at 0, got {index.start!r}")
-    if index.step not in (None, 1):
-        raise ValueError(
-            f"basis truncation must have unit step, got {index.step!r}")
-    if index.stop is None:
-        return size
-    stop = int(index.stop)
-    if not 0 < stop <= size:
-        raise IndexError(
-            f"truncation to {stop} functions is out of range for a basis of "
-            f"size {size}")
-    return stop
 
 
 def _augmentation_factory(basis, *augs):

@@ -6,6 +6,7 @@ Test cases for FiniteTempBasis functionality
 """
 
 import numpy as np
+import pytest
 import sparse_ir
 
 
@@ -132,30 +133,46 @@ def test_finite_temp_bases():
 
 class TestBasisFunctionEvaluation:
     """Test basis function evaluation accuracy."""
-    def test_u_function_finite(self):
-        """Test that u functions evaluate to finite values."""
+    def test_u_function_values(self):
+        """u_l has the reflection symmetry u_l(beta - tau) = (-1)^l u_l(tau)."""
         basis = sparse_ir.FiniteTempBasis('F', 1.0, 10.0, 1e-6)
 
-        # Test at various tau points
-        tau_points = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+        tau_points = np.array([0.0, 0.25, 0.5, 0.75, 1.0])   # symmetric about beta/2
         u_vals = basis.u(tau_points)
 
         assert u_vals.shape == (basis.size, len(tau_points))
-        assert np.all(np.isfinite(u_vals)), "All u function values should be finite"
+        sign = (-1.0) ** np.arange(basis.size)
+        np.testing.assert_allclose(u_vals[:, ::-1], sign[:, None] * u_vals,
+                                   rtol=0, atol=1e-12 * np.abs(u_vals).max())
+        # u_0 has no sign change
+        assert abs(np.sign(u_vals[0]).sum()) == len(tau_points)
 
-        # u functions should not be trivially zero
-        assert np.any(np.abs(u_vals) > 1e-10), "u functions should not be all zero"
-
-    def test_v_function_finite(self):
-        """Test that v functions evaluate to finite values."""
+    def test_v_function_values(self):
+        """v_l has the parity v_l(-omega) = (-1)^l v_l(omega)."""
         basis = sparse_ir.FiniteTempBasis('F', 1.0, 10.0, 1e-6)
 
-        # Test at various omega points
-        omega_points = np.linspace(-8, 8, 9)
+        omega_points = np.linspace(-8, 8, 9)                  # symmetric about 0
         v_vals = basis.v(omega_points)
 
         assert v_vals.shape == (basis.size, len(omega_points))
-        assert np.all(np.isfinite(v_vals)), "All v function values should be finite"
+        sign = (-1.0) ** np.arange(basis.size)
+        np.testing.assert_allclose(v_vals[:, ::-1], sign[:, None] * v_vals,
+                                   rtol=0, atol=1e-12 * np.abs(v_vals).max())
 
-        # v functions should not be trivially zero
-        assert np.any(np.abs(v_vals) > 1e-10), "v functions should not be all zero"
+def test_basis_truncation():
+    """basis[:n] keeps the n most significant singular values and functions."""
+    basis = sparse_ir.FiniteTempBasis("F", 10.0, 1.0, eps=1e-6)
+    part = basis[:3]
+    assert isinstance(part, sparse_ir.FiniteTempBasis)
+    assert part.size == 3
+    np.testing.assert_array_equal(part.s, basis.s[:3])
+    np.testing.assert_allclose(part.u(0.5), basis.u(0.5)[:3], rtol=1e-14, atol=0)
+    np.testing.assert_allclose(part.uhat(3), basis.uhat(3)[:3], rtol=1e-14, atol=0)
+    assert basis[:basis.size].size == basis.size
+    for bad in (slice(1, 3), slice(0, 4, 2)):
+        with pytest.raises(ValueError, match="truncation"):
+            basis[bad]
+    with pytest.raises(IndexError):
+        basis[:basis.size + 1]
+    with pytest.raises(TypeError, match="slice"):
+        basis[2]

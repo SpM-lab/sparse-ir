@@ -5,6 +5,8 @@ High-level Python classes for FiniteTempBasis
 """
 from typing import Optional
 import numpy as np
+
+from . import _util
 from pylibsparseir.core import (
     basis_new,
     basis_get_svals,
@@ -198,6 +200,13 @@ class FiniteTempBasis(AbstractBasis):
 
     @property
     def u(self):
+        r"""Basis functions on the imaginary time axis.
+
+        ``u[l](tau)`` is the l-th basis function at imaginary time ``tau``,
+        which may lie anywhere in ``[-beta, beta]``: negative times follow the
+        (anti-)periodicity of the statistics.  Points outside that interval
+        raise :class:`ValueError`.
+        """
         return self._u
 
     @property
@@ -288,13 +297,17 @@ class FiniteTempBasis(AbstractBasis):
                 f"beta={self.beta}, wmax={self.wmax}, size={self.size})")
 
     def __getitem__(self, index):
-        """Return basis functions/singular values for given index/indices.
+        """Truncate the basis to its ``n`` most significant singular values.
 
-        This can be used to truncate the basis to the n most significant
-        singular values: basis[:3].
+        Only ``basis[:n]`` (start 0, unit step, ``0 < n <= size``) is
+        supported.  The truncated basis shares the kernel and the SVE of this
+        one, so its singular values and functions are the first ``n`` of this
+        basis.
         """
-        # TODO: Implement basis truncation when C API supports it
-        raise NotImplementedError("Basis truncation not yet implemented in C API")
+        stop = _util.slice_to_size(index, self.size)
+        return FiniteTempBasis(self.statistics, self.beta, self.wmax, self._eps,
+                               max_size=stop, kernel=self._kernel,
+                               sve_result=self._sve)
 
     @property
     def kernel(self):

@@ -72,11 +72,43 @@ def test_positive_only_matsubara_sampling_of_augmented_basis(stat, augmentations
     giv = smpl.evaluate(gl)
     np.testing.assert_allclose(giv, smpl_full.evaluate(gl)[full >= 0],
                                atol=1e-13 * np.abs(giv).max(), rtol=0)
-    # T-c against the full set's condition number: the cond of a
-    # positive-only sampling is that of the complex half matrix, which
-    # understates the conditioning of the real least-squares fit.
-    atol = 100 * smpl_full.cond * np.finfo(np.float64).eps * np.abs(gl).max()
+    # cond is that of the real least-squares problem the fit solves
+    # (SpM-lab/sparse-ir-rs#270), so T-c bounds the round trip.
+    A = basis_comp.uhat(half).T
+    assert smpl.cond == pytest.approx(
+        np.linalg.cond(np.vstack([A.real, A.imag])), rel=1e-10)
+    atol = 100 * smpl.cond * np.finfo(np.float64).eps * np.abs(gl).max()
     np.testing.assert_allclose(smpl.fit(giv).real, gl, atol=atol, rtol=0)
+
+
+def test_augmented_function_sets_take_integers_and_slices():
+    basis = sparse_ir.FiniteTempBasis("B", 10.0, 1.0, eps=1e-6)
+    basis_comp = augment.AugmentedBasis(basis, augment.TauConst, augment.TauLinear)
+    for fs in (basis_comp.u, basis_comp.uhat):
+        with pytest.raises(TypeError, match="integer index or a slice"):
+            fs[[0, 2]]
+        with pytest.raises(ValueError, match="only the augmentation"):
+            fs[:2]
+        assert fs[:3].size == 3     # two augmentations and one basis function
+    np.testing.assert_array_equal(basis_comp.u[:3](0.5), basis_comp.u(0.5)[:3])
+
+
+def test_augmented_basis_truncation():
+    basis = sparse_ir.FiniteTempBasis("B", 10.0, 1.0, eps=1e-6)
+    basis_comp = augment.AugmentedBasis(basis, augment.TauConst, augment.TauLinear)
+    part = basis_comp[:5]
+    assert part.size == 5
+    np.testing.assert_allclose(part.u(0.5), basis_comp.u(0.5)[:5],
+                               rtol=1e-14, atol=0)
+
+
+def test_matsubara_const_checks_parity():
+    basis = sparse_ir.FiniteTempBasis("F", 10.0, 1.0, eps=1e-6)
+    vertex = augment.AugmentedBasis(basis, augment.MatsubaraConst)
+    const = vertex.uhat[0]
+    assert const(3) == 1.0
+    with pytest.raises(ValueError, match="odd"):
+        const(2)
 
 
 def test_normalize_tau_bosonic():

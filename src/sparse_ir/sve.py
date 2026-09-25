@@ -6,6 +6,8 @@ SVE (Singular Value Expansion) functionality for SparseIR.
 
 This module provides Python wrappers for SVE computation and results.
 """
+import numbers
+
 import numpy as np
 
 from pylibsparseir.constants import (
@@ -78,6 +80,8 @@ class SVEResult:
             raise TypeError(
                 "kernel must be LogisticKernel or RegularizedBoseKernel"
             )
+        if not isinstance(eps, numbers.Real):
+            raise TypeError(f"accuracy eps must be a real number, got {eps!r}")
         if not (np.isfinite(eps) and eps > 0):
             raise ValueError(
                 f"accuracy eps must be positive and finite, got {eps!r}")

@@ -58,6 +58,21 @@ def funcs_ft_get_slice(funcs_ptr, indices, zeta=None):
         raise RuntimeError(f"Failed to get basis function {indices}: {status.value}")
     return FunctionSetFT(funcs, zeta)
 
+def _nonempty(indices):
+    """Reject an empty selection before it reaches C.
+
+    The C library panics on an empty selection (SpM-lab/sparse-ir-rs#269).
+    """
+    if len(indices) == 0:
+        raise ValueError("an empty selection of basis functions is not supported")
+    return indices
+
+
+def _is_integer_index(index):
+    """True if ``index`` selects a single function (an integer, not a slice or list)."""
+    return np.ndim(index) == 0 and not isinstance(index, slice)
+
+
 class FunctionSet:
     """Wrapper for basis function evaluation."""
 
@@ -143,7 +158,7 @@ class FunctionSet:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
         return funcs_get_slice(self._ptr,
-                               _util.resolve_function_indices(index, sz))
+                               _nonempty(_util.resolve_function_indices(index, sz)))
 
     def deriv(self, n=1):
         """Compute the n-th derivative of the basis functions.
@@ -260,7 +275,7 @@ class FunctionSetFT:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
         return funcs_ft_get_slice(self._ptr,
-                                  _util.resolve_function_indices(index, sz),
+                                  _nonempty(_util.resolve_function_indices(index, sz)),
                                   self._zeta)
 
     def release(self):
@@ -334,6 +349,11 @@ class PiecewiseLegendrePoly:
                 ``[xmin, xmax]``.
         """
         return self._funcs(_util.check_domain(x, self._xmin, self._xmax))
+
+    def deriv(self, n=1):
+        """Return the n-th derivative of the function (default: the first)."""
+        return PiecewiseLegendrePoly(self._funcs.deriv(n), self._xmin, self._xmax,
+                                     self._period, self._default_overlap_range)
 
     def overlap(self, f, xmin: float = None, xmax: float = None, *, rtol=2.3e-16, return_error=False, points=None):
         """
@@ -415,18 +435,20 @@ class PiecewiseLegendrePolyVector:
         return self._xmax
 
     def __call__(self, x):
-        """Evaluate the functions at ``x``.
+        """Evaluate the functions at ``x``; the result has shape ``(size,) + shape(x)``.
 
         Raises:
             ValueError: if a point is not finite or lies outside
                 ``[xmin, xmax]``.
         """
-        return self._funcs(_util.check_domain(x, self._xmin, self._xmax))
+        values = self._funcs(_util.check_domain(x, self._xmin, self._xmax))
+        # FunctionSet drops the function axis of a one-function set.
+        return np.reshape(values, (self.size,) + np.shape(x))
 
     def __getitem__(self, index):
-        """Get a single basis function or slice of functions."""
+        """Get a single basis function (integer index) or a set (slice or list)."""
         funcs_slice = self._funcs[index]
-        if funcs_slice.size() == 1:
+        if _is_integer_index(index):
             return PiecewiseLegendrePoly(funcs_slice, self._xmin, self._xmax,
                                        self._period, self._default_overlap_range)
         else:
@@ -485,15 +507,16 @@ class PiecewiseLegendrePolyVector:
         if xmin > xmax:
             raise ValueError("xmin must be less than xmax")
 
-        if self._period == 0.0:
-            if xmin < self._xmin:
-                raise ValueError(f"xmin ({xmin}) must be greater than or equal "
-                               f"to the lower bound of the polynomial domain "
-                               f"({self._xmin})")
-            if xmax > self._xmax:
-                raise ValueError(f"xmax ({xmax}) must be less than or equal "
-                               f"to the upper bound of the polynomial domain "
-                               f"({self._xmax})")
+        # The quadrature evaluates the functions inside [xmin, xmax] only, so
+        # checking the interval once replaces a domain check per point.
+        if xmin < self._xmin:
+            raise ValueError(f"xmin ({xmin}) must be greater than or equal "
+                           f"to the lower bound of the polynomial domain "
+                           f"({self._xmin})")
+        if xmax > self._xmax:
+            raise ValueError(f"xmax ({xmax}) must be less than or equal "
+                           f"to the upper bound of the polynomial domain "
+                           f"({self._xmax})")
 
         f_res = f(0.5*xmin + 0.5*xmax)
 
@@ -576,15 +599,17 @@ class PiecewiseLegendrePolyFTVector:
         return self._funcs.zeta
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        """Evaluate basis functions at given points."""
-        return self._funcs(x)
+        """Evaluate the functions at ``x``; the result has shape ``(size,) + shape(x)``."""
+        values = self._funcs(x)
+        # FunctionSetFT drops the function axis of a one-function set.
+        return np.reshape(values, (self.size,) + np.shape(x))
 
     def __getitem__(self, index):
-        """Get a single basis function or slice of functions."""
-        if isinstance(index, slice):
-            return PiecewiseLegendrePolyFTVector(self._funcs[index])
-        else:
+        """Get a single basis function (integer index) or a set (slice or list)."""
+        if _is_integer_index(index):
             return PiecewiseLegendrePolyFT(self._funcs[index])
+        else:
+            return PiecewiseLegendrePolyFTVector(self._funcs[index])
 
 
 def _cover_domain(
@@ -695,7 +720,7 @@ def _compute_overlap_internal(poly, poly_size, f, f_length: int, xmin: float, xm
         fx = fx.reshape(rule.x.shape + (f_length,))
 
         rule_x_flat = rule.x.ravel()
-        poly_val = np.array(list(map(poly, rule_x_flat))).T.reshape(-1, *rule.x.shape, 1)
+        poly_val = np.array(list(map(poly._funcs, rule_x_flat))).T.reshape(-1, *rule.x.shape, 1)
         #poly_val = poly(rule.x).reshape(-1, *rule.x.shape, 1)
         #if poly_val.shape[0] >= 2:
             #print(poly_val.shape)

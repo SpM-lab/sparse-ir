@@ -90,6 +90,41 @@ def test_empty_evaluation_arrays_keep_their_shape(bases):
 
 
 # ---------------------------------------------------------------------------
+# Selections of basis functions
+# ---------------------------------------------------------------------------
+
+def test_empty_selection_is_rejected(bases):
+    # The C library panics on an empty selection (SpM-lab/sparse-ir-rs#269).
+    basis = bases["F"]
+    for fs in (basis.u, basis.v, basis.uhat):
+        with pytest.raises(ValueError, match="empty selection"):
+            fs[0:0]
+        with pytest.raises(ValueError, match="empty selection"):
+            fs[[]]
+
+
+def test_slices_of_one_function_are_sets(bases):
+    basis = bases["F"]
+    for fs in (basis.u, basis.v, basis.uhat):
+        assert type(fs[0:1]) is type(fs)
+        assert fs[0:1].size == 1
+        assert type(fs[[2]]) is type(fs)
+    assert basis.u[0:1](0.3).shape == (1,)
+    assert basis.u[0:1](np.array([0.3, 0.4])).shape == (1, 2)
+    np.testing.assert_array_equal(basis.u[0:1](0.3), basis.u(0.3)[:1])
+    assert basis.uhat[[2]](3).shape == (1,)
+    np.testing.assert_array_equal(basis.uhat[[2]](3), basis.uhat(3)[2:3])
+
+
+def test_single_functions_have_deriv(bases):
+    basis = bases["F"]
+    for fs in (basis.u, basis.v):
+        for n in (1, 2):
+            np.testing.assert_allclose(fs[1].deriv(n)(0.3), fs.deriv(n)(0.3)[1],
+                                       rtol=1e-14, atol=0)
+
+
+# ---------------------------------------------------------------------------
 # DLR poles and C-level failures
 # ---------------------------------------------------------------------------
 
@@ -139,6 +174,9 @@ def test_tau_sampling_keeps_the_given_order(bases):
     ref = gl @ basis.u(points)
     assert_close(smpl.evaluate(gl), ref, 1e-13 * np.abs(ref).max(),
                  "evaluate follows the order of the given points")
+    assert_close(smpl.fit(ref), gl,
+                 100 * smpl.cond * np.finfo(np.float64).eps * np.abs(gl).max(),
+                 "fit follows the order of the given points")
 
 
 def test_tau_sampling_does_not_alias_the_callers_array(bases):
@@ -200,6 +238,21 @@ def test_positive_only_rejects_complex_coefficients(bases):
     assert np.iscomplexobj(fitted)
     assert_close(smpl.evaluate(fitted), giv, 1e-12 * np.abs(giv).max(),
                  "fit result of a real quantity")
+    # So is an imaginary part below the tolerance max(10 accuracy, 1e-12).
+    assert_close(smpl.evaluate(gl + 1e-14j), giv, 1e-12 * np.abs(giv).max(),
+                 "negligible imaginary part")
+
+
+@pytest.mark.parametrize("stat", ["F", "B"])
+def test_positive_only_cond_is_that_of_the_real_fit(bases, stat):
+    # fit solves the real system [Re A; Im A] x = [Re g; Im g]; the C library
+    # reports the condition number of the complex A instead
+    # (SpM-lab/sparse-ir-rs#270).
+    basis = bases[stat]
+    smpl = sparse_ir.MatsubaraSampling(basis, positive_only=True)
+    A = basis.uhat(smpl.sampling_points).T
+    ref = np.linalg.cond(np.vstack([A.real, A.imag]))
+    assert smpl.cond == pytest.approx(ref, rel=1e-10)
 
 
 # ---------------------------------------------------------------------------
@@ -295,3 +348,9 @@ def test_kernel_cutoff_is_validated(kernel, lambda_):
 def test_sve_accuracy_is_validated(eps):
     with pytest.raises(ValueError, match="eps must be positive"):
         sparse_ir.compute(sparse_ir.LogisticKernel(10.0), eps)
+
+
+@pytest.mark.parametrize("eps", [None, "1e-6"])
+def test_sve_accuracy_must_be_a_number(eps):
+    with pytest.raises(TypeError, match="eps must be a real number"):
+        sparse_ir.sve.SVEResult(sparse_ir.LogisticKernel(10.0), eps)

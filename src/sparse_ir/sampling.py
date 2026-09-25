@@ -461,7 +461,16 @@ class MatsubaraSampling:
 
     @property
     def cond(self):
-        """Condition number of the sampling matrix."""
+        """Condition number of the sampling problem.
+
+        With ``positive_only=True`` this is the condition number of the real
+        least-squares problem ``[Re A; Im A] x = [Re g; Im g]`` that
+        :py:meth:`fit` solves.  The C library reports that of the complex
+        matrix ``A`` instead, which understates it (SpM-lab/sparse-ir-rs#270).
+        """
+        if self.positive_only:
+            A = self.basis.uhat(self.sampling_points).T
+            return float(np.linalg.cond(np.vstack([A.real, A.imag])))
         cond = c_double()
         status = _lib.spir_sampling_get_cond_num(self._ptr, byref(cond))
         if status != COMPUTATION_SUCCESS:
