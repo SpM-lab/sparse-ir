@@ -83,7 +83,7 @@ class LogisticKernel(AbstractKernel):
     """
 
     def __init__(self, lambda_):
-        """Initialize logistic kernel with cutoff lambda."""
+        """Initialize logistic kernel with cutoff ``lambda_``."""
         self._lambda = _check_lambda(lambda_)
         self._ptr = logistic_kernel_new(self._lambda)
 
@@ -130,7 +130,7 @@ class RegularizedBoseKernel(AbstractKernel):
     """
 
     def __init__(self, lambda_):
-        """Initialize regularized bosonic kernel with cutoff lambda."""
+        """Initialize regularized bosonic kernel with cutoff ``lambda_``."""
         warnings.warn(
             "RegularizedBoseKernel is deprecated and will be removed in a "
             "future release; use LogisticKernel, the default kernel for both "

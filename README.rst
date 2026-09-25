@@ -53,11 +53,19 @@ Lichtenstein formula, FLEX, ... - are presented.
 Refer to the `API documentation`_ for more details on how to work
 with the python library.
 
+The symbols and conventions are defined on the `notation page`_, shared with
+the tutorial and the Julia and C libraries.  In short: G(τ) = -⟨T c(τ) c†(0)⟩
+for both statistics; Matsubara frequencies iν are passed as the reduced
+frequency n, an integer with ν = nπ/β (odd for fermions, even for bosons);
+G(iν) = ∫₀^β dτ e^{iντ} G(τ); and G(τ) is evaluated for τ in [-β, β], where
+``-0.0`` stands for 0⁻.
+
 There is also a `Julia library`_ and (currently somewhat restricted)
 `C library with Fortran bindings`_ available for the IR basis and sparse sampling.
 
 .. _comprehensive tutorial: https://spm-lab.github.io/sparse-ir-tutorial-v2/
 .. _API documentation: https://sparse-ir.readthedocs.io
+.. _notation page: https://spm-lab.github.io/sparse-ir-doc/src/notation.html
 .. _Julia library: https://github.com/SpM-lab/SparseIR.jl
 .. _C library with Fortran bindings: https://github.com/SpM-lab/sparse-ir-rs
 
@@ -70,15 +78,16 @@ lines of Python code::
     import sparse_ir, numpy as np
     basis = sparse_ir.FiniteTempBasis('F', beta=10, wmax=8, eps=1e-6)
     stau = sparse_ir.TauSampling(basis)
-    siw = sparse_ir.MatsubaraSampling(basis, positive_only=True)
+    siv = sparse_ir.MatsubaraSampling(basis, positive_only=True)
 
     # Solve the single impurity Anderson model coupled to a bath with a
-    # semicircular states with unit half bandwidth.
+    # semicircular density of states with unit half bandwidth.
     U = 1.2
     def rho0w(w):
         return np.sqrt(1-w.clip(-1,1)**2) * 2/np.pi
 
-    # Compute the IR basis coefficients for the non-interacting propagator
+    # Compute the IR basis coefficients G0_l = -S_l rho0_l for the
+    # non-interacting propagator
     rho0l = basis.v.overlap(rho0w)
     G0l = -basis.s * rho0l
 
@@ -91,23 +100,27 @@ lines of Python code::
         Gtau = stau.evaluate(Gl)
         Sigmatau = U**2 * Gtau**3
         Sigmal = stau.fit(Sigmatau)
-        Sigmaiw = siw.evaluate(Sigmal)
-        G0iw = siw.evaluate(G0l)
-        Giw = 1/(1/G0iw - Sigmaiw)
-        Gl = siw.fit(Giw)
+        Sigmaiv = siv.evaluate(Sigmal)
+        G0iv = siv.evaluate(G0l)
+        Giv = 1/(1/G0iv - Sigmaiv)
+        Gl = siv.fit(Giv)
 
 You may want to start with reading up on the `intermediate representation`_.
 It is tied to the analytic continuation of bosonic/fermionic spectral
 functions from (real) frequencies to imaginary time, a transformation mediated
-by a kernel ``K``.  The kernel depends on a cutoff, which you should choose to
-be ``lambda_ >= beta * W``, where ``beta`` is the inverse temperature and ``W``
-is the bandwidth.
+by the kernel K(τ, ω) = e^{-τω}/(1 + e^{-βω}).  The basis depends on the
+inverse temperature ``beta`` and on the frequency cutoff ``wmax``, which you
+should choose so that the spectral function vanishes outside [-wmax, wmax].
+In the dimensionless variables x = 2τ/β - 1 and y = ω/wmax, the kernel, and
+hence its singular value expansion, depends on them only through the cutoff
+Λ = ``beta * wmax`` (``basis.lambda_``).
 
 One can now perform a `singular value expansion`_ on this kernel, which
-generates two sets of orthonormal basis functions, one set ``v[l](w)`` for
-real frequency side ``w``, and one set ``u[l](tau)`` for the same obejct in
-imaginary (Euclidean) time ``tau``, together with a "coupling" strength
-``s[l]`` between the two sides.
+generates two sets of orthonormal basis functions, one set V_l(ω),
+``basis.v[l](w)``, on the real-frequency axis, orthonormal on
+[-wmax, wmax], and one set U_l(τ), ``basis.u[l](tau)``, for the same object in
+imaginary (Euclidean) time, orthonormal on [0, beta], together with the
+singular values S_l, ``basis.s[l]``, which couple the two sides.
 
 By this construction, the imaginary time basis can be shown to be *optimal* in
 terms of compactness.

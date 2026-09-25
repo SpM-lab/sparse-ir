@@ -40,6 +40,10 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     }
 
+# Render the class docstring followed by the __init__ docstring, which holds
+# the constructor parameters (statistics, beta, wmax, eps, ...).
+autoclass_content = "both"
+
 #templates_path = ['_templates']
 #html_static_path = ['_static']
 
