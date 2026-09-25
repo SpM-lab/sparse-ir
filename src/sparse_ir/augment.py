@@ -15,10 +15,15 @@ class AugmentedBasis(abstract.AbstractBasis):
     ``basis``.  The augmented functions then form the first basis
     functions, while the rest is provided by the regular basis, i.e.::
 
-        u[l](x) == augmentations[l](x) if l < naug else basis.u[l-naug](x),
+        u[l](tau) == augmentations[l](tau) if l < naug else basis.u[l-naug](tau),
 
     where ``naug = len(augmentations)`` is the number of added basis functions
-    through augmentation.  Similar expressions hold for Matsubara frequencies.
+    through augmentation.  Similarly, in Matsubara frequency,
+    ``uhat[l](n) == augmentations[l].hat(n)`` for ``l < naug``, at the reduced
+    frequency ``n`` (ν = nπ/β).  ``tau`` may lie anywhere in [-β, β], with the
+    extension and endpoint rule of :py:attr:`FiniteTempBasis.u
+    <sparse_ir.FiniteTempBasis.u>`.  :py:attr:`significance` and
+    :py:attr:`accuracy` are those of the underlying basis.
 
     Augmentation is useful in constructing bases for vertex-like quantities
     such as self-energies `[1]`_.  It is also useful when constructing a
@@ -51,6 +56,16 @@ class AugmentedBasis(abstract.AbstractBasis):
     .. _[2]: https://doi.org/10.1103/PhysRevB.97.205111
     """
     def __init__(self, basis, *augmentations):
+        """
+        Arguments:
+            basis (FiniteTempBasis):
+                Basis to augment.
+            *augmentations:
+                Augmentation classes, such as ``TauConst``, which are created
+                for the basis with ``create(basis)``, or instances, which must
+                have the ``beta`` of the basis; TauConst and TauLinear
+                require a bosonic basis.
+        """
         augmentations = tuple(_augmentation_factory(basis, *augmentations))
         self._basis = basis
         self._augmentations = augmentations
@@ -93,10 +108,12 @@ class AugmentedBasis(abstract.AbstractBasis):
 
     @property
     def significance(self):
+        """Significance of the underlying basis"""
         return self._basis.significance
 
     @property
     def accuracy(self):
+        """Accuracy of the underlying basis"""
         return self._basis.accuracy
 
     @property
@@ -113,14 +130,19 @@ class AugmentedBasis(abstract.AbstractBasis):
 
     def default_tau_sampling_points(self, *, npoints=None, use_positive_taus=True):
         """Get default tau sampling points for augmented basis.
-        
+
+        They are the roots of U_npoints, i.e. the default points of an IR
+        basis of size ``npoints``.
+
         Arguments:
             npoints (int):
                 Minimum number of sampling points to return. If None, uses self.size.
             use_positive_taus (bool):
-                If True, fold points to [0, β] range and sort them (default: True).
-                If False, points are in symmetric range.
-                
+                If True (default), fold the points into [0, β) with
+                ``np.mod`` and sort them; they lie in (0, β).
+                If False, the points are unfolded: they lie in (-β/2, β/2]
+                and are symmetric about 0.
+
                 .. versionadded:: 1.2
         """
         if npoints is None:
@@ -142,8 +164,10 @@ class AugmentedBasis(abstract.AbstractBasis):
         """Get default Matsubara sampling points for augmented basis.
 
         This method provides default sampling points for Matsubara frequencies
-        when using an augmented basis.  With ``positive_only=True`` they are the
-        non-negative half of the full set, as for a plain basis.
+        when using an augmented basis: reduced Matsubara frequencies n,
+        computed from the underlying basis for ``self.size`` functions.  With
+        ``positive_only=True`` they are the non-negative half (n >= 0) of the
+        full set, as for a plain basis.
         """
         if positive_only:
             # Requesting the positive-only variant from C with the buffer size
@@ -171,6 +195,8 @@ class AugmentedBasis(abstract.AbstractBasis):
 
     @property
     def is_well_conditioned(self):
+        """True only for a vertex basis, i.e. a well-conditioned basis
+        augmented with MatsubaraConst alone"""
         wbasis = self._basis.is_well_conditioned
         waug = (len(self._augmentations) == 1
                 and isinstance(self._augmentations[0], MatsubaraConst))
@@ -255,7 +281,9 @@ class AbstractAugmentation:
 
     This represents a single function in imaginary time and frequency,
     together with some auxiliary methods that make it suitable for augmenting
-    a basis.
+    a basis: ``aug(tau)`` is the function U(τ) at imaginary time τ in
+    [-β, β], and ``aug.hat(n)`` its Fourier transform
+    Û(iν) = ∫₀^β dτ e^{iντ} U(τ) at the reduced frequency n, ν = nπ/β.
 
     See also:
         :class:`AugmentedBasis`
@@ -266,7 +294,7 @@ class AbstractAugmentation:
         raise NotImplementedError()
 
     def __call__(self, tau):
-        """Evaluate the function at imaginary time ``tau``"""
+        """Evaluate the function at imaginary time ``tau`` in [-β, β]"""
         raise NotImplementedError()
 
     def deriv(self, n):
@@ -274,16 +302,18 @@ class AbstractAugmentation:
         raise NotImplementedError()
 
     def hat(self, n):
-        """Evaluate the Fourier transform at reduced frequency ``n``"""
+        """Evaluate the Fourier transform at reduced frequency ``n`` (ν = nπ/β)"""
         raise NotImplementedError()
 
 
 class TauConst(AbstractAugmentation):
     """Constant in imaginary time: ``1/sqrt(beta)`` on [0, β], periodic.
 
-    Its Fourier transform is ``sqrt(beta)`` at n = 0 and zero at every other
-    reduced frequency.  Defined for bosons only; ``statistics='F'`` raises
-    :class:`ValueError`.
+    It is normalized on [0, β].  Its Fourier transform is ``sqrt(beta)`` at
+    n = 0 and zero at every other reduced frequency.  Defined for bosons
+    only; ``statistics='F'`` raises :class:`ValueError`.  It accepts ``tau``
+    in [-β, β] and is ``1/sqrt(beta)`` everywhere there, including the
+    endpoints ±0.0 and ±β.
 
     .. versionchanged:: 1.2
         Added statistics parameter and support for [-β, β] range.
@@ -327,9 +357,14 @@ class TauConst(AbstractAugmentation):
 class TauLinear(AbstractAugmentation):
     """Linear in imaginary time: ``sqrt(3/beta) * (2*tau/beta - 1)`` on [0, β], periodic.
 
-    It is antisymmetric around β/2; its Fourier transform is
-    ``2*sqrt(3/beta)/(1j*nu)`` and zero at n = 0.  Defined for bosons only;
-    ``statistics='F'`` raises :class:`ValueError`.
+    It is normalized on [0, β] and antisymmetric around β/2; its Fourier
+    transform is ``2*sqrt(3/beta)/(1j*nu)`` with ν = nπ/β, and zero at n = 0.
+    Defined for bosons only; ``statistics='F'`` raises :class:`ValueError`.
+
+    It accepts ``tau`` in [-β, β]: negative times follow the periodic
+    extension f(τ) = f(τ + β), and the endpoints are one-sided limits, so
+    ``+0.0`` and ``-beta`` give f(0⁺) = -sqrt(3/beta), while ``beta`` and
+    ``-0.0`` give f(β⁻) = +sqrt(3/beta).
 
     .. versionchanged:: 1.2
         Added statistics parameter and support for [-β, β] range.
@@ -380,11 +415,13 @@ class TauLinear(AbstractAugmentation):
 
 class MatsubaraConst(AbstractAugmentation):
     """Constant in Matsubara, undefined in imaginary time.
-    
-    This augmentation is constant in Matsubara frequency space and returns NaN
-    in imaginary time. The statistics parameter is accepted for type consistency
-    but does not affect the behavior.
-    
+
+    This augmentation is constant in Matsubara frequency space,
+    ``hat(n) == 1`` for every integer ``n`` (without a factor of √β, and
+    without a check of the parity of ``n``), and returns NaN for ``tau`` in
+    [-β, β] (outside, :class:`ValueError`). The statistics parameter is
+    accepted for type consistency but does not affect the behavior.
+
     .. versionchanged:: 1.2
         Accepts tau in [-β, β] range (previously [0, β]).
         Added statistics parameter for consistency.

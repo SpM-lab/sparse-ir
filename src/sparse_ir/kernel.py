@@ -18,7 +18,11 @@ from .abstract import AbstractKernel
 
 
 def kernel_domain(kernel: AbstractKernel):
-    """Get the domain boundaries of a kernel."""
+    """Get the domain boundaries of a kernel.
+
+    Returns ``(xmin, xmax, ymin, ymax)`` of the dimensionless kernel
+    K(x, y): ``(-1, 1, -1, 1)`` for both kernels.
+    """
     xmin = c_double()
     xmax = c_double()
     ymin = c_double()
@@ -44,27 +48,37 @@ def _check_lambda(lambda_):
 class LogisticKernel(AbstractKernel):
     r"""Fermionic/bosonic analytical continuation kernel.
 
-    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``,
+    The logistic kernel is the default kernel for both statistics.  In
+    physical units, for imaginary time τ ∈ [0, β] and real frequency
+    ω ∈ [-ωmax, ωmax], it reads
+
+    .. math::  K(\tau, \omega) = \frac{e^{-\tau\omega}}{1 + e^{-\beta\omega}}.
+
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = ω/ωmax``,
     the integral kernel is a function on ``[-1, 1] x [-1, 1]``:
 
     .. math::  K(x, y) = \frac{\exp(-\Lambda y(x + 1)/2)}{1 + \exp(-\Lambda y)}
 
-    LogisticKernel is a fermionic analytic continuation kernel.
-    Nevertheless, one can model the τ dependence of
-    a bosonic correlation function as follows:
+    with Λ = β ωmax; both forms take the same values.  A fermionic Green's
+    function with spectral function :math:`A(\omega)` is
+    :math:`G(\tau) = -\int d\omega\, K(\tau, \omega) A(\omega)`.
+    One can model the τ dependence of a bosonic correlation function with the
+    same kernel as follows:
 
     .. math::
 
-        \int \frac{\exp(-\Lambda y(x + 1)/2)}{1 - \exp(-\Lambda y)} \rho(y) dy
-            = \int K(x, y) \frac{\rho'(y)}{\tanh(\Lambda y/2)} dy
+        G(\tau) = -\int d\omega\,
+            \frac{e^{-\tau\omega}}{1 - e^{-\beta\omega}} A(\omega)
+            = -\int d\omega\, K(\tau, \omega)
+            \frac{A(\omega)}{\tanh(\beta\omega/2)},
 
     i.e., a rescaling of the spectral function with the weight function:
 
-    .. math::  w(y) = \frac1{\tanh(\Lambda y/2)}.
+    .. math::  w(\omega) = \frac1{\tanh(\beta\omega/2)} = \frac1{\tanh(\Lambda y/2)}.
 
     Parameters
     ----------
-    lambda_ : float
+    lambda\_ : float
         Kernel cutoff Λ = β * ωmax
     """
 
@@ -95,22 +109,23 @@ class RegularizedBoseKernel(AbstractKernel):
         SpM-lab/sparse-ir-rs#273 scale the singular values of its bases by
         ``wmax**-1`` instead of ``wmax**+1``.
 
-    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the bosonic
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = ω/ωmax``, the bosonic
     integral kernel is a function on ``[-1, 1] x [-1, 1]``:
 
     .. math::
 
         K(x, y) = \frac{y \exp(-\Lambda y(x + 1)/2)}{1 - \exp(-\Lambda y)}
 
-    In physical units it is :math:`K(τ, ω) = ω_\mathrm{max} K(x, y) =
-    ω e^{-τω} / (1 - e^{-βω})`, which acts on :math:`ρ(ω)/ω`
+    In physical units it is :math:`K(\tau, \omega) = \omega_\mathrm{max}
+    K(x, y) = \omega e^{-\tau\omega} / (1 - e^{-\beta\omega})`, which acts on
+    :math:`A(\omega)/\omega` for the spectral function :math:`A(\omega)`
     (N. Chikano et al., Computer Physics Communications 240, 181 (2019),
     Eqs. (1)-(3)).
     Care has to be taken in evaluating this expression around ``y == 0``.
 
     Parameters
     ----------
-    lambda_ : float
+    lambda\_ : float
         Kernel cutoff Λ = β * ωmax
     """
 

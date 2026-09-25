@@ -293,12 +293,14 @@ class FunctionSetFT:
 class PiecewiseLegendrePoly:
     """Piecewise Legendre polynomial.
 
-    Models a function on the interval ``[-1, 1]`` as a set of segments on the
-    intervals ``S[i] = [a[i], a[i+1]]``, where on each interval the function
-    is expanded in scaled Legendre polynomials.
+    Models a function on the interval ``[xmin, xmax]`` as a set of segments on
+    the intervals ``S[i] = [a[i], a[i+1]]``, where on each interval the
+    function is expanded in scaled Legendre polynomials.  The imaginary-time
+    basis functions ``basis.u[l]`` are defined on [-β, β] and the
+    real-frequency ones ``basis.v[l]`` on [-ωmax, ωmax].
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     funcs : FunctionSet
         Function set to evaluate the polynomial
     xmin : float
@@ -306,10 +308,16 @@ class PiecewiseLegendrePoly:
     xmax : float
         Maximum value of the interval
     period : float
-        Period of the interval. For periodic functions, this should be the
-        period of the function. For non-periodic functions, this should be 0.
+        Shift after which the function repeats up to a sign, or 0 if it does
+        not; it is used to replicate the knots of the segments across the
+        interval for :py:meth:`overlap`.  The imaginary-time basis functions
+        pass β for both statistics, since U(τ) = (-1)^ζ U(τ + β); the
+        real-frequency ones pass 0.
     default_overlap_range : tuple, optional
-        Default range for overlap calculations (xmin, xmax)
+        Default integration range (xmin, xmax) of :py:meth:`overlap`; the
+        whole interval if not given.  It is (0, β) for ``basis.u`` and
+        (-ωmax, ωmax) for ``basis.v``, the intervals on which they are
+        orthonormal.
     """
 
     def __init__(self, funcs: FunctionSet, xmin: float, xmax: float,
@@ -352,7 +360,7 @@ class PiecewiseLegendrePoly:
 
     @property
     def size(self):
-        """Number of functions: 1."""
+        """Number of functions (always 1)."""
         return 1
 
     def deriv(self, n=1):
@@ -363,17 +371,21 @@ class PiecewiseLegendrePoly:
     def overlap(self, f, xmin: float = None, xmax: float = None, *, rtol=2.3e-16, return_error=False, points=None):
         """
         Evaluate overlap integral of this polynomial with function ``f``.
-        If ``f` returns a scalar, the result is a scalar.
+
+        Computes ``∫ dx f(x) self(x)`` from ``xmin`` to ``xmax``.
+        If ``f`` returns a scalar, the result is a scalar.
         If ``f`` returns an array, the result is an array with the same shape.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         f : callable
             Function to integrate with
         xmin : float, optional
-            Minimum value of the interval. If None, uses default range.
+            Minimum value of the interval. If None, uses the default range:
+            0 for ``basis.u[l]``, -wmax for ``basis.v[l]``.
         xmax : float, optional
-            Maximum value of the interval. If None, uses default range.
+            Maximum value of the interval. If None, uses the default range:
+            β for ``basis.u[l]``, wmax for ``basis.v[l]``.
         rtol : float
             Relative tolerance for integration
         return_error : bool
@@ -482,7 +494,8 @@ class PiecewiseLegendrePolyVector:
     def overlap(self, f, xmin: float = None, xmax: float = None, *, rtol=2.3e-16, return_error=False, points=None):
         r"""Evaluate overlap integral of this polynomial with function ``f``.
 
-        Given the function ``f``, evaluate the integral::
+        Given the function ``f``, evaluate the integral from ``xmin`` to
+        ``xmax``::
 
             ∫ dx * f(x) * self(x)
 
@@ -493,11 +506,13 @@ class PiecewiseLegendrePolyVector:
             f (callable):
                 function that is called with a point ``x`` and returns ``f(x)``
                 at that position.
-            xmin : float, optional
-                Minimum value of the interval. If None, uses default range.
-            xmax : float, optional
-                Maximum value of the interval. If None, uses default range.
-            points (sequence of floats)
+            xmin (float, optional):
+                Minimum value of the interval. If None, uses the default
+                range: 0 for ``basis.u``, -wmax for ``basis.v``.
+            xmax (float, optional):
+                Maximum value of the interval. If None, uses the default
+                range: β for ``basis.u``, wmax for ``basis.v``.
+            points (sequence of floats):
                 A sequence of break points in the integration interval
                 where local difficulties of the integrand may occur
                 (e.g., singularities, discontinuities)
@@ -558,16 +573,19 @@ class PiecewiseLegendrePolyVector:
 
 
 class PiecewiseLegendrePolyFT:
-    """Fourier transform of a piecewise Legendre polynomial.
+    r"""Fourier transform of a piecewise Legendre polynomial.
 
-    For a given frequency index ``n``, the Fourier transform of the Legendre
-    function is defined as::
+    For a given reduced Matsubara frequency ``n``, with ν = nπ/β, the Fourier
+    transform of the imaginary-time function :math:`U(\tau)` is defined as
 
-            phat(n) == ∫ dx exp(1j * pi * n * x / (xmax - xmin)) p(x)
+    .. math::
 
-    The polynomial is continued either periodically (``freq='even'``), in which
-    case ``n`` must be even, or antiperiodically (``freq='odd'``), in which case
-    ``n`` must be odd.
+        \hat U(\mathrm{i}\nu) = \int_0^\beta d\tau\,
+        e^{\mathrm{i}\nu\tau} U(\tau).
+
+    The function is continued either periodically (bosons, ``zeta == 0``), in
+    which case ``n`` must be even, or antiperiodically (fermions,
+    ``zeta == 1``), in which case ``n`` must be odd.
     """
 
     def __init__(self, funcs: FunctionSetFT):
@@ -580,7 +598,7 @@ class PiecewiseLegendrePolyFT:
         return self._funcs.zeta
 
     def __call__(self, x):
-        """Evaluate basis functions at given points."""
+        """Evaluate the transform at the reduced Matsubara frequencies ``x``."""
         return self._funcs(x)
 
 class PiecewiseLegendrePolyFTVector:

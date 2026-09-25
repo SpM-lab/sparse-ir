@@ -45,11 +45,20 @@ def _resolve_work_dtype(work_dtype):
 
 
 class SVEResult:
-    """
+    r"""
     Result of a singular value expansion (SVE).
 
-    Contains the singular values and basis functions resulting from
-    the SVE of an integral kernel.
+    Holds the SVE of the dimensionless kernel on ``[-1, 1] x [-1, 1]``,
+    :math:`K(x, y) = \sum_l s_l u_l(x) v_l(y)`, and exposes only its
+    singular values :py:attr:`s` (the dimensionless :math:`s_l`) and their
+    number, ``len(sve)``; the singular functions are not exposed.  A
+    :class:`~sparse_ir.FiniteTempBasis` built from it holds them in physical
+    units, with :math:`S_l = \sqrt{\beta\omega_\mathrm{max}/2}\, s_l` for
+    :class:`~sparse_ir.LogisticKernel`.
+
+    The result is not truncated at ``eps``: it holds every singular value
+    resolved in the working precision, so ``len(sve)`` does not depend on
+    ``eps``.  The truncation to S_l/S_0 >= eps happens in FiniteTempBasis.
     """
 
     def __init__(
@@ -66,15 +75,21 @@ class SVEResult:
         Parameters
         ----------
         kernel : LogisticKernel or RegularizedBoseKernel
-            Kernel to compute SVE for
+            Kernel to compute SVE for; other kernels raise TypeError.
         eps : float
-            Desired accuracy of the expansion
+            Accuracy target passed to libsparseir.  It does not truncate the
+            result (see above).
         cutoff : float
-            Relative cutoff for the singular values.
+            Ignored: pylibsparseir does not pass it to libsparseir.
         n_sv : int
-            Maximum basis size. If given, only at most the ``n_sv`` most
-            significant singular values and associated singular functions are
-            returned.
+            Passed to libsparseir as ``lmax``, which libsparseir currently
+            ignores.  To limit the basis size, use the ``max_size`` argument
+            of FiniteTempBasis.
+        work_dtype : dtype-like or str, optional
+            Working precision: ``float64`` (``numpy.float64``, ``float``,
+            ``"float64"``, ``"double"``) or ``float64x2`` (``"float64x2"``,
+            ``"ddouble"``, or a NumPy dtype wider than 8 bytes).  Defaults to
+            ``float64x2``.  It sets how many singular values are resolved.
         """
         if not isinstance(kernel, (LogisticKernel, RegularizedBoseKernel)):
             raise TypeError(
@@ -105,6 +120,7 @@ class SVEResult:
 
     @property
     def s(self):
+        """Dimensionless singular values s_l of the kernel, non-increasing"""
         return sve_result_get_svals(self._ptr)
 
     def __del__(self):
@@ -119,40 +135,38 @@ def compute(
     n_sv=-1,
     work_dtype=None,
 ):
-    """Perform truncated singular value expansion of a kernel.
+    """Perform singular value expansion of a kernel.
 
-    Perform a truncated singular value expansion (SVE) of an integral
-    kernel ``K : [xmin, xmax] x [ymin, ymax] -> R``::
+    Perform a singular value expansion (SVE) of the dimensionless integral
+    kernel ``K : [-1, 1] x [-1, 1] -> R``::
 
         K(x, y) == sum(s[l] * u[l](x) * v[l](y) for l in (0, 1, 2, ...)),
 
     where ``s[l]`` are the singular values, which are ordered in non-increasing
     fashion, ``u[l](x)`` are the left singular functions, which form an
-    orthonormal system on ``[xmin, xmax]``, and ``v[l](y)`` are the right
-    singular functions, which form an orthonormal system on ``[ymin, ymax]``.
+    orthonormal system on ``[-1, 1]``, and ``v[l](y)`` are the right
+    singular functions, which form an orthonormal system on ``[-1, 1]``.
+    The returned :class:`SVEResult` exposes only the ``s[l]``.
 
     The SVE is mapped onto the singular value decomposition (SVD) of a matrix
     by expanding the kernel in piecewise Legendre polynomials (by default by
     using a collocation).
 
     Arguments:
-        K (kernel.AbstractKernel):
+        kernel (LogisticKernel or RegularizedBoseKernel):
             Integral kernel to take SVE from
         eps (float):
-            Relative truncation threshold for the singular values,
-            defaulting to the machine epsilon (2.2e-16)
+            Accuracy target, defaulting to the machine epsilon (2.2e-16).
+            It does not truncate the result (see :class:`SVEResult`).
         n_sv (int):
-            Maximum basis size. If given, only at most the ``n_sv`` most
-            significant singular values and associated singular functions are
-            returned. Defaults to -1, which means all singular values are
-            returned.
+            Currently has no effect (see :class:`SVEResult`).  Defaults to -1.
         work_dtype (dtype-like or str, optional):
             Working data type used during the SVE / SVD computation. Accepts
             ``numpy.float64``, ``float``, or strings such as ``"float64"`` or
             ``"float64x2"``. Defaults to ``float64x2`` for maximal precision.
 
     Returns:
-        An ``SVEResult`` containing the truncated singular value expansion.
+        An ``SVEResult`` containing the singular value expansion.
     """
 
     if eps is None:

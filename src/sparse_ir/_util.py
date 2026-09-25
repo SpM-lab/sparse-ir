@@ -46,10 +46,12 @@ _REAL_KINDS = "biuf"
 def check_reduced_matsubara(n, zeta=None):
     """Checks that ``n`` is a reduced Matsubara frequency.
 
-    Check that the argument is a reduced Matsubara frequency, which is an
-    integer obtained by scaling the freqency `w[n]` as follows::
+    Check that the argument is a reduced Matsubara frequency, which is the
+    integer ``n`` obtained by scaling the frequency ``nu`` as follows::
 
-        beta / np.pi * w[n] == 2 * n + zeta
+        beta / np.pi * nu == n == 2 * m + zeta
+
+    where ``m`` is the ordinary Matsubara index.
 
     Note that this means that instead of a fermionic frequency (``zeta == 1``),
     we expect an odd integer, while for a bosonic frequency (``zeta == 0``),
@@ -189,10 +191,10 @@ def check_unique(points, name="sampling_points"):
 
 
 def as_boundary_matsubara(n, name="Matsubara indices", zeta=None):
-    """Normalize reduced Matsubara indices into a C-contiguous ``int64`` array.
+    """Normalize reduced Matsubara frequencies into a C-contiguous ``int64`` array.
 
     Validates integrality (and, if ``zeta`` is given, parity) *before* the
-    conversion, so a non-integral index raises instead of being truncated.
+    conversion, so a non-integral value raises instead of being truncated.
     """
     checked = check_reduced_matsubara(n, zeta=zeta)
     return np.ascontiguousarray(checked, dtype=np.int64)
@@ -288,11 +290,14 @@ def normalize_tau(statistics, tau, beta):
     Raises:
         ValueError: If tau is outside [-β, β] or statistics is invalid.
         
-    Special cases:
-        - Negative zero (τ = -0.0) is treated as τ = β with appropriate sign
-        - For τ in [0, β]: returns (τ, +1)
-        - For τ in [-β, 0): returns (τ + β, sign) where sign depends on statistics
-        
+    Special cases, with (-1)^ζ = -1 for fermions and +1 for bosons:
+        - For τ = +0.0 and τ in (0, β]: returns (τ, +1); +0.0 is read as 0⁺
+          and β as β⁻
+        - Negative zero (τ = -0.0) is read as 0⁻: returns (β, (-1)^ζ), since
+          f(0⁻) = (-1)^ζ f(β⁻)
+        - For τ in [-β, 0): returns (τ + β, (-1)^ζ); in particular -β, read
+          as (-β)⁺, gives (0, (-1)^ζ)
+
     .. versionadded:: 1.2
     """
     tau = np.asarray(tau, dtype=np.float64)
