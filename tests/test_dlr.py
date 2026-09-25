@@ -1,6 +1,6 @@
 # Copyright (C) 2020-2025 Satoshi Terasaki, Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
-from sparse_ir import DiscreteLehmannRepresentation
+from sparse_ir import DiscreteLehmannRepresentation, augment
 from sparse_ir import FiniteTempBasis, MatsubaraSampling, TauSampling
 import numpy as np
 import pytest
@@ -107,3 +107,11 @@ def test_complex_roundtrip(get_basis):
 
     np.testing.assert_allclose(Gl, Gl_recovered, atol=300 * eps, rtol=0)
     np.testing.assert_allclose(Gl.imag, Gl_recovered.imag, atol=300 * eps, rtol=0)
+
+
+def test_dlr_requires_a_finite_temperature_basis():
+    """A DLR is built on the IR basis itself; an augmented basis is rejected."""
+    basis = FiniteTempBasis("B", 10.0, 1.0, eps=1e-6)
+    aug_basis = augment.AugmentedBasis(basis, augment.TauConst, augment.TauLinear)
+    with pytest.raises(TypeError, match="FiniteTempBasis"):
+        DiscreteLehmannRepresentation(aug_basis)

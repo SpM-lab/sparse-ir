@@ -10,6 +10,7 @@ an alternative representation that can be more efficient for certain calculation
 import ctypes
 import numpy as np
 from .abstract import AbstractBasis
+from .basis import FiniteTempBasis
 from pylibsparseir.core import basis_get_default_omega_sampling_points
 from pylibsparseir.core import (
     _lib,
@@ -52,6 +53,9 @@ class DiscreteLehmannRepresentation(AbstractBasis):
     """
 
     def __init__(self, basis: AbstractBasis, poles=None):
+        if not isinstance(basis, FiniteTempBasis):
+            raise TypeError("DiscreteLehmannRepresentation is built on a "
+                            f"FiniteTempBasis, got {type(basis).__name__}")
         status = ctypes.c_int()
         if poles is None:
             poles = basis_get_default_omega_sampling_points(basis._ptr)
