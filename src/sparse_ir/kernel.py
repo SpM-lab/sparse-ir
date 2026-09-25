@@ -31,6 +31,15 @@ def kernel_domain(kernel: AbstractKernel):
 
     return xmin.value, xmax.value, ymin.value, ymax.value
 
+def _check_lambda(lambda_):
+    """Return ``lambda_`` as float; the kernel cutoff must be positive and finite."""
+    lambda_ = float(lambda_)
+    if not (np.isfinite(lambda_) and lambda_ > 0):
+        raise ValueError(
+            f"kernel cutoff lambda_ must be positive and finite, got {lambda_!r}")
+    return lambda_
+
+
 class LogisticKernel(AbstractKernel):
     r"""Fermionic/bosonic analytical continuation kernel.
 
@@ -60,7 +69,7 @@ class LogisticKernel(AbstractKernel):
 
     def __init__(self, lambda_):
         """Initialize logistic kernel with cutoff lambda."""
-        self._lambda = float(lambda_)
+        self._lambda = _check_lambda(lambda_)
         self._ptr = logistic_kernel_new(self._lambda)
 
     @property
@@ -94,7 +103,7 @@ class RegularizedBoseKernel(AbstractKernel):
 
     def __init__(self, lambda_):
         """Initialize regularized bosonic kernel with cutoff lambda."""
-        self._lambda = float(lambda_)
+        self._lambda = _check_lambda(lambda_)
         self._ptr = reg_bose_kernel_new(self._lambda)
 
     @property

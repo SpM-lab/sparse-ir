@@ -78,6 +78,9 @@ class SVEResult:
             raise TypeError(
                 "kernel must be LogisticKernel or RegularizedBoseKernel"
             )
+        if not (np.isfinite(eps) and eps > 0):
+            raise ValueError(
+                f"accuracy eps must be positive and finite, got {eps!r}")
 
         self._kernel = kernel  # Store kernel for later use
         self._eps = eps

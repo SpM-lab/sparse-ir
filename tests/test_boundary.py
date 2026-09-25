@@ -237,3 +237,61 @@ def test_axis_on_three_dimensional_input(bases, stat, axis):
         back_ref = backward(ref, axis=0)
         np.testing.assert_allclose(np.moveaxis(back, axis, 0), back_ref,
                                    rtol=0, atol=1e-12 * np.abs(back_ref).max())
+
+
+# ---------------------------------------------------------------------------
+# Parameter validation
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("beta, wmax, eps, match", [
+    (0.0, 1.0, 1e-6, "beta must be positive"),
+    (-1.0, 1.0, 1e-6, "beta must be positive"),
+    (np.inf, 1.0, 1e-6, "beta must be positive"),
+    (np.nan, 1.0, 1e-6, "beta must be positive"),
+    (10.0, 0.0, 1e-6, "wmax must be positive"),
+    (10.0, -1.0, 1e-6, "wmax must be positive"),
+    (10.0, np.inf, 1e-6, "wmax must be positive"),
+    (10.0, 1.0, 0.0, "eps must be positive"),
+    (10.0, 1.0, -1e-6, "eps must be positive"),
+    (10.0, 1.0, np.nan, "eps must be positive"),
+])
+def test_basis_parameters_are_validated(beta, wmax, eps, match):
+    with pytest.raises(ValueError, match=match):
+        sparse_ir.FiniteTempBasis("F", beta, wmax, eps)
+
+
+def test_max_size_is_validated():
+    with pytest.raises(ValueError, match="max_size"):
+        sparse_ir.FiniteTempBasis("F", BETA, WMAX, EPS, max_size=0)
+
+
+def test_kernel_must_match_statistics_and_cutoff():
+    with pytest.raises(ValueError, match="incompatible with fermionic"):
+        sparse_ir.FiniteTempBasis("F", BETA, WMAX, EPS,
+                                  kernel=sparse_ir.RegularizedBoseKernel(BETA * WMAX))
+    with pytest.raises(ValueError, match="does not match"):
+        sparse_ir.FiniteTempBasis("F", BETA, WMAX, EPS,
+                                  kernel=sparse_ir.LogisticKernel(42.0))
+
+
+def test_sve_result_must_match_the_kernel():
+    sve_42 = sparse_ir.compute(sparse_ir.LogisticKernel(42.0), EPS)
+    with pytest.raises(ValueError, match="lambda_ = 42.0"):
+        sparse_ir.FiniteTempBasis("F", BETA, WMAX, EPS, sve_result=sve_42)
+    sve_bose = sparse_ir.compute(sparse_ir.RegularizedBoseKernel(BETA * WMAX), EPS)
+    with pytest.raises(ValueError, match="RegularizedBoseKernel"):
+        sparse_ir.FiniteTempBasis("B", BETA, WMAX, EPS, sve_result=sve_bose)
+
+
+@pytest.mark.parametrize("kernel", [sparse_ir.LogisticKernel,
+                                    sparse_ir.RegularizedBoseKernel])
+@pytest.mark.parametrize("lambda_", [0.0, -1.0, np.inf, np.nan])
+def test_kernel_cutoff_is_validated(kernel, lambda_):
+    with pytest.raises(ValueError, match="lambda_ must be positive"):
+        kernel(lambda_)
+
+
+@pytest.mark.parametrize("eps", [0.0, -1e-6, np.nan])
+def test_sve_accuracy_is_validated(eps):
+    with pytest.raises(ValueError, match="eps must be positive"):
+        sparse_ir.compute(sparse_ir.LogisticKernel(10.0), eps)

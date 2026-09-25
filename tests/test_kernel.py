@@ -29,16 +29,11 @@ class TestLogisticKernel:
         # For logistic kernel, domain should be [-1, 1] x [-1, 1]
         np.testing.assert_allclose([xmin, xmax, ymin, ymax], [-1, 1, -1, 1], atol=1e-14)
 
-    def test_invalid_lambda(self):
-        """Test error handling for invalid Lambda values."""
-        # Note: libsparseir may handle edge cases gracefully
-        # Zero lambda might work but produce warnings
-        try:
-            kernel = LogisticKernel(0.0)
-            # If this succeeds, that's also acceptable
-        except RuntimeError:
-            # If it fails, that's expected
-            pass
+    @pytest.mark.parametrize("lambda_", [0.0, -1.0, np.inf, np.nan])
+    def test_invalid_lambda(self, lambda_):
+        """The cutoff is validated before the C library is called."""
+        with pytest.raises(ValueError, match="lambda_ must be positive"):
+            LogisticKernel(lambda_)
 
 
 class TestRegularizedBoseKernel:
@@ -58,8 +53,9 @@ class TestRegularizedBoseKernel:
         # For regularized Bose kernel, domain should be [-1, 1] x [-1, 1]
         np.testing.assert_allclose([xmin, xmax, ymin, ymax], [-1, 1, -1, 1], atol=1e-14)
 
-    def test_invalid_lambda(self):
-        """Test error handling for invalid Lambda values."""
-        with pytest.raises(RuntimeError, match="Failed to create"):
-            RegularizedBoseKernel(-1.0)  # Negative lambda should fail
+    @pytest.mark.parametrize("lambda_", [0.0, -1.0, np.inf, np.nan])
+    def test_invalid_lambda(self, lambda_):
+        """The cutoff is validated before the C library is called."""
+        with pytest.raises(ValueError, match="lambda_ must be positive"):
+            RegularizedBoseKernel(lambda_)
 

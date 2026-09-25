@@ -95,10 +95,21 @@ class FiniteTempBasis(AbstractBasis):
         sve_result : SVEResult, optional
             Precomputed SVE result. If not given, the SVE is computed.
         """
-        if not (beta > 0):
-            raise ValueError("inverse temperature beta must be positive")
-        if not (wmax >= 0):
-            raise ValueError("frequency cutoff must be non-negative")
+        if statistics not in ('F', 'B'):
+            raise ValueError(
+                f"Invalid statistics: {statistics}, expected 'F' or 'B'")
+        if not (np.isfinite(beta) and beta > 0):
+            raise ValueError(
+                f"inverse temperature beta must be positive and finite, got {beta!r}")
+        if not (np.isfinite(wmax) and wmax > 0):
+            raise ValueError(
+                f"frequency cutoff wmax must be positive and finite, got {wmax!r}")
+        if eps is not None and not (np.isfinite(eps) and eps > 0):
+            raise ValueError(
+                f"accuracy eps must be positive and finite, got {eps!r}")
+        if max_size is not None and max_size != -1 and not max_size >= 1:
+            raise ValueError(
+                f"max_size must be None, -1 or a positive integer, got {max_size!r}")
 
         self._statistics = statistics
         self._beta = beta
@@ -117,18 +128,16 @@ class FiniteTempBasis(AbstractBasis):
         # Create or use provided kernel
         if kernel is not None:
             # Backward compatibility: use provided kernel
+            _check_kernel(kernel, statistics, self._lambda)
             self._kernel = kernel
-        elif statistics in ('F', 'B'):
-            self._kernel = LogisticKernel(self._lambda)
         else:
-            raise ValueError(
-                f"Invalid statistics: {statistics}, expected 'F' or 'B'"
-            )
+            self._kernel = LogisticKernel(self._lambda)
 
         # Compute SVE if not provided
         if sve_result is None:
             self._sve = SVEResult(self._kernel, eps)
         else:
+            _check_sve_result(sve_result, self._kernel)
             self._sve = sve_result
 
         # Create basis
@@ -314,6 +323,35 @@ class FiniteTempBasis(AbstractBasis):
         new_wmax = self._lambda / new_beta
         return FiniteTempBasis(self.statistics, new_beta, new_wmax, self._eps,
                                kernel=self._kernel, sve_result=self._sve)
+
+
+def _check_kernel(kernel, statistics, lambda_):
+    """Check a user-supplied kernel against the statistics and beta * wmax."""
+    from .kernel import RegularizedBoseKernel
+    if statistics == 'F' and isinstance(kernel, RegularizedBoseKernel):
+        raise ValueError(
+            "RegularizedBoseKernel is incompatible with fermionic statistics")
+    if not np.isclose(kernel.lambda_, lambda_, rtol=1e-12, atol=0):
+        raise ValueError(
+            f"kernel cutoff lambda_ = {kernel.lambda_!r} does not match "
+            f"beta * wmax = {lambda_!r}")
+
+
+def _check_sve_result(sve_result, kernel):
+    """Check that a precomputed SVE belongs to the kernel of the basis.
+
+    The C library builds a basis from a mismatched SVE without complaint, and
+    the result is a wrong basis.
+    """
+    sve_kernel = sve_result._kernel
+    if type(sve_kernel) is not type(kernel):
+        raise ValueError(
+            f"sve_result was computed for a {type(sve_kernel).__name__}, but "
+            f"the basis uses a {type(kernel).__name__}")
+    if not np.isclose(sve_kernel.lambda_, kernel.lambda_, rtol=1e-12, atol=0):
+        raise ValueError(
+            f"sve_result was computed for lambda_ = {sve_kernel.lambda_!r}, but "
+            f"the basis has beta * wmax = {kernel.lambda_!r}")
 
 
 def finite_temp_bases(beta, wmax, eps=None, sve_result=None):
