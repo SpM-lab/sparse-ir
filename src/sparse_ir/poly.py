@@ -527,23 +527,20 @@ class PiecewiseLegendrePolyVector:
                            f"to the upper bound of the polynomial domain "
                            f"({self._xmax})")
 
-        f_res = f(0.5*xmin + 0.5*xmax)
-
-        f_ = f
-        if hasattr(f_res, 'shape'):
-            if f_res.dtype != np.float64:
-                raise ValueError("f must return a float64 array")
-            f_shape = f_res.shape
-            f_length = f_res.size
-            f_ = lambda x: f(x).ravel()
-        elif isinstance(f_res, float) or isinstance(f_res, np.float64):
-            if f_res.dtype != np.float64:
-                raise ValueError("f must return a float64 scalar")
+        # Probe f the way the quadrature calls it, with a NumPy scalar, so that
+        # functions written with array methods (w.clip) work; a Python float
+        # result is accepted as a scalar.
+        f_res = np.asarray(f(np.float64(0.5*xmin + 0.5*xmax)))
+        if f_res.dtype != np.float64:
+            raise ValueError("f must return float64 values")
+        if f_res.ndim == 0:
             f_shape = ()
             f_length = 1
-            f_ = lambda x: np.array([f(x)])
+            f_ = lambda x: np.array([f(x)], dtype=np.float64)
         else:
-            raise ValueError("f must return a scalar of float64 or an array")
+            f_shape = f_res.shape
+            f_length = f_res.size
+            f_ = lambda x: np.asarray(f(x), dtype=np.float64).ravel()
 
         knots = funcs_get_knots(self._funcs._ptr)
         knots = _cover_domain(knots, self._period, xmin, xmax, self._xmin, self._xmax, points)
@@ -664,36 +661,6 @@ def _cover_domain(
 
     return knots
 
-
-def _compute_overlap(poly, f, xmin: float, xmax: float,
-        rtol=2.3e-16, radix=2, max_refine_levels=40,
-        max_refine_points=2000, points=None):
-
-    # Get knots from poly and add integration boundaries
-    knots = funcs_get_knots(poly._funcs._ptr)
-    knots = _cover_domain(knots, poly._period, xmin, xmax, poly._xmin, poly._xmax, points)
-
-    f_res = f(0.5*xmin + 0.5*xmax)
-    f_ = f
-    if hasattr(f_res, 'shape'):
-        if f_res.dtype != np.float64:
-            raise ValueError("f must return a float64 array")
-        f_shape = f_res.shape
-        f_length = f_res.size
-        f_ = lambda x: f(x).ravel()
-    elif isinstance(f_res, float) or isinstance(f_res, np.float64):
-        if f_res.dtype != np.float64:
-            raise ValueError("f must return a float64 scalar")
-        f_shape = ()
-        f_length = 1
-        f_ = lambda x: np.array([f(x)])
-    else:
-        raise ValueError("f must return a scalar of float64 or an array")
-
-    result = _compute_overlap_internal(
-        poly, f_, f_length, xmin, xmax, knots, rtol, radix, max_refine_levels, max_refine_points)
-
-    return result[0].reshape(poly.shape + f_shape), result[1].reshape(poly.shape + f_shape)
 
 
 def _compute_overlap_internal(poly, poly_size, f, f_length: int, xmin: float, xmax: float, knots,
