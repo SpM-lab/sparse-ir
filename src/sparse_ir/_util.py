@@ -74,6 +74,11 @@ def check_reduced_matsubara(n, zeta=None):
             raise ValueError(
                 "reduced Matsubara frequency must be finite, got "
                 f"{nfloat[~np.isfinite(nfloat)][0]!r}")
+        beyond = np.abs(nfloat) >= 2.0**63
+        if beyond.any():
+            raise ValueError(
+                "reduced Matsubara frequency is out of the int64 range, got "
+                f"{np.atleast_1d(nfloat)[np.atleast_1d(beyond)][0]!r}")
         n = np.rint(nfloat).astype(np.int64)
         bad = n != nfloat
         if bad.any():

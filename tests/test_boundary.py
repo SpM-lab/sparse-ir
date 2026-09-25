@@ -63,6 +63,16 @@ def test_u_rejects_complex_points(bases):
 # Parity of the reduced Matsubara index in uhat
 # ---------------------------------------------------------------------------
 
+def test_uhat_rejects_indices_beyond_int64(bases):
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")          # no overflow warning from the cast
+        with pytest.raises(ValueError, match="int64 range"):
+            bases["F"].uhat(1e300)
+        with pytest.raises(ValueError, match="int64 range"):
+            sparse_ir.MatsubaraSampling(bases["F"], [1.0, 1e300])
+
+
 def test_uhat_rejects_wrong_parity(bases):
     for f in (bases["F"].uhat, bases["F"].uhat[0], DLR(bases["F"]).uhat):
         with pytest.raises(ValueError, match="must be odd"):
