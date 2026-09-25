@@ -167,6 +167,22 @@ def check_domain(x, xmin, xmax, name="evaluation points"):
     return x
 
 
+def check_unique(points, name="sampling_points"):
+    """Raise ValueError if the one-dimensional ``points`` contain a duplicate.
+
+    Duplicated sampling points make the sampling matrix rank-deficient, which
+    the C library accepts silently.
+    """
+    arr = np.asarray(points)
+    values, counts = np.unique(arr, return_counts=True)
+    if (counts > 1).any():
+        dup = values[counts > 1][0]
+        first, second = np.flatnonzero(arr == dup)[:2]
+        raise ValueError(f"{name} contains the duplicate value {dup!r} at "
+                         f"indices {first} and {second}; sampling points must "
+                         "be pairwise distinct")
+
+
 def as_boundary_matsubara(n, name="Matsubara indices", zeta=None):
     """Normalize reduced Matsubara indices into a C-contiguous ``int64`` array.
 

@@ -28,6 +28,25 @@ def _zeta(statistics):
     raise ValueError(f"invalid statistics {statistics!r}, expected 'F' or 'B'")
 
 
+def _check_real_coefficients(al, basis):
+    """Reject genuinely complex coefficients under ``positive_only=True``.
+
+    ``positive_only=True`` asserts ``g(-iw) == conj(g(iw))``, i.e. real IR
+    coefficients.  An imaginary part at the level of the basis accuracy is
+    accepted, so the complex output of :py:meth:`MatsubaraSampling.fit` can be
+    evaluated again.
+    """
+    max_imag = float(np.max(np.abs(al.imag))) if al.size else 0.0
+    scale = max(float(np.max(np.abs(al.real))) if al.size else 0.0, 1.0)
+    tol = max(10 * basis.accuracy, 1e-12) * scale
+    if max_imag > tol:
+        raise ValueError(
+            "positive_only=True assumes real IR coefficients "
+            "(g(-iw) == conj(g(iw))), but the coefficients have "
+            f"max |imag| = {max_imag:.3e} > {tol:.3e}; use positive_only=False "
+            "for complex coefficients")
+
+
 def _prepare_input(a, axis, expected, what):
     """Validate an input array's axis and length before it crosses to C.
 
@@ -57,6 +76,10 @@ class TauSampling:
         it crosses the C boundary; narrow types therefore agree with the
         ``float64``/``complex128`` result to their own input precision rather
         than producing garbage.
+
+        User-supplied ``sampling_points`` must be finite, pairwise distinct and
+        lie in ``[-beta, beta]``; they are kept in the given order, so the
+        values returned by :py:meth:`evaluate` follow that order.
     """
 
     def __init__(self, basis, sampling_points=None, use_positive_taus=True):
@@ -89,10 +112,16 @@ class TauSampling:
                 f"sampling_points must be one-dimensional, got shape {points.shape}")
         if points.size == 0:
             raise ValueError("sampling_points must not be empty")
-        # np.sort returns a fresh C-contiguous array; the pointer below is
-        # taken from this object, not from the caller's array.
-        self.sampling_points = np.ascontiguousarray(np.sort(points),
-                                                    dtype=np.float64)
+        beta = basis.beta
+        outside = (points < -beta) | (points > beta)
+        if outside.any():
+            raise ValueError(
+                f"sampling_points must lie in [-beta, beta] = [{-beta}, {beta}], "
+                f"got {points[outside][0]!r}")
+        _util.check_unique(points, "sampling_points")
+        # A fresh C-contiguous copy in the caller's order: the pointer below
+        # is taken from this object, which the caller cannot modify.
+        self.sampling_points = np.array(points, dtype=np.float64, order='C')
 
         self._backend = get_default_blas_backend()
         if isinstance(basis, augment.AugmentedBasis):
@@ -260,7 +289,11 @@ class MatsubaraSampling:
 
     or equivalently, that they are purely real in imaginary time.  In this
     case, sparse sampling is performed over non-negative frequencies only,
-    cutting away half of the necessary sampling space.
+    cutting away half of the necessary sampling space.  The assumption is
+    enforced where it can be checked: :py:meth:`evaluate` raises
+    :class:`ValueError` for genuinely complex coefficients, and the sampling
+    points must be non-negative.  It cannot be checked in :py:meth:`fit`:
+    data violating it is fitted to meaningless coefficients without an error.
 
     Note:
         ``sampling_points`` are *reduced* Matsubara indices: odd integers for
@@ -298,6 +331,11 @@ class MatsubaraSampling:
                 f"sampling_points must be one-dimensional, got shape {points.shape}")
         if points.size == 0:
             raise ValueError("sampling_points must not be empty")
+        _util.check_unique(points, "sampling_points")
+        if self.positive_only and (points < 0).any():
+            raise ValueError(
+                "positive_only=True requires non-negative sampling points, "
+                f"got {points[points < 0][0]!r}")
         self.sampling_points = points
 
         self._backend = get_default_blas_backend()
@@ -359,6 +397,8 @@ class MatsubaraSampling:
 
         if al.dtype.kind == "c":
             al = _util.as_boundary_complex(al, "basis coefficients")
+            if self.positive_only:
+                _check_real_coefficients(al, self.basis)
             status = _lib.spir_sampling_eval_zz(
                 self._ptr,
                 self._backend,

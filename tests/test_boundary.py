@@ -106,3 +106,134 @@ def test_c_library_failure_surfaces_as_exception(bases):
     """
     with pytest.raises(RuntimeError, match="-5"):
         DLR(bases["F"]).u.deriv()
+
+
+# ---------------------------------------------------------------------------
+# Sampling points
+# ---------------------------------------------------------------------------
+
+def test_tau_sampling_rejects_points_outside_minus_beta_beta(bases):
+    basis = bases["F"]
+    points = np.linspace(0, 1.5 * BETA, basis.size + 2)
+    with pytest.raises(ValueError, match=r"must lie in \[-beta, beta\]"):
+        sparse_ir.TauSampling(basis, points)
+
+
+def test_sampling_rejects_duplicate_points(bases):
+    basis = bases["F"]
+    tau = np.linspace(0.1, 9.9, basis.size)
+    tau[3] = tau[1]
+    with pytest.raises(ValueError, match="duplicate"):
+        sparse_ir.TauSampling(basis, tau)
+    with pytest.raises(ValueError, match="duplicate"):
+        sparse_ir.MatsubaraSampling(basis, [1, 3, 5, 1])
+
+
+def test_tau_sampling_keeps_the_given_order(bases):
+    basis = bases["F"]
+    points = np.linspace(0.1, 9.9, basis.size + 3)[::-1].copy()
+    smpl = sparse_ir.TauSampling(basis, points)
+    np.testing.assert_array_equal(smpl.tau, points)
+    rng = np.random.default_rng(7)
+    gl = rng.normal(size=basis.size)
+    ref = gl @ basis.u(points)
+    assert_close(smpl.evaluate(gl), ref, 1e-13 * np.abs(ref).max(),
+                 "evaluate follows the order of the given points")
+
+
+def test_tau_sampling_does_not_alias_the_callers_array(bases):
+    basis = bases["F"]
+    points = np.linspace(0.1, 9.9, basis.size)
+    smpl = sparse_ir.TauSampling(basis, points)
+    points[0] = 5.0
+    assert smpl.tau[0] == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.int64])
+def test_tau_sampling_points_are_widened(bases, dtype):
+    basis = bases["F"]
+    points = np.arange(1, basis.size + 1).astype(dtype)
+    smpl = sparse_ir.TauSampling(basis, points)
+    assert smpl.tau.dtype == np.float64
+    np.testing.assert_array_equal(smpl.tau, points.astype(np.float64))
+
+
+def test_tau_sampling_points_may_be_views(bases):
+    basis = bases["F"]
+    points = np.linspace(0.3, 9.7, basis.size + 1)
+    ref = sparse_ir.TauSampling(basis, points).evaluate(np.ones(basis.size))
+    for label, view in strided_views(points):
+        got = sparse_ir.TauSampling(basis, view).evaluate(np.ones(basis.size))
+        assert_close(got, ref, 1e-14 * np.abs(ref).max(), label)
+
+
+def test_tau_sampling_with_few_points_evaluates(bases):
+    """Fewer points than basis functions are accepted for evaluation."""
+    basis = bases["F"]
+    points = np.array([0.1, 0.4])
+    rng = np.random.default_rng(5)
+    gl = rng.normal(size=basis.size)
+    ref = gl @ basis.u(points)
+    assert_close(sparse_ir.TauSampling(basis, points).evaluate(gl), ref,
+                 1e-13 * np.abs(ref).max(), "evaluate at two points")
+
+
+def test_positive_only_requires_non_negative_points(bases):
+    with pytest.raises(ValueError, match="non-negative sampling points"):
+        sparse_ir.MatsubaraSampling(bases["F"], [-1, 1, 3], positive_only=True)
+
+
+# ---------------------------------------------------------------------------
+# positive_only
+# ---------------------------------------------------------------------------
+
+def test_positive_only_rejects_complex_coefficients(bases):
+    basis = bases["F"]
+    smpl = sparse_ir.MatsubaraSampling(basis, positive_only=True)
+    rng = np.random.default_rng(11)
+    gl = rng.normal(size=basis.size)
+    with pytest.raises(ValueError, match="positive_only"):
+        smpl.evaluate(gl + 1j * rng.normal(size=basis.size))
+    # A real quantity stays accepted, also when carried in a complex array.
+    giv = smpl.evaluate(gl)
+    fitted = smpl.fit(giv)
+    assert np.iscomplexobj(fitted)
+    assert_close(smpl.evaluate(fitted), giv, 1e-12 * np.abs(giv).max(),
+                 "fit result of a real quantity")
+
+
+# ---------------------------------------------------------------------------
+# Axis handling on arrays with ndim >= 3 and unequal dimensions
+# ---------------------------------------------------------------------------
+
+def _transforms(basis):
+    dlr = DLR(basis)
+    return {
+        "TauSampling": (sparse_ir.TauSampling(basis), basis.size),
+        "MatsubaraSampling": (sparse_ir.MatsubaraSampling(basis), basis.size),
+        "MatsubaraSampling(positive_only)": (
+            sparse_ir.MatsubaraSampling(basis, positive_only=True), basis.size),
+        "DLR.from_IR": (dlr, basis.size),
+    }
+
+
+@pytest.mark.parametrize("axis", [0, 1, -1, 2])
+@pytest.mark.parametrize("stat", ["F", "B"])
+def test_axis_on_three_dimensional_input(bases, stat, axis):
+    basis = bases[stat]
+    rng = np.random.default_rng(3)
+    for name, (obj, n_in) in _transforms(basis).items():
+        data0 = rng.normal(size=(n_in, 3, 5))        # basis axis first
+        data = np.moveaxis(data0, 0, axis)
+        if name == "DLR.from_IR":
+            forward, backward = obj.from_IR, obj.to_IR
+        else:
+            forward, backward = obj.evaluate, obj.fit
+        out = forward(data, axis=axis)
+        ref = forward(data0, axis=0)
+        np.testing.assert_allclose(np.moveaxis(out, axis, 0), ref,
+                                   rtol=0, atol=1e-13 * np.abs(ref).max())
+        back = backward(out, axis=axis)
+        back_ref = backward(ref, axis=0)
+        np.testing.assert_allclose(np.moveaxis(back, axis, 0), back_ref,
+                                   rtol=0, atol=1e-12 * np.abs(back_ref).max())

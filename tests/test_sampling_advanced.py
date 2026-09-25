@@ -76,9 +76,8 @@ class TestTauSamplingAccuracy:
         basis = sparse_ir.FiniteTempBasis('F', 2.0, 10.0, 1e-6)
         smpl = sparse_ir.TauSampling(basis)
 
-        # The sampling should be well-conditioned for default points
-        # We can't directly access the condition number yet, but we can test
-        # that the operations are stable
+        # The default points are chosen to keep the sampling well-conditioned
+        assert 1 <= smpl.cond < 10
 
         # Test with identity-like inputs
         for i in range(min(5, basis.size)):  # Test first few basis functions
@@ -112,15 +111,11 @@ class TestSamplingEdgeCases:
     """Test edge cases and error conditions."""
 
     def test_out_of_bounds_tau(self):
-        """Test tau points outside [0, beta] range."""
+        """Tau points outside [-beta, beta] are rejected before the C call."""
         basis = sparse_ir.FiniteTempBasis('F', 1.0, 10.0, 1e-6)
-
-        # The C library requires that the number of sampling points >= basis size
-        # Creating sampling with fewer points than basis size raises an error
-        out_of_bounds_points = np.array([-0.5, 1.5])  # Only 2 points, but basis.size > 2
-
-        with pytest.raises(RuntimeError, match="Failed to create tau sampling"):
-            smpl = sparse_ir.TauSampling(basis, out_of_bounds_points)
+        out_of_bounds_points = np.linspace(0.0, 1.5, basis.size + 2)
+        with pytest.raises(ValueError, match="must lie in"):
+            sparse_ir.TauSampling(basis, out_of_bounds_points)
 
     @pytest.mark.parametrize("stat", ['F', 'B'])
     def test_different_statistics(self, stat):
@@ -132,7 +127,7 @@ class TestSamplingEdgeCases:
         assert len(smpl.tau) == basis.size
 
         # Test roundtrip
-        Gl = np.random.randn(basis.size)
+        Gl = np.random.default_rng(17).normal(size=basis.size)
 
         Gtau = smpl.evaluate(Gl)
         Gl_recovered = smpl.fit(Gtau)
