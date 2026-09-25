@@ -59,3 +59,9 @@ class TestRegularizedBoseKernel:
         with pytest.raises(ValueError, match="lambda_ must be positive"):
             RegularizedBoseKernel(lambda_)
 
+    def test_deprecated(self):
+        """RegularizedBoseKernel is deprecated (SpM-lab/sparse-ir-rs#273)."""
+        with pytest.warns(DeprecationWarning,
+                          match="RegularizedBoseKernel is deprecated"):
+            RegularizedBoseKernel(10.0)
+

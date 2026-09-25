@@ -56,6 +56,9 @@ doc = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# RegularizedBoseKernel is deprecated but still tested; test_kernel.py asserts
+# the warning itself (pytest.warns records it regardless of this filter).
+filterwarnings = ["ignore:RegularizedBoseKernel is deprecated:DeprecationWarning"]
 python_files = ["test_*.py", "*_tests.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

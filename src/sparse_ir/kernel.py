@@ -7,6 +7,7 @@ This module provides Python wrappers for kernel objects from the C library.
 """
 
 import ctypes
+import warnings
 from ctypes import c_int, c_double, byref
 import numpy as np
 
@@ -86,13 +87,25 @@ class LogisticKernel(AbstractKernel):
 class RegularizedBoseKernel(AbstractKernel):
     r"""Regularized bosonic analytical continuation kernel.
 
-    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the fermionic
+    .. warning::
+
+        Deprecated: use :class:`LogisticKernel`, the default kernel for both
+        statistics.  ``RegularizedBoseKernel`` will be removed in a future
+        release.  For ``wmax != 1``, libsparseir releases without the fix of
+        SpM-lab/sparse-ir-rs#273 scale the singular values of its bases by
+        ``wmax**-1`` instead of ``wmax**+1``.
+
+    In dimensionless variables ``x = 2*τ/β - 1``, ``y = β*ω/Λ``, the bosonic
     integral kernel is a function on ``[-1, 1] x [-1, 1]``:
 
     .. math::
 
-        K(x, y) = \frac{y \exp(-\Lambda y(x + 1)/2)}{\exp(-\Lambda y) - 1}
+        K(x, y) = \frac{y \exp(-\Lambda y(x + 1)/2)}{1 - \exp(-\Lambda y)}
 
+    In physical units it is :math:`K(τ, ω) = ω_\mathrm{max} K(x, y) =
+    ω e^{-τω} / (1 - e^{-βω})`, which acts on :math:`ρ(ω)/ω`
+    (N. Chikano et al., Computer Physics Communications 240, 181 (2019),
+    Eqs. (1)-(3)).
     Care has to be taken in evaluating this expression around ``y == 0``.
 
     Parameters
@@ -103,6 +116,11 @@ class RegularizedBoseKernel(AbstractKernel):
 
     def __init__(self, lambda_):
         """Initialize regularized bosonic kernel with cutoff lambda."""
+        warnings.warn(
+            "RegularizedBoseKernel is deprecated and will be removed in a "
+            "future release; use LogisticKernel, the default kernel for both "
+            "statistics (https://github.com/SpM-lab/sparse-ir-rs/issues/273)",
+            DeprecationWarning, stacklevel=2)
         self._lambda = _check_lambda(lambda_)
         self._ptr = reg_bose_kernel_new(self._lambda)
 

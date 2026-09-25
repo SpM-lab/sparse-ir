@@ -31,6 +31,9 @@ HARD = {                       # R1..R4 of the design spec
 EPS64 = np.finfo(np.float64).eps
 ISSUE_265 = ("https://github.com/SpM-lab/sparse-ir-rs/issues/265: uhat is wrong "
              "for l = 1, 2 (mod 4) at |n| >= n_asymp = 40*lambda")
+ISSUE_273 = ("https://github.com/SpM-lab/sparse-ir-rs/issues/273: the singular "
+             "values of a RegularizedBoseKernel basis carry wmax**-1 instead of "
+             "wmax**+1")
 
 
 def _poles(beta, wmax):
@@ -249,3 +252,23 @@ def test_o5_hard_regimes(stat, regime, get_basis):
 
     assert basis.sve_result.s.size > basis.size    # the basis is truncated by eps
     assert basis.accuracy < eps <= basis.significance[-1]
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason=ISSUE_273)
+def test_o6_regularized_bose_basis_expands_the_physical_kernel():
+    """``sum_l U_l(tau) S_l V_l(w) == w e^{-tau w} / (1 - e^{-beta w})`` (T-eps).
+
+    The regularized bosonic kernel in physical units (irbasis paper, Chikano
+    et al., CPC 240, 181 (2019), arXiv:1807.05237, Eq. (3)), expanded with
+    ``S_l = sqrt(beta * wmax**3 / 2) * s_l`` (Eq. (25)).  ``wmax = 2``
+    separates the power of wmax; ``wmax = 1`` would hide it.
+    """
+    beta, wmax, eps = 10.0, 2.0, 1e-10
+    kernel = sparse_ir.RegularizedBoseKernel(beta * wmax)
+    basis = sparse_ir.FiniteTempBasis('B', beta, wmax, eps=eps, kernel=kernel)
+    taus = np.array([0.3, 3.7, 8.0])
+    ws = np.array([-1.4, 0.4, 1.8])
+    usv = np.einsum('lt,l,lw->tw', basis.u(taus), basis.s, basis.v(ws))
+    t, w = taus[:, None], ws[None, :]
+    ref = -w * np.exp(-t * w) / np.expm1(-beta * w)
+    assert_close(usv, ref, 300 * eps * wmax, "sum_l U_l S_l V_l")
