@@ -56,7 +56,8 @@ class FiniteTempBasisSet:
             If `use_positive_taus=True`, the sampling points are
             folded to the positive tau domain [0, β) [default]; they lie in
             (0, β).  If `use_positive_taus=False`, the sampling points are
-            unfolded: they lie in (-β/2, β/2] and are symmetric about 0.
+            unfolded: they lie in (-β/2, β/2] and come in pairs ±τ, plus β/2
+            when their number is odd.
         """
         if sve_result is None:
             # Create bases by sve of the logistic kernel

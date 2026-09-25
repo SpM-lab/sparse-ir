@@ -191,6 +191,47 @@ def test_tau_sampling_keeps_the_given_order(bases):
                  "fit follows the order of the given points")
 
 
+def _check_matsubara_order(smpl, basis, points):
+    """evaluate and fit follow the order of the given points, on any axis."""
+    np.testing.assert_array_equal(smpl.sampling_points, points)
+    gl = np.random.default_rng(7).normal(size=basis.size)
+    ref = gl @ basis.uhat(points)
+    atol_fit = 100 * smpl.cond * np.finfo(np.float64).eps * np.abs(gl).max()
+    assert_close(smpl.evaluate(gl), ref, 1e-13 * np.abs(ref).max(),
+                 "evaluate follows the order of the given points")
+    assert_close(smpl.fit(ref), gl, atol_fit,
+                 "fit follows the order of the given points")
+    gl2 = np.stack([gl, -2 * gl])
+    ref2 = np.stack([ref, -2 * ref])
+    assert_close(smpl.evaluate(gl2, axis=1), ref2, 2e-13 * np.abs(ref).max(),
+                 "evaluate along axis 1")
+    assert_close(smpl.fit(ref2, axis=1), gl2, 2 * atol_fit, "fit along axis 1")
+
+
+@pytest.mark.parametrize("positive_only", [False, True])
+@pytest.mark.parametrize("stat", ["F", "B"])
+def test_matsubara_sampling_keeps_the_given_order(bases, stat, positive_only):
+    """The C library sorts Matsubara points internally; the results must
+    still follow the order of the points the caller gave."""
+    basis = bases[stat]
+    points = basis.default_matsubara_sampling_points(positive_only=positive_only)
+    points = np.random.default_rng(11).permutation(points)
+    smpl = sparse_ir.MatsubaraSampling(basis, points, positive_only=positive_only)
+    _check_matsubara_order(smpl, basis, points)
+
+
+def test_matsubara_sampling_of_augmented_basis_and_dlr_keeps_the_given_order(bases):
+    from sparse_ir import augment
+    for basis in (augment.AugmentedBasis(bases["B"], augment.MatsubaraConst),
+                  DLR(bases["F"])):
+        points = bases[basis.statistics].default_matsubara_sampling_points()
+        if isinstance(basis, augment.AugmentedBasis):
+            points = basis.default_matsubara_sampling_points()
+        points = np.random.default_rng(11).permutation(points)
+        smpl = sparse_ir.MatsubaraSampling(basis, points)
+        _check_matsubara_order(smpl, basis, points)
+
+
 def test_tau_sampling_does_not_alias_the_callers_array(bases):
     basis = bases["F"]
     points = np.linspace(0.1, 9.9, basis.size)

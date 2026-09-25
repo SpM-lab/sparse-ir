@@ -343,8 +343,10 @@ class FiniteTempBasis(AbstractBasis):
                 If True (default), fold the points into [0, β) with
                 ``np.mod`` and sort them; they lie in (0, β).
                 If False, the points are unfolded: they lie in (-β/2, β/2]
-                and are symmetric about 0 (for odd L, the point β/2 is its
-                own mirror image modulo β).
+                and come in pairs ±τ, plus β/2 when their number is odd.
+                Reversing the folded points maps τ to β - τ for any number
+                of points; reversing the unfolded ones maps τ to -τ only for
+                an even number.
 
                 .. versionadded:: 1.2
         """

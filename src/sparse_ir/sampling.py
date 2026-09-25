@@ -104,7 +104,8 @@ class TauSampling:
             If `use_positive_taus=True`, the sampling points are
             folded to the positive tau domain [0, β) [default]; they lie in
             (0, β).  If `use_positive_taus=False`, the sampling points are
-            unfolded: they lie in (-β/2, β/2] and are symmetric about 0.
+            unfolded: they lie in (-β/2, β/2] and come in pairs ±τ, plus β/2
+            when their number is odd.
         """
         self.basis = basis
 
@@ -308,7 +309,9 @@ class MatsubaraSampling:
         ``sampling_points`` are *reduced* Matsubara frequencies n, ν = nπ/β:
         odd integers for a fermionic and even integers for a bosonic basis.
         A non-integral or wrong-parity value raises :class:`ValueError`; it is
-        never truncated or adjusted.
+        never truncated or adjusted.  The points may be given in any order;
+        :py:meth:`evaluate` and :py:meth:`fit` follow the order of
+        ``sampling_points``.
     """
 
     def __init__(self, basis, sampling_points=None, positive_only=False):
@@ -348,12 +351,23 @@ class MatsubaraSampling:
                 "positive_only=True requires non-negative sampling points, "
                 f"got {points[points < 0][0]!r}")
         self.sampling_points = points
+        # The C library orders Matsubara points ascending. Hand it sorted
+        # points and keep the permutation, so that evaluate() and fit() follow
+        # the order of ``sampling_points``.
+        order = np.argsort(points, kind="stable")
+        if np.array_equal(order, np.arange(points.size)):
+            self._order = self._inverse_order = None
+            c_points = points
+        else:
+            self._order, self._inverse_order = order, np.argsort(order)
+            c_points = np.ascontiguousarray(points[order])
+        self._c_points = c_points
 
         self._backend = get_default_blas_backend()
         if isinstance(basis, augment.AugmentedBasis):
             # Create sampling object
             matrix = _util.as_boundary_complex(
-                basis.uhat(self.sampling_points).T,
+                basis.uhat(c_points).T,
                 "Matsubara sampling matrix")
 
             status = c_int()
@@ -362,8 +376,8 @@ class MatsubaraSampling:
                 _statistics_to_c(basis.statistics),                   # statistics
                 c_int(basis.size),                              # basis_size
                 c_bool(self.positive_only),                     # positive_only
-                c_int(len(self.sampling_points)),                    # num_points
-                self.sampling_points.ctypes.data_as(POINTER(c_int64)), # points
+                c_int(len(c_points)),                           # num_points
+                c_points.ctypes.data_as(POINTER(c_int64)),      # points
                 matrix.ctypes.data_as(POINTER(c_double_complex)), # matrix
                 byref(status)                                   # status
             )
@@ -376,7 +390,7 @@ class MatsubaraSampling:
         else:
             # Create sampling object
             self._ptr = matsubara_sampling_new(basis._ptr, self.positive_only,
-                                               self.sampling_points)
+                                               c_points)
 
     @property
     def wn(self):
@@ -438,7 +452,10 @@ class MatsubaraSampling:
         if status != COMPUTATION_SUCCESS:
             raise RuntimeError(f"Failed to evaluate sampling: {status}")
 
-        return output['real'] + 1j * output['imag']
+        result = output['real'] + 1j * output['imag']
+        if self._inverse_order is not None:
+            result = np.take(result, self._inverse_order, axis=axis)
+        return result
 
     def fit(self, ax, axis=0):
         """
@@ -453,6 +470,8 @@ class MatsubaraSampling:
         """
         ax, axis, ndim = _prepare_input(ax, axis, len(self.sampling_points),
                                         "Matsubara frequency values")
+        if self._order is not None:
+            ax = np.take(ax, self._order, axis=axis)
         ax = _util.as_boundary_complex(ax, "Matsubara frequency values")
         output_dims = list(ax.shape)
         output_dims[axis] = self.basis.size

@@ -141,7 +141,7 @@ class AugmentedBasis(abstract.AbstractBasis):
                 If True (default), fold the points into [0, β) with
                 ``np.mod`` and sort them; they lie in (0, β).
                 If False, the points are unfolded: they lie in (-β/2, β/2]
-                and are symmetric about 0.
+                and come in pairs ±τ, plus β/2 when their number is odd.
 
                 .. versionadded:: 1.2
         """
