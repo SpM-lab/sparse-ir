@@ -18,19 +18,19 @@ where
             with w_p = tanh(0.5*β*ω_p)
 """
 @pytest.mark.parametrize("stat", ["F", "B"])
-def test_compression(stat):
+def test_compression(stat, get_basis):
     beta = 10_000
     wmax = 1
     eps = 1e-12
-    basis = FiniteTempBasis(stat, beta, wmax, eps=eps)
+    basis = get_basis(stat, beta, wmax, eps)
 
     dlr = DiscreteLehmannRepresentation(basis)
 
-    np.random.seed(4711)
+    rng = np.random.RandomState(4711)
 
     num_poles = 10
-    poles = wmax * (2*np.random.rand(num_poles) - 1)
-    coeffs = 2*np.random.rand(num_poles) - 1
+    poles = wmax * (2*rng.rand(num_poles) - 1)
+    coeffs = 2*rng.rand(num_poles) - 1
     assert np.abs(poles).max() <= wmax
 
     Gl = DiscreteLehmannRepresentation(basis, poles).to_IR(coeffs)
@@ -68,17 +68,14 @@ def test_boson():
     omega_p = np.array([2.2, -1.0])
 
     rhol_pole = np.einsum('lp,p->l', basis_b.v(omega_p), coeff)
-    print(rhol_pole)
     gl_pole = - basis_b.s * rhol_pole
-    print(basis_b.s)
-    print(gl_pole)
     sp = DiscreteLehmannRepresentation(basis_b, omega_p)
     gl_pole2 = sp.to_IR(coeff)
 
     np.testing.assert_allclose(gl_pole, gl_pole2, atol=300*eps, rtol=0)
 
 
-def test_complex_roundtrip():
+def test_complex_roundtrip(get_basis):
     """Regression test: from_IR/to_IR must support complex128 coefficients
     (e.g. off-diagonal Green's functions) instead of raising a ctypes
     TypeError when the complex path is exercised.
@@ -90,7 +87,7 @@ def test_complex_roundtrip():
     beta = 10_000
     wmax = 1
     eps = 1e-12
-    basis = FiniteTempBasis("F", beta, wmax, eps=eps)
+    basis = get_basis("F", beta, wmax, eps)
 
     dlr = DiscreteLehmannRepresentation(basis)
 

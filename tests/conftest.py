@@ -18,8 +18,7 @@ from sparse_ir import LogisticKernel, RegularizedBoseKernel
 
 @pytest.fixture(scope="session")
 def sve_logistic():
-    """SVE of the logistic kernel for Lambda = 42"""
-    print("Precomputing SVEs for logistic kernel ...")
+    """SVEs of the logistic kernel for Lambda = 10, 42 and 10_000."""
     return {
         10:     sparse_ir.compute_sve(sparse_ir.LogisticKernel(10)),
         42:     sparse_ir.compute_sve(sparse_ir.LogisticKernel(42)),
@@ -29,8 +28,7 @@ def sve_logistic():
 
 @pytest.fixture(scope="session")
 def sve_reg_bose():
-    """SVE of the logistic kernel for Lambda = 42"""
-    print("Precomputing SVEs for regularized Bose kernel ...")
+    """SVEs of the regularized Bose kernel for Lambda = 10 and 10_000."""
     return {
         10:     sparse_ir.compute_sve(sparse_ir.RegularizedBoseKernel(10)),
         10_000: sparse_ir.compute_sve(sparse_ir.RegularizedBoseKernel(10_000))
@@ -55,6 +53,31 @@ def test_bases():
             pylibsparseir.FiniteTempBasis(stat, beta, wmax, eps)
         for stat, beta, wmax, eps in test_params
     }
+
+
+@pytest.fixture(scope="session")
+def get_basis():
+    """Return ``get(statistics, beta, wmax, eps)`` that builds each basis once.
+
+    Bases with the same ``lambda_ = beta * wmax`` and ``eps`` share one SVE,
+    the expensive part of basis construction.  Tests must not mutate the
+    returned objects.
+    """
+    sves = {}
+    bases = {}
+
+    def get(statistics, beta, wmax, eps):
+        key = (statistics, float(beta), float(wmax), float(eps))
+        if key not in bases:
+            sve_key = (float(beta) * float(wmax), float(eps))
+            if sve_key not in sves:
+                sves[sve_key] = sparse_ir.compute_sve(
+                    sparse_ir.LogisticKernel(sve_key[0]), sve_key[1])
+            bases[key] = sparse_ir.FiniteTempBasis(
+                statistics, beta, wmax, eps, sve_result=sves[sve_key])
+        return bases[key]
+
+    return get
 
 
 @pytest.fixture
