@@ -207,7 +207,10 @@ class _AugmentedFunction:
                 raise NotImplementedError("Don't truncate to only augmentation")
             return _AugmentedFunction(self._fbasis[:stop-self._naug], self._faug)
         else:
-            l = int(l)
+            # Resolve a negative index against the whole set: without this,
+            # u[-1] would return the last *augmentation* instead of the last
+            # basis function.
+            l, = _util.resolve_function_indices(l, self.size)
             if l < self._naug:
                 return self._faug[l]
             else:
@@ -364,8 +367,9 @@ class TauLinear(AbstractAugmentation):
     def hat(self, n):
         zeta = 1 if self._statistics == 'F' else 0
         n = _util.check_reduced_matsubara(n, zeta=zeta)
-        inv_w = np.pi/self._beta * n
-        inv_w = np.reciprocal(inv_w, out=inv_w, where=n.astype(bool))
+        w = np.pi / self._beta * np.asarray(n, dtype=np.float64)
+        inv_w = np.zeros_like(w)
+        np.divide(1.0, w, out=inv_w, where=(w != 0))
         return self._norm * 2/1j * inv_w
 
 

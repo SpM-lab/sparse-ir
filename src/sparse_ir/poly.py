@@ -316,6 +316,16 @@ class PiecewiseLegendrePoly:
             # Default: use existing xmin, xmax
             self._default_overlap_range = (xmin, xmax)
 
+    @property
+    def xmin(self):
+        """Lower end of the domain the function may be evaluated on."""
+        return self._xmin
+
+    @property
+    def xmax(self):
+        """Upper end of the domain the function may be evaluated on."""
+        return self._xmax
+
     def __call__(self, x):
         """Evaluate the function at ``x``.
 
@@ -388,6 +398,21 @@ class PiecewiseLegendrePolyVector:
         else:
             # Default: use existing xmin, xmax
             self._default_overlap_range = (xmin, xmax)
+
+    @property
+    def size(self):
+        """Number of functions in the set."""
+        return self._funcs.size()
+
+    @property
+    def xmin(self):
+        """Lower end of the domain the functions may be evaluated on."""
+        return self._xmin
+
+    @property
+    def xmax(self):
+        """Upper end of the domain the functions may be evaluated on."""
+        return self._xmax
 
     def __call__(self, x):
         """Evaluate the functions at ``x``.
@@ -520,6 +545,11 @@ class PiecewiseLegendrePolyFT:
         assert isinstance(funcs, FunctionSetFT), "funcs must be a FunctionSetFT"
         self._funcs = funcs
 
+    @property
+    def zeta(self):
+        """Parity of the admissible reduced frequencies (1: odd, 0: even)."""
+        return self._funcs.zeta
+
     def __call__(self, x):
         """Evaluate basis functions at given points."""
         return self._funcs(x)
@@ -530,6 +560,20 @@ class PiecewiseLegendrePolyFTVector:
     def __init__(self, funcs: FunctionSetFT):
         assert isinstance(funcs, FunctionSetFT), "funcs must be a FunctionSetFT"
         self._funcs = funcs
+
+    @property
+    def size(self):
+        """Number of functions in the set."""
+        return self._funcs.size()
+
+    @property
+    def shape(self):
+        return (self.size,)
+
+    @property
+    def zeta(self):
+        """Parity of the admissible reduced frequencies (1: odd, 0: even)."""
+        return self._funcs.zeta
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """Evaluate basis functions at given points."""
