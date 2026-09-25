@@ -13,6 +13,7 @@ import pytest
 
 import sparse_ir
 from sparse_ir import DiscreteLehmannRepresentation as DLR
+from sparse_ir.poly import PiecewiseLegendrePoly
 from ._helpers import assert_close, strided_views
 
 BETA, WMAX, EPS = 10.0, 1.0, 1e-6
@@ -103,17 +104,18 @@ def test_empty_selection_is_rejected(bases):
             fs[[]]
 
 
-def test_slices_of_one_function_are_sets(bases):
+def test_selections_of_function_sets(bases):
+    # As in SparseIR.jl: a one-element selection of u or v gives a single
+    # function, a selection of uhat always gives a set.
     basis = bases["F"]
-    for fs in (basis.u, basis.v, basis.uhat):
-        assert type(fs[0:1]) is type(fs)
-        assert fs[0:1].size == 1
-        assert type(fs[[2]]) is type(fs)
-    assert basis.u[0:1](0.3).shape == (1,)
-    assert basis.u[0:1](np.array([0.3, 0.4])).shape == (1, 2)
-    np.testing.assert_array_equal(basis.u[0:1](0.3), basis.u(0.3)[:1])
+    for fs in (basis.u, basis.v):
+        assert type(fs[0:1]) is PiecewiseLegendrePoly
+        assert type(fs[[0, 2]]) is type(fs)
+        np.testing.assert_array_equal(fs[[0, 2]](0.3), fs(0.3)[[0, 2]])
+    for index in (slice(0, 1), [2], [0, 2]):
+        assert type(basis.uhat[index]) is type(basis.uhat)
     assert basis.uhat[[2]](3).shape == (1,)
-    np.testing.assert_array_equal(basis.uhat[[2]](3), basis.uhat(3)[2:3])
+    np.testing.assert_array_equal(basis.uhat[[0, 2]](3), basis.uhat(3)[[0, 2]])
 
 
 def test_single_functions_have_deriv(bases):

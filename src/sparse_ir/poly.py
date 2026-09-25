@@ -350,6 +350,11 @@ class PiecewiseLegendrePoly:
         """
         return self._funcs(_util.check_domain(x, self._xmin, self._xmax))
 
+    @property
+    def size(self):
+        """Number of functions: 1."""
+        return 1
+
     def deriv(self, n=1):
         """Return the n-th derivative of the function (default: the first)."""
         return PiecewiseLegendrePoly(self._funcs.deriv(n), self._xmin, self._xmax,
@@ -446,9 +451,13 @@ class PiecewiseLegendrePolyVector:
         return np.reshape(values, (self.size,) + np.shape(x))
 
     def __getitem__(self, index):
-        """Get a single basis function (integer index) or a set (slice or list)."""
+        """Get a single basis function or a set of them.
+
+        As in SparseIR.jl, a selection of one function (an integer, or a slice
+        or list of length one) gives a single function.
+        """
         funcs_slice = self._funcs[index]
-        if _is_integer_index(index):
+        if funcs_slice.size() == 1:
             return PiecewiseLegendrePoly(funcs_slice, self._xmin, self._xmax,
                                        self._period, self._default_overlap_range)
         else:

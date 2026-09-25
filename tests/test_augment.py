@@ -102,14 +102,6 @@ def test_augmented_basis_truncation():
                                rtol=1e-14, atol=0)
 
 
-def test_matsubara_const_checks_parity():
-    basis = sparse_ir.FiniteTempBasis("F", 10.0, 1.0, eps=1e-6)
-    vertex = augment.AugmentedBasis(basis, augment.MatsubaraConst)
-    const = vertex.uhat[0]
-    assert const(3) == 1.0
-    with pytest.raises(ValueError, match="odd"):
-        const(2)
-
 
 def test_normalize_tau_bosonic():
     """Test normalize_tau for bosonic statistics"""

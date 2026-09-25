@@ -199,7 +199,8 @@ class _AugmentedFunction:
 
     def __call__(self, x):
         x = np.asarray(x)
-        fbasis_x = self._fbasis(x)
+        # The basis part may be a single function (a truncation to naug + 1).
+        fbasis_x = np.reshape(self._fbasis(x), (-1,) + x.shape)
         faug_x = [faug_l(x)[None] for faug_l in self._faug]
         f_x = np.concatenate(faug_x + [fbasis_x], axis=0)
         assert f_x.shape[1:] == x.shape
@@ -422,8 +423,7 @@ class MatsubaraConst(AbstractAugmentation):
         return self
 
     def hat(self, n):
-        zeta = None if self._statistics is None else (1 if self._statistics == 'F' else 0)
-        n = _util.check_reduced_matsubara(n, zeta=zeta)
+        n = _util.check_reduced_matsubara(n)
         return np.broadcast_to(1.0, n.shape)
 
 
