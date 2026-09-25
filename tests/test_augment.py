@@ -93,6 +93,28 @@ def test_augmented_function_sets_take_integers_and_slices():
     np.testing.assert_array_equal(basis_comp.u[:3](0.5), basis_comp.u(0.5)[:3])
 
 
+def test_augmentation_instances_must_match_the_basis():
+    """An augmentation passed as an instance is checked against the basis:
+    its beta must match, and TauConst/TauLinear need a bosonic basis."""
+    basis_b = sparse_ir.FiniteTempBasis('B', 10.0, 1.0, eps=1e-6)
+    basis_f = sparse_ir.FiniteTempBasis('F', 10.0, 1.0, eps=1e-6)
+    for aug in (augment.TauConst(5.0), augment.TauLinear(5.0),
+                augment.MatsubaraConst(5.0)):
+        with pytest.raises(ValueError, match="beta"):
+            augment.AugmentedBasis(basis_b, aug)
+    for aug in (augment.TauConst(10.0), augment.TauLinear(10.0)):
+        with pytest.raises(ValueError, match="bosons only"):
+            augment.AugmentedBasis(basis_f, aug)
+    # Matching instances work; MatsubaraConst does not depend on statistics.
+    ok = augment.AugmentedBasis(basis_b, augment.TauConst(10.0),
+                                augment.TauLinear(10.0))
+    assert ok.size == basis_b.size + 2
+    for mc in (augment.MatsubaraConst(10.0), augment.MatsubaraConst(10.0, 'B'),
+               augment.MatsubaraConst(10.0, 'F')):
+        assert augment.AugmentedBasis(basis_f, mc).size == basis_f.size + 1
+        assert augment.AugmentedBasis(basis_b, mc).size == basis_b.size + 1
+
+
 def test_augmented_basis_truncation():
     basis = sparse_ir.FiniteTempBasis("B", 10.0, 1.0, eps=1e-6)
     basis_comp = augment.AugmentedBasis(basis, augment.TauConst, augment.TauLinear)

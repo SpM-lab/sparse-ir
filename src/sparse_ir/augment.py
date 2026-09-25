@@ -426,9 +426,24 @@ class MatsubaraConst(AbstractAugmentation):
 def _augmentation_factory(basis, *augs):
     for aug in augs:
         if isinstance(aug, AbstractAugmentation):
+            _check_augmentation_instance(aug, basis)
             yield aug
         else:
             yield aug.create(basis)
+
+
+def _check_augmentation_instance(aug, basis):
+    """An instance must have been built for the basis it augments."""
+    name = type(aug).__name__
+    beta = getattr(aug, '_beta', None)
+    if beta is not None and not np.isclose(beta, basis.beta, rtol=1e-12, atol=0):
+        raise ValueError(f"{name} has beta = {beta}, but the basis has "
+                         f"beta = {basis.beta}")
+    # MatsubaraConst does not depend on the statistics; TauConst and
+    # TauLinear are bosonic.
+    if isinstance(aug, (TauConst, TauLinear)) and basis.statistics != 'B':
+        raise ValueError(f"{name} is defined for bosons only, got a basis "
+                         f"with statistics {basis.statistics!r}")
 
 
 def _check_bosonic_statistics(statistics, name):
