@@ -50,6 +50,35 @@ def test_vertex_basis(stat):
     np.testing.assert_allclose(giv, giv_reconst,
                                atol=np.abs(giv).max() * 1e-7, rtol=0)
 
+
+@pytest.mark.parametrize("stat, augmentations", [
+    ("B", (augment.TauConst, augment.TauLinear)),
+    ("B", (augment.MatsubaraConst,)),
+    ("F", (augment.MatsubaraConst,)),
+])
+def test_positive_only_matsubara_sampling_of_augmented_basis(stat, augmentations):
+    """positive_only=True samples an augmented basis on the non-negative half
+    of its full default point set, as for a plain basis."""
+    basis = sparse_ir.FiniteTempBasis(stat, 10.0, 1.0, eps=1e-6)
+    basis_comp = augment.AugmentedBasis(basis, *augmentations)
+    full = basis_comp.default_matsubara_sampling_points()
+    half = basis_comp.default_matsubara_sampling_points(positive_only=True)
+    np.testing.assert_array_equal(half, full[full >= 0])
+
+    smpl_full = sparse_ir.MatsubaraSampling(basis_comp)
+    smpl = sparse_ir.MatsubaraSampling(basis_comp, positive_only=True)
+    np.testing.assert_array_equal(smpl.sampling_points, half)
+    gl = np.random.default_rng(4321).standard_normal(basis_comp.size)
+    giv = smpl.evaluate(gl)
+    np.testing.assert_allclose(giv, smpl_full.evaluate(gl)[full >= 0],
+                               atol=1e-13 * np.abs(giv).max(), rtol=0)
+    # T-c against the full set's condition number: the cond of a
+    # positive-only sampling is that of the complex half matrix, which
+    # understates the conditioning of the real least-squares fit.
+    atol = 100 * smpl_full.cond * np.finfo(np.float64).eps * np.abs(gl).max()
+    np.testing.assert_allclose(smpl.fit(giv).real, gl, atol=atol, rtol=0)
+
+
 def test_normalize_tau_bosonic():
     """Test normalize_tau for bosonic statistics"""
     beta = 10.0

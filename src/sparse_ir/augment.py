@@ -142,8 +142,14 @@ class AugmentedBasis(abstract.AbstractBasis):
         """Get default Matsubara sampling points for augmented basis.
 
         This method provides default sampling points for Matsubara frequencies
-        when using an augmented basis.
+        when using an augmented basis.  With ``positive_only=True`` they are the
+        non-negative half of the full set, as for a plain basis.
         """
+        if positive_only:
+            # Requesting the positive-only variant from C with the buffer size
+            # as the point limit returned a truncated, zero-padded set.
+            points = self.default_matsubara_sampling_points()
+            return points[points >= 0]
         # Call C function directly with correct 5 arguments
         # The pylibsparseir wrapper basis_get_n_default_matsus_ext has a bug - missing 2nd bool arg
         # C signature: (basis_ptr, _Bool positive_only, _Bool fence, c_int n_points, POINTER(c_int) n_points_returned)
