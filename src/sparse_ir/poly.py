@@ -50,13 +50,28 @@ def funcs_deriv(funcs_ptr, n):
         raise RuntimeError(f"Failed to compute derivative of order {n}")
     return FunctionSet(deriv_funcs)
 
-def funcs_ft_get_slice(funcs_ptr, indices):
+def funcs_ft_get_slice(funcs_ptr, indices, zeta=None):
     status = c_int()
     indices = np.asarray(indices, dtype=np.int32)
     funcs = _lib.spir_funcs_get_slice(funcs_ptr, len(indices), indices.ctypes.data_as(POINTER(c_int)), status)
     if status.value != 0:
         raise RuntimeError(f"Failed to get basis function {indices}: {status.value}")
-    return FunctionSetFT(funcs)
+    return FunctionSetFT(funcs, zeta)
+
+def _nonempty(indices):
+    """Reject an empty selection before it reaches C.
+
+    The C library panics on an empty selection (SpM-lab/sparse-ir-rs#269).
+    """
+    if len(indices) == 0:
+        raise ValueError("an empty selection of basis functions is not supported")
+    return indices
+
+
+def _is_integer_index(index):
+    """True if ``index`` selects a single function (an integer, not a slice or list)."""
+    return np.ndim(index) == 0 and not isinstance(index, slice)
+
 
 class FunctionSet:
     """Wrapper for basis function evaluation."""
@@ -107,6 +122,9 @@ class FunctionSet:
         # c_double pointer would read 8 bytes per 4-byte element.
         x_double = _util.as_boundary_real(np.ravel(x), "evaluation points")
         n_points = x_double.size
+        if n_points == 0:
+            # The C library rejects an empty batch; the result is known.
+            return np.zeros((n_funcs,) + original_shape, dtype=np.float64)
 
         # Prepare output array (double)
         output = np.zeros((n_funcs, n_points), dtype=np.float64)
@@ -140,7 +158,7 @@ class FunctionSet:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
         return funcs_get_slice(self._ptr,
-                               _util.resolve_function_indices(index, sz))
+                               _nonempty(_util.resolve_function_indices(index, sz)))
 
     def deriv(self, n=1):
         """Compute the n-th derivative of the basis functions.
@@ -174,10 +192,16 @@ class FunctionSet:
             self.release()
 
 class FunctionSetFT:
-    """Wrapper for basis function evaluation."""
+    """Wrapper for basis function evaluation in reduced Matsubara frequency.
 
-    def __init__(self, funcs_ptr):
+    ``zeta`` is the parity of the admissible reduced frequencies (1: odd,
+    fermionic; 0: even, bosonic).  If given, every frequency is checked
+    against it before the call into C.
+    """
+
+    def __init__(self, funcs_ptr, zeta=None):
         self._ptr = funcs_ptr
+        self._zeta = zeta
         self._released = False
         self._size = funcs_get_size(funcs_ptr)
         # Register this object for safe cleanup
@@ -186,6 +210,11 @@ class FunctionSetFT:
 
     def size(self):
         return self._size
+
+    @property
+    def zeta(self):
+        """Parity of the admissible reduced frequencies (``None``: any)."""
+        return self._zeta
 
     def __call__(self, x):
         """Evaluate the basis functions at reduced Matsubara frequencies.
@@ -196,14 +225,15 @@ class FunctionSetFT:
         trailing axes dropped if ``x`` is a scalar.
 
         Raises:
-            ValueError: if any element of ``x`` is not an integer.  Reduced
+            ValueError: if any element of ``x`` is not an integer, or has the
+                wrong parity for the statistics of the basis.  Reduced
                 Matsubara frequencies are integers and are never truncated.
         """
         if self._released:
             raise RuntimeError("Function set has been released")
         # Validate integrality *before* the int64 conversion: ``astype`` would
         # silently turn 1.9 into 1.
-        x_checked = _util.check_reduced_matsubara(x)
+        x_checked = _util.check_reduced_matsubara(x, zeta=self._zeta)
         original_shape = x_checked.shape
         if x_checked.ndim == 0:
             o = np.asarray(
@@ -214,6 +244,10 @@ class FunctionSetFT:
         n_points = x_int64.size
         n_funcs = self._size
         output = np.zeros((n_funcs, n_points), dtype=np.complex128)
+        if n_points == 0:
+            # The C library rejects an empty batch; the result is known.
+            output = output.reshape((n_funcs,) + original_shape)
+            return output.reshape(original_shape) if n_funcs == 1 else output
 
         status = _lib.spir_funcs_batch_eval_matsu(
             self._ptr,
@@ -241,7 +275,8 @@ class FunctionSetFT:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
         return funcs_ft_get_slice(self._ptr,
-                                  _util.resolve_function_indices(index, sz))
+                                  _nonempty(_util.resolve_function_indices(index, sz)),
+                                  self._zeta)
 
     def release(self):
         """Manually release the function set."""
@@ -258,12 +293,14 @@ class FunctionSetFT:
 class PiecewiseLegendrePoly:
     """Piecewise Legendre polynomial.
 
-    Models a function on the interval ``[-1, 1]`` as a set of segments on the
-    intervals ``S[i] = [a[i], a[i+1]]``, where on each interval the function
-    is expanded in scaled Legendre polynomials.
+    Models a function on the interval ``[xmin, xmax]`` as a set of segments on
+    the intervals ``S[i] = [a[i], a[i+1]]``, where on each interval the
+    function is expanded in scaled Legendre polynomials.  The imaginary-time
+    basis functions ``basis.u[l]`` are defined on [-β, β] and the
+    real-frequency ones ``basis.v[l]`` on [-ωmax, ωmax].
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     funcs : FunctionSet
         Function set to evaluate the polynomial
     xmin : float
@@ -271,10 +308,16 @@ class PiecewiseLegendrePoly:
     xmax : float
         Maximum value of the interval
     period : float
-        Period of the interval. For periodic functions, this should be the
-        period of the function. For non-periodic functions, this should be 0.
+        Shift after which the function repeats up to a sign, or 0 if it does
+        not; it is used to replicate the knots of the segments across the
+        interval for :py:meth:`overlap`.  The imaginary-time basis functions
+        pass β for both statistics, since U(τ) = (-1)^ζ U(τ + β); the
+        real-frequency ones pass 0.
     default_overlap_range : tuple, optional
-        Default range for overlap calculations (xmin, xmax)
+        Default integration range (xmin, xmax) of :py:meth:`overlap`; the
+        whole interval if not given.  It is (0, β) for ``basis.u`` and
+        (-ωmax, ωmax) for ``basis.v``, the intervals on which they are
+        orthonormal.
     """
 
     def __init__(self, funcs: FunctionSet, xmin: float, xmax: float,
@@ -296,24 +339,53 @@ class PiecewiseLegendrePoly:
             # Default: use existing xmin, xmax
             self._default_overlap_range = (xmin, xmax)
 
+    @property
+    def xmin(self):
+        """Lower end of the domain the function may be evaluated on."""
+        return self._xmin
+
+    @property
+    def xmax(self):
+        """Upper end of the domain the function may be evaluated on."""
+        return self._xmax
+
     def __call__(self, x):
-        """Evaluate basis functions at given points."""
-        return self._funcs(x)
+        """Evaluate the function at ``x``.
+
+        Raises:
+            ValueError: if a point is not finite or lies outside
+                ``[xmin, xmax]``.
+        """
+        return self._funcs(_util.check_domain(x, self._xmin, self._xmax))
+
+    @property
+    def size(self):
+        """Number of functions (always 1)."""
+        return 1
+
+    def deriv(self, n=1):
+        """Return the n-th derivative of the function (default: the first)."""
+        return PiecewiseLegendrePoly(self._funcs.deriv(n), self._xmin, self._xmax,
+                                     self._period, self._default_overlap_range)
 
     def overlap(self, f, xmin: float = None, xmax: float = None, *, rtol=2.3e-16, return_error=False, points=None):
         """
         Evaluate overlap integral of this polynomial with function ``f``.
-        If ``f` returns a scalar, the result is a scalar.
+
+        Computes ``∫ dx f(x) self(x)`` from ``xmin`` to ``xmax``.
+        If ``f`` returns a scalar, the result is a scalar.
         If ``f`` returns an array, the result is an array with the same shape.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         f : callable
             Function to integrate with
         xmin : float, optional
-            Minimum value of the interval. If None, uses default range.
+            Minimum value of the interval. If None, uses the default range:
+            0 for ``basis.u[l]``, -wmax for ``basis.v[l]``.
         xmax : float, optional
-            Maximum value of the interval. If None, uses default range.
+            Maximum value of the interval. If None, uses the default range:
+            β for ``basis.u[l]``, wmax for ``basis.v[l]``.
         rtol : float
             Relative tolerance for integration
         return_error : bool
@@ -364,12 +436,38 @@ class PiecewiseLegendrePolyVector:
             # Default: use existing xmin, xmax
             self._default_overlap_range = (xmin, xmax)
 
+    @property
+    def size(self):
+        """Number of functions in the set."""
+        return self._funcs.size()
+
+    @property
+    def xmin(self):
+        """Lower end of the domain the functions may be evaluated on."""
+        return self._xmin
+
+    @property
+    def xmax(self):
+        """Upper end of the domain the functions may be evaluated on."""
+        return self._xmax
+
     def __call__(self, x):
-        """Evaluate basis functions at given points."""
-        return self._funcs(x)
+        """Evaluate the functions at ``x``; the result has shape ``(size,) + shape(x)``.
+
+        Raises:
+            ValueError: if a point is not finite or lies outside
+                ``[xmin, xmax]``.
+        """
+        values = self._funcs(_util.check_domain(x, self._xmin, self._xmax))
+        # FunctionSet drops the function axis of a one-function set.
+        return np.reshape(values, (self.size,) + np.shape(x))
 
     def __getitem__(self, index):
-        """Get a single basis function or slice of functions."""
+        """Get a single basis function or a set of them.
+
+        As in SparseIR.jl, a selection of one function (an integer, or a slice
+        or list of length one) gives a single function.
+        """
         funcs_slice = self._funcs[index]
         if funcs_slice.size() == 1:
             return PiecewiseLegendrePoly(funcs_slice, self._xmin, self._xmax,
@@ -396,7 +494,8 @@ class PiecewiseLegendrePolyVector:
     def overlap(self, f, xmin: float = None, xmax: float = None, *, rtol=2.3e-16, return_error=False, points=None):
         r"""Evaluate overlap integral of this polynomial with function ``f``.
 
-        Given the function ``f``, evaluate the integral::
+        Given the function ``f``, evaluate the integral from ``xmin`` to
+        ``xmax``::
 
             ∫ dx * f(x) * self(x)
 
@@ -407,11 +506,13 @@ class PiecewiseLegendrePolyVector:
             f (callable):
                 function that is called with a point ``x`` and returns ``f(x)``
                 at that position.
-            xmin : float, optional
-                Minimum value of the interval. If None, uses default range.
-            xmax : float, optional
-                Maximum value of the interval. If None, uses default range.
-            points (sequence of floats)
+            xmin (float, optional):
+                Minimum value of the interval. If None, uses the default
+                range: 0 for ``basis.u``, -wmax for ``basis.v``.
+            xmax (float, optional):
+                Maximum value of the interval. If None, uses the default
+                range: β for ``basis.u``, wmax for ``basis.v``.
+            points (sequence of floats):
                 A sequence of break points in the integration interval
                 where local difficulties of the integrand may occur
                 (e.g., singularities, discontinuities)
@@ -430,33 +531,31 @@ class PiecewiseLegendrePolyVector:
         if xmin > xmax:
             raise ValueError("xmin must be less than xmax")
 
-        if self._period == 0.0:
-            if xmin < self._xmin:
-                raise ValueError(f"xmin ({xmin}) must be greater than or equal "
-                               f"to the lower bound of the polynomial domain "
-                               f"({self._xmin})")
-            if xmax > self._xmax:
-                raise ValueError(f"xmax ({xmax}) must be less than or equal "
-                               f"to the upper bound of the polynomial domain "
-                               f"({self._xmax})")
+        # The quadrature evaluates the functions inside [xmin, xmax] only, so
+        # checking the interval once replaces a domain check per point.
+        if xmin < self._xmin:
+            raise ValueError(f"xmin ({xmin}) must be greater than or equal "
+                           f"to the lower bound of the polynomial domain "
+                           f"({self._xmin})")
+        if xmax > self._xmax:
+            raise ValueError(f"xmax ({xmax}) must be less than or equal "
+                           f"to the upper bound of the polynomial domain "
+                           f"({self._xmax})")
 
-        f_res = f(0.5*xmin + 0.5*xmax)
-
-        f_ = f
-        if hasattr(f_res, 'shape'):
-            if f_res.dtype != np.float64:
-                raise ValueError("f must return a float64 array")
-            f_shape = f_res.shape
-            f_length = f_res.size
-            f_ = lambda x: f(x).ravel()
-        elif isinstance(f_res, float) or isinstance(f_res, np.float64):
-            if f_res.dtype != np.float64:
-                raise ValueError("f must return a float64 scalar")
+        # Probe f the way the quadrature calls it, with a NumPy scalar, so that
+        # functions written with array methods (w.clip) work; a Python float
+        # result is accepted as a scalar.
+        f_res = np.asarray(f(np.float64(0.5*xmin + 0.5*xmax)))
+        if f_res.dtype != np.float64:
+            raise ValueError("f must return float64 values")
+        if f_res.ndim == 0:
             f_shape = ()
             f_length = 1
-            f_ = lambda x: np.array([f(x)])
+            f_ = lambda x: np.array([f(x)], dtype=np.float64)
         else:
-            raise ValueError("f must return a scalar of float64 or an array")
+            f_shape = f_res.shape
+            f_length = f_res.size
+            f_ = lambda x: np.asarray(f(x), dtype=np.float64).ravel()
 
         knots = funcs_get_knots(self._funcs._ptr)
         knots = _cover_domain(knots, self._period, xmin, xmax, self._xmin, self._xmax, points)
@@ -474,24 +573,32 @@ class PiecewiseLegendrePolyVector:
 
 
 class PiecewiseLegendrePolyFT:
-    """Fourier transform of a piecewise Legendre polynomial.
+    r"""Fourier transform of a piecewise Legendre polynomial.
 
-    For a given frequency index ``n``, the Fourier transform of the Legendre
-    function is defined as::
+    For a given reduced Matsubara frequency ``n``, with ν = nπ/β, the Fourier
+    transform of the imaginary-time function :math:`U(\tau)` is defined as
 
-            phat(n) == ∫ dx exp(1j * pi * n * x / (xmax - xmin)) p(x)
+    .. math::
 
-    The polynomial is continued either periodically (``freq='even'``), in which
-    case ``n`` must be even, or antiperiodically (``freq='odd'``), in which case
-    ``n`` must be odd.
+        \hat U(\mathrm{i}\nu) = \int_0^\beta d\tau\,
+        e^{\mathrm{i}\nu\tau} U(\tau).
+
+    The function is continued either periodically (bosons, ``zeta == 0``), in
+    which case ``n`` must be even, or antiperiodically (fermions,
+    ``zeta == 1``), in which case ``n`` must be odd.
     """
 
     def __init__(self, funcs: FunctionSetFT):
         assert isinstance(funcs, FunctionSetFT), "funcs must be a FunctionSetFT"
         self._funcs = funcs
 
+    @property
+    def zeta(self):
+        """Parity of the admissible reduced frequencies (1: odd, 0: even)."""
+        return self._funcs.zeta
+
     def __call__(self, x):
-        """Evaluate basis functions at given points."""
+        """Evaluate the transform at the reduced Matsubara frequencies ``x``."""
         return self._funcs(x)
 
 class PiecewiseLegendrePolyFTVector:
@@ -501,16 +608,32 @@ class PiecewiseLegendrePolyFTVector:
         assert isinstance(funcs, FunctionSetFT), "funcs must be a FunctionSetFT"
         self._funcs = funcs
 
+    @property
+    def size(self):
+        """Number of functions in the set."""
+        return self._funcs.size()
+
+    @property
+    def shape(self):
+        return (self.size,)
+
+    @property
+    def zeta(self):
+        """Parity of the admissible reduced frequencies (1: odd, 0: even)."""
+        return self._funcs.zeta
+
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        """Evaluate basis functions at given points."""
-        return self._funcs(x)
+        """Evaluate the functions at ``x``; the result has shape ``(size,) + shape(x)``."""
+        values = self._funcs(x)
+        # FunctionSetFT drops the function axis of a one-function set.
+        return np.reshape(values, (self.size,) + np.shape(x))
 
     def __getitem__(self, index):
-        """Get a single basis function or slice of functions."""
-        if isinstance(index, slice):
-            return PiecewiseLegendrePolyFTVector(self._funcs[index])
-        else:
+        """Get a single basis function (integer index) or a set (slice or list)."""
+        if _is_integer_index(index):
             return PiecewiseLegendrePolyFT(self._funcs[index])
+        else:
+            return PiecewiseLegendrePolyFTVector(self._funcs[index])
 
 
 def _cover_domain(
@@ -557,36 +680,6 @@ def _cover_domain(
     return knots
 
 
-def _compute_overlap(poly, f, xmin: float, xmax: float,
-        rtol=2.3e-16, radix=2, max_refine_levels=40,
-        max_refine_points=2000, points=None):
-
-    # Get knots from poly and add integration boundaries
-    knots = funcs_get_knots(poly._funcs._ptr)
-    knots = _cover_domain(knots, poly._period, xmin, xmax, poly._xmin, poly._xmax, points)
-
-    f_res = f(0.5*xmin + 0.5*xmax)
-    f_ = f
-    if hasattr(f_res, 'shape'):
-        if f_res.dtype != np.float64:
-            raise ValueError("f must return a float64 array")
-        f_shape = f_res.shape
-        f_length = f_res.size
-        f_ = lambda x: f(x).ravel()
-    elif isinstance(f_res, float) or isinstance(f_res, np.float64):
-        if f_res.dtype != np.float64:
-            raise ValueError("f must return a float64 scalar")
-        f_shape = ()
-        f_length = 1
-        f_ = lambda x: np.array([f(x)])
-    else:
-        raise ValueError("f must return a scalar of float64 or an array")
-
-    result = _compute_overlap_internal(
-        poly, f_, f_length, xmin, xmax, knots, rtol, radix, max_refine_levels, max_refine_points)
-
-    return result[0].reshape(poly.shape + f_shape), result[1].reshape(poly.shape + f_shape)
-
 
 def _compute_overlap_internal(poly, poly_size, f, f_length: int, xmin: float, xmax: float, knots,
         rtol=2.3e-16, radix=2, max_refine_levels=40,
@@ -621,7 +714,7 @@ def _compute_overlap_internal(poly, poly_size, f, f_length: int, xmin: float, xm
         fx = fx.reshape(rule.x.shape + (f_length,))
 
         rule_x_flat = rule.x.ravel()
-        poly_val = np.array(list(map(poly, rule_x_flat))).T.reshape(-1, *rule.x.shape, 1)
+        poly_val = np.array(list(map(poly._funcs, rule_x_flat))).T.reshape(-1, *rule.x.shape, 1)
         #poly_val = poly(rule.x).reshape(-1, *rule.x.shape, 1)
         #if poly_val.shape[0] >= 2:
             #print(poly_val.shape)

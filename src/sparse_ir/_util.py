@@ -46,10 +46,12 @@ _REAL_KINDS = "biuf"
 def check_reduced_matsubara(n, zeta=None):
     """Checks that ``n`` is a reduced Matsubara frequency.
 
-    Check that the argument is a reduced Matsubara frequency, which is an
-    integer obtained by scaling the freqency `w[n]` as follows::
+    Check that the argument is a reduced Matsubara frequency, which is the
+    integer ``n`` obtained by scaling the frequency ``nu`` as follows::
 
-        beta / np.pi * w[n] == 2 * n + zeta
+        beta / np.pi * nu == n == 2 * m + zeta
+
+    where ``m`` is the ordinary Matsubara index.
 
     Note that this means that instead of a fermionic frequency (``zeta == 1``),
     we expect an odd integer, while for a bosonic frequency (``zeta == 0``),
@@ -74,6 +76,11 @@ def check_reduced_matsubara(n, zeta=None):
             raise ValueError(
                 "reduced Matsubara frequency must be finite, got "
                 f"{nfloat[~np.isfinite(nfloat)][0]!r}")
+        beyond = np.abs(nfloat) >= 2.0**63
+        if beyond.any():
+            raise ValueError(
+                "reduced Matsubara frequency is out of the int64 range, got "
+                f"{np.atleast_1d(nfloat)[np.atleast_1d(beyond)][0]!r}")
         n = np.rint(nfloat).astype(np.int64)
         bad = n != nfloat
         if bad.any():
@@ -142,11 +149,52 @@ def as_boundary_complex(a, name="array", check_finite=True):
     return out
 
 
+def check_domain(x, xmin, xmax, name="evaluation points"):
+    """Check that every element of ``x`` is real, finite and in ``[xmin, xmax]``.
+
+    Returns ``x`` unchanged.  Called before evaluation points are handed to
+    the C library, which would otherwise panic on an out-of-domain point
+    (SpM-lab/sparse-ir-rs#266) and report an internal error.
+
+    Raises:
+        TypeError: if ``x`` is complex or of a non-numeric element type.
+        ValueError: naming the first offending value otherwise.
+    """
+    arr = np.asarray(x)
+    if arr.dtype.kind == 'c':
+        raise TypeError(f"{name} must be real-valued, got dtype {arr.dtype}")
+    if arr.dtype.kind not in _REAL_KINDS:
+        raise TypeError(f"{name} has unsupported dtype {arr.dtype}")
+    xf = np.asarray(arr, dtype=np.float64)
+    bad = ~np.isfinite(xf) | (xf < xmin) | (xf > xmax)
+    if bad.any():
+        offending = np.atleast_1d(xf)[np.atleast_1d(bad)][0]
+        raise ValueError(f"{name} must be finite and lie in [{xmin}, {xmax}], "
+                         f"got {offending!r}")
+    return x
+
+
+def check_unique(points, name="sampling_points"):
+    """Raise ValueError if the one-dimensional ``points`` contain a duplicate.
+
+    Duplicated sampling points make the sampling matrix rank-deficient, which
+    the C library accepts silently.
+    """
+    arr = np.asarray(points)
+    values, counts = np.unique(arr, return_counts=True)
+    if (counts > 1).any():
+        dup = values[counts > 1][0]
+        first, second = np.flatnonzero(arr == dup)[:2]
+        raise ValueError(f"{name} contains the duplicate value {dup!r} at "
+                         f"indices {first} and {second}; sampling points must "
+                         "be pairwise distinct")
+
+
 def as_boundary_matsubara(n, name="Matsubara indices", zeta=None):
-    """Normalize reduced Matsubara indices into a C-contiguous ``int64`` array.
+    """Normalize reduced Matsubara frequencies into a C-contiguous ``int64`` array.
 
     Validates integrality (and, if ``zeta`` is given, parity) *before* the
-    conversion, so a non-integral index raises instead of being truncated.
+    conversion, so a non-integral value raises instead of being truncated.
     """
     checked = check_reduced_matsubara(n, zeta=zeta)
     return np.ascontiguousarray(checked, dtype=np.int64)
@@ -242,11 +290,14 @@ def normalize_tau(statistics, tau, beta):
     Raises:
         ValueError: If tau is outside [-β, β] or statistics is invalid.
         
-    Special cases:
-        - Negative zero (τ = -0.0) is treated as τ = β with appropriate sign
-        - For τ in [0, β]: returns (τ, +1)
-        - For τ in [-β, 0): returns (τ + β, sign) where sign depends on statistics
-        
+    Special cases, with (-1)^ζ = -1 for fermions and +1 for bosons:
+        - For τ = +0.0 and τ in (0, β]: returns (τ, +1); +0.0 is read as 0⁺
+          and β as β⁻
+        - Negative zero (τ = -0.0) is read as 0⁻: returns (β, (-1)^ζ), since
+          f(0⁻) = (-1)^ζ f(β⁻)
+        - For τ in [-β, 0): returns (τ + β, (-1)^ζ); in particular -β, read
+          as (-β)⁺, gives (0, (-1)^ζ)
+
     .. versionadded:: 1.2
     """
     tau = np.asarray(tau, dtype=np.float64)
@@ -296,3 +347,27 @@ def check_svd_result(svd_result, matrix_shape=None):
             raise ValueError(f"shape mismatch between SVD ({m_u}, {n_v}) "
                              f"and matrix ({m}, {n})")
     return u, s, vH
+
+def slice_to_size(index, size):
+    """Return the number of basis functions selected by ``index``.
+
+    Only ``basis[:stop]``-style truncation is supported, mirroring
+    :py:meth:`FiniteTempBasis.__getitem__`.
+    """
+    if not isinstance(index, slice):
+        raise TypeError(
+            f"only slice truncation is supported, got {index!r}")
+    if index.start not in (None, 0):
+        raise ValueError(
+            f"basis truncation must start at 0, got {index.start!r}")
+    if index.step not in (None, 1):
+        raise ValueError(
+            f"basis truncation must have unit step, got {index.step!r}")
+    if index.stop is None:
+        return size
+    stop = int(index.stop)
+    if not 0 < stop <= size:
+        raise IndexError(
+            f"truncation to {stop} functions is out of range for a basis of "
+            f"size {size}")
+    return stop

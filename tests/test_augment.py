@@ -24,15 +24,6 @@ def test_augmented_bosonic_basis():
     gtau = const + basis.u(tau_smpl.tau).T @ (-basis.s * basis.v(pole))
     magn = np.abs(gtau).max()
 
-    # This illustrates that "naive" fitting is a problem if the fitting matrix
-    # is not well-conditioned.
-    #gl_fit_bad = np.linalg.pinv(tau_smpl.matrix) @ gtau
-    #gtau_reconst_bad = tau_smpl.evaluate(gl_fit_bad)
-    #assert not np.allclose(gtau_reconst_bad, gtau, atol=1e-13 * magn, rtol=0)
-    #np.testing.assert_allclose(gtau_reconst_bad, gtau,
-    #                           atol=5e-16 * tau_smpl.cond * magn, rtol=0)
-
-    # Now do the fit properly
     gl_fit = tau_smpl.fit(gtau)
     gtau_reconst = tau_smpl.evaluate(gl_fit)
     np.testing.assert_allclose(gtau_reconst, gtau, atol=1e-13 * magn, rtol=0)
@@ -58,6 +49,81 @@ def test_vertex_basis(stat):
 
     np.testing.assert_allclose(giv, giv_reconst,
                                atol=np.abs(giv).max() * 1e-7, rtol=0)
+
+
+@pytest.mark.parametrize("stat, augmentations", [
+    ("B", (augment.TauConst, augment.TauLinear)),
+    ("B", (augment.MatsubaraConst,)),
+    ("F", (augment.MatsubaraConst,)),
+])
+def test_positive_only_matsubara_sampling_of_augmented_basis(stat, augmentations):
+    """positive_only=True samples an augmented basis on the non-negative half
+    of its full default point set, as for a plain basis."""
+    basis = sparse_ir.FiniteTempBasis(stat, 10.0, 1.0, eps=1e-6)
+    basis_comp = augment.AugmentedBasis(basis, *augmentations)
+    full = basis_comp.default_matsubara_sampling_points()
+    half = basis_comp.default_matsubara_sampling_points(positive_only=True)
+    np.testing.assert_array_equal(half, full[full >= 0])
+
+    smpl_full = sparse_ir.MatsubaraSampling(basis_comp)
+    smpl = sparse_ir.MatsubaraSampling(basis_comp, positive_only=True)
+    np.testing.assert_array_equal(smpl.sampling_points, half)
+    gl = np.random.default_rng(4321).standard_normal(basis_comp.size)
+    giv = smpl.evaluate(gl)
+    np.testing.assert_allclose(giv, smpl_full.evaluate(gl)[full >= 0],
+                               atol=1e-13 * np.abs(giv).max(), rtol=0)
+    # cond is that of the real least-squares problem the fit solves
+    # (SpM-lab/sparse-ir-rs#270), so T-c bounds the round trip.
+    A = basis_comp.uhat(half).T
+    assert smpl.cond == pytest.approx(
+        np.linalg.cond(np.vstack([A.real, A.imag])), rel=1e-10)
+    atol = 100 * smpl.cond * np.finfo(np.float64).eps * np.abs(gl).max()
+    np.testing.assert_allclose(smpl.fit(giv).real, gl, atol=atol, rtol=0)
+
+
+def test_augmented_function_sets_take_integers_and_slices():
+    basis = sparse_ir.FiniteTempBasis("B", 10.0, 1.0, eps=1e-6)
+    basis_comp = augment.AugmentedBasis(basis, augment.TauConst, augment.TauLinear)
+    for fs in (basis_comp.u, basis_comp.uhat):
+        with pytest.raises(TypeError, match="integer index or a slice"):
+            fs[[0, 2]]
+        with pytest.raises(ValueError, match="only the augmentation"):
+            fs[:2]
+        assert fs[:3].size == 3     # two augmentations and one basis function
+    np.testing.assert_array_equal(basis_comp.u[:3](0.5), basis_comp.u(0.5)[:3])
+
+
+def test_augmentation_instances_must_match_the_basis():
+    """An augmentation passed as an instance is checked against the basis:
+    its beta must match, and TauConst/TauLinear need a bosonic basis."""
+    basis_b = sparse_ir.FiniteTempBasis('B', 10.0, 1.0, eps=1e-6)
+    basis_f = sparse_ir.FiniteTempBasis('F', 10.0, 1.0, eps=1e-6)
+    for aug in (augment.TauConst(5.0), augment.TauLinear(5.0),
+                augment.MatsubaraConst(5.0)):
+        with pytest.raises(ValueError, match="beta"):
+            augment.AugmentedBasis(basis_b, aug)
+    for aug in (augment.TauConst(10.0), augment.TauLinear(10.0)):
+        with pytest.raises(ValueError, match="bosons only"):
+            augment.AugmentedBasis(basis_f, aug)
+    # Matching instances work; MatsubaraConst does not depend on statistics.
+    ok = augment.AugmentedBasis(basis_b, augment.TauConst(10.0),
+                                augment.TauLinear(10.0))
+    assert ok.size == basis_b.size + 2
+    for mc in (augment.MatsubaraConst(10.0), augment.MatsubaraConst(10.0, 'B'),
+               augment.MatsubaraConst(10.0, 'F')):
+        assert augment.AugmentedBasis(basis_f, mc).size == basis_f.size + 1
+        assert augment.AugmentedBasis(basis_b, mc).size == basis_b.size + 1
+
+
+def test_augmented_basis_truncation():
+    basis = sparse_ir.FiniteTempBasis("B", 10.0, 1.0, eps=1e-6)
+    basis_comp = augment.AugmentedBasis(basis, augment.TauConst, augment.TauLinear)
+    part = basis_comp[:5]
+    assert part.size == 5
+    np.testing.assert_allclose(part.u(0.5), basis_comp.u(0.5)[:5],
+                               rtol=1e-14, atol=0)
+
+
 
 def test_normalize_tau_bosonic():
     """Test normalize_tau for bosonic statistics"""
@@ -127,16 +193,17 @@ def test_normalize_tau_errors():
         _util.normalize_tau('X', 0.0, beta)
 
 
-def test_tau_const_rejects_fermionic():
-    """A fermionic TauConst would be identically zero in Matsubara."""
-    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
-        augment.TauConst(10.0, 'F')
+@pytest.mark.parametrize("aug", [augment.TauConst, augment.TauLinear])
+def test_tau_augmentations_are_bosonic_only(aug):
+    """TauConst and TauLinear are defined for bosons only."""
+    with pytest.raises(ValueError, match="bosons only"):
+        aug(10.0, 'F')
 
     basis = sparse_ir.FiniteTempBasis('F', 10.0, wmax=2.0, eps=1e-6)
-    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
-        augment.TauConst.create(basis)
-    with pytest.raises(ValueError, match="only allowed for a bosonic basis"):
-        augment.AugmentedBasis(basis, augment.TauConst)
+    with pytest.raises(ValueError, match="bosons only"):
+        aug.create(basis)
+    with pytest.raises(ValueError, match="bosons only"):
+        augment.AugmentedBasis(basis, aug)
 
 
 def test_tau_const_periodicity():
@@ -150,11 +217,10 @@ def test_tau_const_periodicity():
     assert np.isclose(tc(-5.0), 1.0 / np.sqrt(beta))
 
 
-@pytest.mark.parametrize("stat", ["F", "B"])
-def test_tau_linear_periodicity(stat):
-    """Test TauLinear with statistics-dependent periodicity"""
+def test_tau_linear_periodicity():
+    """TauLinear is periodic in beta (bosonic)"""
     beta = 10.0
-    tl = augment.TauLinear(beta, stat)
+    tl = augment.TauLinear(beta, 'B')
     
     # Test at tau=0
     val0 = tl(0.0)
@@ -165,16 +231,14 @@ def test_tau_linear_periodicity(stat):
     val_mid = tl(5.0)
     assert np.isclose(val_mid, 0.0)  # x = 2*5/10 - 1 = 0
     
-    # Test at tau=-5
-    val_neg = tl(-5.0)
-    # tau_normalized = -5 + 10 = 5, x = 2*5/10 - 1 = 0
-    
-    if stat == 'F':
-        # Fermionic: anti-periodic, sign = -1
-        assert np.isclose(val_neg, 0.0)  # -1 * 0 = 0
-    else:
-        # Bosonic: periodic, sign = +1
-        assert np.isclose(val_neg, 0.0)  # +1 * 0 = 0
+    # tau = -beta/4 maps to 3*beta/4 (x = 1/2)
+    assert np.isclose(tl(-beta / 4), norm * 0.5)
+
+    # The derivative is the constant slope, also for integer tau arrays
+    slope = norm * 2 / beta
+    np.testing.assert_array_equal(tl.deriv()(np.array([1, 2])), [slope, slope])
+    np.testing.assert_array_equal(augment.TauConst(beta).deriv()(np.array([1, 2])),
+                                  [0.0, 0.0])
 
 
 def test_matsubara_const_range():
@@ -209,28 +273,26 @@ def test_tau_const_with_statistics():
     tc2 = augment.TauConst(beta, 'B')
     assert tc2._statistics == 'B'
     
-    # Test evaluation works
-    val = tc(5.0)
-    assert np.isfinite(val)
+    # The normalized constant: int_0^beta tc(tau)^2 dtau == 1
+    assert np.isclose(tc(5.0), 1 / np.sqrt(beta))
 
 
-@pytest.mark.parametrize("stat", ["F", "B"])
-def test_tau_linear_with_statistics(stat):
+def test_tau_linear_with_statistics():
     """Test TauLinear can be created with statistics parameter"""
     beta = 10.0
-    basis = sparse_ir.FiniteTempBasis(stat, beta, wmax=2.0, eps=1e-6)
-    
+    basis = sparse_ir.FiniteTempBasis('B', beta, wmax=2.0, eps=1e-6)
+
     # Test factory method
     tl = augment.TauLinear.create(basis)
-    assert tl._statistics == stat
-    
+    assert tl._statistics == 'B'
+
     # Test direct creation
-    tl2 = augment.TauLinear(beta, stat)
-    assert tl2._statistics == stat
+    tl2 = augment.TauLinear(beta, 'B')
+    assert tl2._statistics == 'B'
     
-    # Test evaluation works
-    val = tl(5.0)
-    assert np.isfinite(val)
+    # tau = beta/2 is the zero of the linear function
+    assert np.isclose(tl(5.0), 0.0)
+    assert np.isclose(tl(beta), np.sqrt(3 / beta))
 
 
 def test_backward_compatibility():
@@ -246,5 +308,4 @@ def test_backward_compatibility():
     
     # MatsubaraConst can be created without statistics
     mc = augment.MatsubaraConst(beta)
-    # Statistics is optional for MatsubaraConst
-    assert mc._statistics is None or mc._statistics in ('F', 'B')
+    assert mc._statistics is None

@@ -116,3 +116,21 @@ def test_broadcast_uhat(sve_logistic):
 
     # Tensorial
     assert_eq(f[l](np.reshape(x, (2, 2))), f[l](x).reshape(3, 2, 2))
+
+
+def test_overlap_accepts_scalar_and_array_style_functions():
+    from ._helpers import gauss_legendre_panels
+    basis = sparse_ir.FiniteTempBasis('F', 10.0, 8.0, 1e-6)
+
+    # The spectral function of the README example, written with array methods.
+    # Reference: w = sin(t) removes the square-root edges of the semicircle.
+    semicircle = lambda w: np.sqrt(1 - w.clip(-1, 1)**2) * 2 / np.pi
+    ts, wt = gauss_legendre_panels(-np.pi / 2, np.pi / 2)
+    ref = basis.v(np.sin(ts)) @ (wt * np.cos(ts)**2 * 2 / np.pi)
+    np.testing.assert_allclose(basis.v.overlap(semicircle), ref, rtol=0, atol=1e-10)
+
+    # A function that returns Python floats
+    gaussian = lambda w: float(np.exp(-w * w))
+    xs, ws = gauss_legendre_panels(-8.0, 8.0)
+    ref = basis.v(xs) @ (ws * np.exp(-xs * xs))
+    np.testing.assert_allclose(basis.v.overlap(gaussian), ref, rtol=0, atol=1e-10)

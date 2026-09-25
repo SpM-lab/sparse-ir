@@ -20,12 +20,31 @@ from . import _util
 
 
 def _zeta(statistics):
-    """Reduced-frequency offset: 1 for fermions (odd n), 0 for bosons (even n)."""
+    """Parity ζ of the reduced frequencies: 1 for fermions (odd n), 0 for bosons (even n)."""
     if statistics == 'F':
         return 1
     if statistics == 'B':
         return 0
     raise ValueError(f"invalid statistics {statistics!r}, expected 'F' or 'B'")
+
+
+def _check_real_coefficients(al, basis):
+    """Reject genuinely complex coefficients under ``positive_only=True``.
+
+    ``positive_only=True`` asserts G(-iν) = G(iν)*, i.e. real IR
+    coefficients.  An imaginary part at the level of the basis accuracy is
+    accepted, so the complex output of :py:meth:`MatsubaraSampling.fit` can be
+    evaluated again.
+    """
+    max_imag = float(np.max(np.abs(al.imag))) if al.size else 0.0
+    scale = max(float(np.max(np.abs(al.real))) if al.size else 0.0, 1.0)
+    tol = max(10 * basis.accuracy, 1e-12) * scale
+    if max_imag > tol:
+        raise ValueError(
+            "positive_only=True assumes real IR coefficients "
+            "(g(-iw) == conj(g(iw))), but the coefficients have "
+            f"max |imag| = {max_imag:.3e} > {tol:.3e}; use positive_only=False "
+            "for complex coefficients")
 
 
 def _prepare_input(a, axis, expected, what):
@@ -49,7 +68,7 @@ class TauSampling:
     """Sparse sampling in imaginary time.
 
     Allows the transformation between the IR basis and a set of sampling points
-    in (scaled/unscaled) imaginary time.
+    in imaginary time τ.
 
     Note:
         Real-valued input (any of ``bool``, integer, ``float32``, ``float64``)
@@ -57,23 +76,35 @@ class TauSampling:
         it crosses the C boundary; narrow types therefore agree with the
         ``float64``/``complex128`` result to their own input precision rather
         than producing garbage.
+
+        User-supplied ``sampling_points`` must be finite, pairwise distinct and
+        lie in ``[-beta, beta]``; they are kept in the given order, so the
+        values returned by :py:meth:`evaluate` follow that order.  Negative
+        times follow G(τ) = (-1)^ζ G(τ + β), with (-1)^ζ = -1 for fermions
+        and +1 for bosons, and the endpoints are one-sided limits: ``+0.0``
+        is 0⁺, ``beta`` is β⁻, ``-0.0`` is 0⁻, giving (-1)^ζ G(β⁻), and
+        ``-beta`` is (-β)⁺, giving (-1)^ζ G(0⁺).  Since ``0.0 == -0.0``, the
+        two count as duplicates and cannot both be sampling points.
     """
 
     def __init__(self, basis, sampling_points=None, use_positive_taus=True):
         """
         Initialize tau sampling.
 
-        Parameters:
-        -----------
-        basis : FiniteTempBasis
-            Finite temperature basis
+        Parameters
+        ----------
+        basis : FiniteTempBasis, AugmentedBasis or DiscreteLehmannRepresentation
+            Basis whose coefficients are sampled
         sampling_points : array_like, optional
-            Tau sampling points. If None, use default.
+            Tau sampling points in ``[-beta, beta]``. If None, use
+            ``basis.default_tau_sampling_points()``: for a FiniteTempBasis of
+            size L, the roots of U_L.
         use_positive_taus : bool, optional
+            Only used for the default points.
             If `use_positive_taus=True`, the sampling points are
-            folded to the positive tau domain [0, β) [default].
-            If `use_positive_taus=False`, the sampling points are within
-            the range [-β/2, β/2] and the distribution is symmetric.
+            folded to the positive tau domain [0, β) [default]; they lie in
+            (0, β).  If `use_positive_taus=False`, the sampling points are
+            unfolded: they lie in (-β/2, β/2] and are symmetric about 0.
         """
         self.basis = basis
 
@@ -89,10 +120,16 @@ class TauSampling:
                 f"sampling_points must be one-dimensional, got shape {points.shape}")
         if points.size == 0:
             raise ValueError("sampling_points must not be empty")
-        # np.sort returns a fresh C-contiguous array; the pointer below is
-        # taken from this object, not from the caller's array.
-        self.sampling_points = np.ascontiguousarray(np.sort(points),
-                                                    dtype=np.float64)
+        beta = basis.beta
+        outside = (points < -beta) | (points > beta)
+        if outside.any():
+            raise ValueError(
+                f"sampling_points must lie in [-beta, beta] = [{-beta}, {beta}], "
+                f"got {points[outside][0]!r}")
+        _util.check_unique(points, "sampling_points")
+        # A fresh C-contiguous copy in the caller's order: the pointer below
+        # is taken from this object, which the caller cannot modify.
+        self.sampling_points = np.array(points, dtype=np.float64, order='C')
 
         self._backend = get_default_blas_backend()
         if isinstance(basis, augment.AugmentedBasis):
@@ -134,17 +171,17 @@ class TauSampling:
         """
         Transform basis coefficients to sampling points.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         al : array_like
-            Basis coefficients
+            Basis coefficients G_l
         axis : int, optional
             Axis along which to transform
 
-        Returns:
-        --------
+        Returns
+        -------
         ndarray
-            Values at sampling points. ``float64`` for real input,
+            Values G(τ) at the sampling points. ``float64`` for real input,
             ``complex128`` for complex input.
         """
         al, axis, ndim = _prepare_input(al, axis, self.basis.size,
@@ -248,39 +285,46 @@ class TauSampling:
 
 
 class MatsubaraSampling:
-    """Sparse sampling in Matsubara frequencies.
+    r"""Sparse sampling in Matsubara frequencies.
 
     Allows the transformation between the IR basis and a set of sampling points
-    in (scaled/unscaled) imaginary frequencies.
+    in Matsubara frequency iν, given as reduced frequencies n (ν = nπ/β).
 
     By setting ``positive_only=True``, one assumes that functions to be fitted
-    are symmetric in Matsubara frequency, i.e.::
+    are symmetric in Matsubara frequency, i.e.:
 
-        Ghat(iv) == Ghat(-iv).conj()
+    .. math:: G(-\mathrm{i}\nu) = G(\mathrm{i}\nu)^*
 
-    or equivalently, that they are purely real in imaginary time.  In this
-    case, sparse sampling is performed over non-negative frequencies only,
-    cutting away half of the necessary sampling space.
+    or equivalently, that they are purely real in imaginary time (real IR
+    coefficients).  In this case, sparse sampling is performed over
+    non-negative frequencies n >= 0 only (a bosonic set includes n = 0),
+    cutting away half of the necessary sampling space.  The assumption is
+    enforced where it can be checked: :py:meth:`evaluate` raises
+    :class:`ValueError` for genuinely complex coefficients, and the sampling
+    points must be non-negative.  It cannot be checked in :py:meth:`fit`:
+    data violating it is fitted to meaningless coefficients without an error.
 
     Note:
-        ``sampling_points`` are *reduced* Matsubara indices: odd integers for
-        a fermionic and even integers for a bosonic basis.  A non-integral or
-        wrong-parity index raises :class:`ValueError`; it is never truncated
-        or adjusted.
+        ``sampling_points`` are *reduced* Matsubara frequencies n, ν = nπ/β:
+        odd integers for a fermionic and even integers for a bosonic basis.
+        A non-integral or wrong-parity value raises :class:`ValueError`; it is
+        never truncated or adjusted.
     """
 
     def __init__(self, basis, sampling_points=None, positive_only=False):
         """
         Initialize Matsubara sampling.
 
-        Parameters:
-        -----------
-        basis : FiniteTempBasis
-            Finite temperature basis
+        Parameters
+        ----------
+        basis : FiniteTempBasis, AugmentedBasis or DiscreteLehmannRepresentation
+            Basis whose coefficients are sampled
         sampling_points : array_like, optional
-            Matsubara frequency indices. If None, use default.
+            Reduced Matsubara frequencies n of the sampling points. If None,
+            use ``basis.default_matsubara_sampling_points(positive_only=...)``.
         positive_only : bool, optional
-            If True, use only positive frequencies
+            If True, use only non-negative frequencies n >= 0, assuming
+            G(-iν) = G(iν)* (see above).
         """
         self.basis = basis
         self.positive_only = bool(positive_only)
@@ -298,6 +342,11 @@ class MatsubaraSampling:
                 f"sampling_points must be one-dimensional, got shape {points.shape}")
         if points.size == 0:
             raise ValueError("sampling_points must not be empty")
+        _util.check_unique(points, "sampling_points")
+        if self.positive_only and (points < 0).any():
+            raise ValueError(
+                "positive_only=True requires non-negative sampling points, "
+                f"got {points[points < 0][0]!r}")
         self.sampling_points = points
 
         self._backend = get_default_blas_backend()
@@ -331,24 +380,26 @@ class MatsubaraSampling:
 
     @property
     def wn(self):
-        """Matsubara frequency indices."""
+        """Sampling points as reduced Matsubara frequencies n (ν = nπ/β)."""
         return self.sampling_points
 
     def evaluate(self, al, axis=0):
         """
         Transform basis coefficients to sampling points.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         al : array_like
-            Basis coefficients
+            Basis coefficients G_l
         axis : int, optional
             Axis along which to transform
 
-        Returns:
-        --------
+        Returns
+        -------
         ndarray
-            Values at Matsubara frequencies (always ``complex128``)
+            Values G(iν) at the sampling points (always ``complex128``).
+            With ``positive_only=True`` these are the non-negative
+            frequencies only; the values at -n are their complex conjugates.
         """
         al, axis, ndim = _prepare_input(al, axis, self.basis.size,
                                         "basis coefficients")
@@ -359,6 +410,8 @@ class MatsubaraSampling:
 
         if al.dtype.kind == "c":
             al = _util.as_boundary_complex(al, "basis coefficients")
+            if self.positive_only:
+                _check_real_coefficients(al, self.basis)
             status = _lib.spir_sampling_eval_zz(
                 self._ptr,
                 self._backend,
@@ -391,11 +444,12 @@ class MatsubaraSampling:
         """
         Fit basis coefficients from Matsubara frequency values.
 
-        Returns ``complex128``; the underlying C entry point
-        (``spir_sampling_fit_zz``) only exists in the complex flavour, so
-        real-valued input is widened to ``complex128`` here.  Passing the raw
-        buffer of a real array through a complex pointer would read twice as
-        many bytes as were allocated.
+        Returns ``complex128``.  Real-valued input is widened to
+        ``complex128`` before the call to ``spir_sampling_fit_zz``: passing
+        the raw buffer of a real array through a complex pointer would read
+        twice as many bytes as were allocated.  With ``positive_only=True``
+        the coefficients are real: the result is ``complex128`` with an
+        imaginary part of exactly zero.
         """
         ax, axis, ndim = _prepare_input(ax, axis, len(self.sampling_points),
                                         "Matsubara frequency values")
@@ -421,7 +475,16 @@ class MatsubaraSampling:
 
     @property
     def cond(self):
-        """Condition number of the sampling matrix."""
+        """Condition number of the sampling problem.
+
+        With ``positive_only=True`` this is the condition number of the real
+        least-squares problem ``[Re A; Im A] x = [Re g; Im g]`` that
+        :py:meth:`fit` solves.  The C library reports that of the complex
+        matrix ``A`` instead, which understates it (SpM-lab/sparse-ir-rs#270).
+        """
+        if self.positive_only:
+            A = self.basis.uhat(self.sampling_points).T
+            return float(np.linalg.cond(np.vstack([A.real, A.imag])))
         cond = c_double()
         status = _lib.spir_sampling_get_cond_num(self._ptr, byref(cond))
         if status != COMPUTATION_SUCCESS:

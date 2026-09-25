@@ -3,13 +3,15 @@
 """
 Discrete Lehmann Representation (DLR) functionality for SparseIR.
 
-This module implements DLR basis with poles at IR extrema, providing
-an alternative representation that can be more efficient for certain calculations.
+This module implements DLR basis with poles at the roots of the first
+discarded real-frequency IR basis function V_L, providing an alternative
+representation that can be more efficient for certain calculations.
 """
 
 import ctypes
 import numpy as np
 from .abstract import AbstractBasis
+from .basis import FiniteTempBasis
 from pylibsparseir.core import basis_get_default_omega_sampling_points
 from pylibsparseir.core import (
     _lib,
@@ -29,29 +31,65 @@ from .poly import (
 )
 
 class DiscreteLehmannRepresentation(AbstractBasis):
-    """Discrete Lehmann representation (DLR), with poles being extrema of IR.
+    r"""Discrete Lehmann representation (DLR), with poles at the roots of V_L.
 
     This class implements a variant of the discrete Lehmann representation
     (`DLR`_).  Instead of a truncated singular value expansion of the analytic
     continuation kernel ``K`` like the IR, the discrete Lehmann representation
     is based on a "sketching" of ``K``.  The resulting basis is a
-    linear combination of discrete set of poles on the real-frequency axis,
-    continued to the imaginary-frequency axis::
+    linear combination of discrete set of poles :math:`\bar\omega_p` on the
+    real-frequency axis: for both statistics,
 
-        G(iv) == sum(a[i] / (iv - w[i]) for i in range(L))
+    .. math::
+
+        \rho(\omega) = \sum_p c_p \delta(\omega - \bar\omega_p), \qquad
+        G(\tau) = \sum_p c_p u_p(\tau), \qquad
+        u_p(\tau) = -K(\tau, \bar\omega_p)
+        = -\frac{e^{-\tau\bar\omega_p}}{1 + e^{-\beta\bar\omega_p}},
+
+    with :math:`\rho = A` for fermions and :math:`\rho = A/\tanh(\beta\omega/2)`
+    for bosons (see :class:`~sparse_ir.FiniteTempBasis`), continued to the
+    imaginary-frequency axis as
+    :math:`G(\mathrm{i}\nu) = \sum_p c_p \hat u_p(\mathrm{i}\nu)` with
+
+    .. math::
+
+        \hat u_p(\mathrm{i}\nu) = \frac{1}{\mathrm{i}\nu - \bar\omega_p}
+        \ \text{(fermions)}, \qquad
+        \hat u_p(\mathrm{i}\nu)
+        = \frac{\tanh(\beta\bar\omega_p/2)}{\mathrm{i}\nu - \bar\omega_p}
+        \ \text{(bosons)}.
+
+    For bosons, the spectral function is thus
+    :math:`A(\omega) = \sum_p c_p \tanh(\beta\bar\omega_p/2)\,
+    \delta(\omega - \bar\omega_p)`.  The DLR coefficients :math:`c_p` and the
+    IR coefficients are related by
+    :math:`G_l = -S_l \sum_p V_l(\bar\omega_p)\, c_p` (:py:meth:`to_IR`).
 
     Warning:
         The poles on the real-frequency axis selected for the DLR are based
         on a rank-revealing decomposition, which offers accuracy guarantees.
-        Here, we instead select the pole locations based on the zeros of the IR
-        basis functions on the real axis, which is a heuristic.  We do not
-        expect that difference to matter, but please don't blame the DLR
-        authors if we were wrong :-)
+        Here, we instead select the pole locations based on the roots of V_L,
+        the first IR basis function on the real axis beyond the basis, which
+        is a heuristic.  We do not expect that difference to matter, but
+        please don't blame the DLR authors if we were wrong :-)
 
     .. _DLR: https://doi.org/10.1103/PhysRevB.105.235115
     """
 
     def __init__(self, basis: AbstractBasis, poles=None):
+        """
+        Parameters
+        ----------
+        basis : FiniteTempBasis
+            IR basis on which the DLR is built
+        poles : array_like, optional
+            Pole positions in ``[-wmax, wmax]``.  If None, use
+            ``basis.default_omega_sampling_points()``, the L roots of V_L.
+        """
+        if not isinstance(basis, FiniteTempBasis):
+            raise TypeError("DiscreteLehmannRepresentation is built on a "
+                            f"FiniteTempBasis, got {type(basis).__name__}")
         status = ctypes.c_int()
         if poles is None:
             poles = basis_get_default_omega_sampling_points(basis._ptr)
@@ -64,6 +102,9 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 f"poles must be one-dimensional, got shape {poles.shape}")
         if poles.size == 0:
             raise ValueError("poles must not be empty")
+        # The C library panics on a pole outside the frequency window
+        # (SpM-lab/sparse-ir-rs#266); reject it here with the value.
+        _util.check_domain(poles, -basis.wmax, basis.wmax, "poles")
         self._basis = basis
         self._poles = poles
         self._u = None
@@ -84,13 +125,25 @@ class DiscreteLehmannRepresentation(AbstractBasis):
     def u(self):
         r"""DLR basis functions on the imaginary-time axis.
 
-        These are the *DLR* basis functions, i.e. ``u[i](tau)`` is the
-        imaginary-time kernel evaluated at the ``i``-th pole, so that::
+        These are the *DLR* basis functions, i.e. ``u[p](tau)`` is minus the
+        logistic kernel at the ``p``-th pole,
+        :math:`u_p(\tau) = -K(\tau, \bar\omega_p) =
+        -e^{-\tau\bar\omega_p}/(1 + e^{-\beta\bar\omega_p})` for both
+        statistics, so that::
 
             gtau == g_dlr @ dlr.u(tau)
 
         holds for DLR coefficients ``g_dlr``.  They are **not** the basis
         functions of the underlying IR basis.
+
+        ``tau`` may lie anywhere in ``[-beta, beta]``, with the extension and
+        endpoint rule of :py:attr:`FiniteTempBasis.u
+        <sparse_ir.FiniteTempBasis.u>`: :math:`u_p(\tau) = (-1)^\zeta
+        u_p(\tau + \beta)` for negative times, ``+0.0`` is 0⁺, ``beta`` is
+        β⁻, ``-0.0`` is 0⁻ and ``-beta`` is (-β)⁺.
+
+        They are not piecewise polynomials: ``deriv`` and ``overlap`` are not
+        supported by the C library for them and raise ``RuntimeError``.
         """
         if self._u is None:
             beta = self._basis.beta
@@ -103,7 +156,10 @@ class DiscreteLehmannRepresentation(AbstractBasis):
     def uhat(self):
         r"""DLR basis functions on the reduced Matsubara frequency axis.
 
-        ``uhat[i](n)`` is the Fourier transform of :py:attr:`u`, so that::
+        ``uhat[p](n)`` is the Fourier transform of :py:attr:`u` at
+        ν = nπ/β: :math:`\hat u_p(\mathrm{i}\nu) = 1/(\mathrm{i}\nu -
+        \bar\omega_p)` for fermions and :math:`\tanh(\beta\bar\omega_p/2)/
+        (\mathrm{i}\nu - \bar\omega_p)` for bosons, so that::
 
             giv == g_dlr @ dlr.uhat(n)
 
@@ -112,22 +168,30 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         """
         if self._uhat is None:
             self._uhat = PiecewiseLegendrePolyFTVector(
-                FunctionSetFT(basis_get_uhat(self._ptr)))
+                FunctionSetFT(basis_get_uhat(self._ptr),
+                              zeta=1 if self.statistics == 'F' else 0))
         return self._uhat
 
     @property
     def statistics(self):
+        """Quantum statistic of the underlying basis ('F' or 'B')"""
         return self._basis.statistics
 
     @property
     def sampling_points(self):
+        """The poles of the DLR on the real-frequency axis.
+
+        By default the roots of V_L, ``basis.default_omega_sampling_points()``.
+        """
         return self._poles
 
     @property
     def shape(self): return self.size,
 
     @property
-    def size(self): return len(self._poles)
+    def size(self):
+        """Number of poles"""
+        return len(self._poles)
 
     @property
     def basis(self) -> AbstractBasis:
@@ -148,16 +212,20 @@ class DiscreteLehmannRepresentation(AbstractBasis):
 
     @property
     def significance(self):
+        """All ones, since the DLR basis functions are not ordered by significance"""
         return np.ones(self.shape)
 
     @property
     def accuracy(self):
+        """Accuracy of the underlying IR basis (FiniteTempBasis.accuracy)"""
         return self._basis.accuracy
 
     def from_IR(self, gl: np.ndarray, axis=0) -> np.ndarray:
         """From IR to DLR
 
-        Convert expansion coefficients from IR basis to DLR basis.
+        Convert expansion coefficients from IR basis to DLR basis: the
+        inverse of :py:meth:`to_IR`, which finds the c_p with
+        G_l = -S_l Σ_p V_l(ω̄_p) c_p.
 
         Parameters
         ----------
@@ -222,7 +290,8 @@ class DiscreteLehmannRepresentation(AbstractBasis):
     def to_IR(self, g_dlr: np.ndarray, axis=0) -> np.ndarray:
         """From DLR to IR
 
-        Convert expansion coefficients from DLR basis to IR basis.
+        Convert expansion coefficients from DLR basis to IR basis:
+        G_l = -S_l Σ_p V_l(ω̄_p) c_p for the DLR coefficients c_p.
 
         Parameters
         ----------
@@ -283,11 +352,14 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         return output
 
     def default_tau_sampling_points(self, **kwargs):
+        """Default tau sampling points of the underlying IR basis"""
         return self._basis.default_tau_sampling_points(**kwargs)
 
     def default_matsubara_sampling_points(self, **kwargs):
+        """Default Matsubara sampling points of the underlying IR basis"""
         return self._basis.default_matsubara_sampling_points(**kwargs)
 
     @property
     def is_well_conditioned(self):
+        """False, since sampling in the DLR basis is not expected to be well-conditioned"""
         return False

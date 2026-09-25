@@ -45,18 +45,18 @@ class FiniteTempBasisSet:
         beta : float
             Inverse temperature
         wmax : float
-            Cut-off frequency
+            Real-frequency cutoff ωmax
         eps : float, optional
-            Tolerance parameter for the basis construction.
-            If not provided, a default value will be used.
+            Relative cutoff on the singular values, S_l/S_0 >= eps, as in
+            FiniteTempBasis.  If not provided, machine epsilon is used.
         sve_result : SVEResult, optional
             Pre-computed SVE result to use for basis construction.
             If not provided, SVE will be computed internally.
         use_positive_taus : bool, optional
             If `use_positive_taus=True`, the sampling points are
-            folded to the positive tau domain [0, β) [default].
-            If `use_positive_taus=False`, the sampling points are within
-            the range [-β/2, β/2] and the distribution is symmetric.
+            folded to the positive tau domain [0, β) [default]; they lie in
+            (0, β).  If `use_positive_taus=False`, the sampling points are
+            unfolded: they lie in (-β/2, β/2] and are symmetric about 0.
         """
         if sve_result is None:
             # Create bases by sve of the logistic kernel
@@ -80,17 +80,17 @@ class FiniteTempBasisSet:
     
     @property
     def lambda_(self):
-        """Ultra-violet cutoff of the kernel."""
+        """Ultra-violet cutoff of the kernel, Λ = β * wmax."""
         return self.basis_f.lambda_
-    
+
     @property
     def beta(self):
         """Inverse temperature."""
         return self.basis_f.beta
-    
+
     @property
     def wmax(self):
-        """Cut-off frequency."""
+        """Real-frequency cutoff ωmax."""
         return self.basis_f.wmax
     
     @property
@@ -110,12 +110,12 @@ class FiniteTempBasisSet:
     
     @property
     def wn_f(self):
-        """Sampling fermionic frequencies."""
+        """Fermionic sampling frequencies, as reduced Matsubara frequencies n (odd)."""
         return self.smpl_wn_f.sampling_points
-    
+
     @property
     def wn_b(self):
-        """Sampling bosonic frequencies."""
+        """Bosonic sampling frequencies, as reduced Matsubara frequencies n (even)."""
         return self.smpl_wn_b.sampling_points
     
     def rescale(self, new_beta):
@@ -139,6 +139,6 @@ class FiniteTempBasisSet:
         new_wmax = self.basis_f.lambda_ / new_beta
         return FiniteTempBasisSet(
             new_beta, new_wmax,
-            eps=self.basis_f.accuracy,  # Use accuracy instead of eps
+            eps=self.basis_f._eps,
             sve_result=self.basis_f.sve_result
         )

@@ -4,104 +4,66 @@ The IR basis is nothing but the `singular value expansion`_ of a suitable
 integral kernel `K` mediating the change from real frequencies to imaginary
 times:
 
-.. math::       G(τ) = - \int d\omega  K(τ, \omega) w(\omega) \rho(\omega),
+.. math::       G(\tau) = - \int_{-\omega_\mathrm{max}}^{\omega_\mathrm{max}}
+                d\omega\, K(\tau, \omega) w(\omega) A(\omega),
 
-where:
+where :math:`G(\tau) = -\langle T_\tau c(\tau) c^\dagger(0) \rangle` for
+:math:`0 < \tau < \beta`,
 
-.. math::       \rho(ω) = -\frac 1\pi \Im G(ω + i\delta)
+.. math::       A(\omega) = -\frac{1}{\pi} \mathrm{Im}\, G^\mathrm{R}(\omega)
 
-is the spectral function and w(ω) is a weight function. The integral is defined
-on the interval [-ωmax, ωmax], where ωmax(=Λ/β) is a frequency cutoff.
+is the spectral function (for a diagonal component) and w(ω) is a weight
+function; the kernel acts on :math:`\rho(\omega) = w(\omega) A(\omega)`.  The
+integral is defined on the interval [-ωmax, ωmax], where ωmax (``wmax``) is a
+frequency cutoff; Λ = βωmax (``lambda_``) is the cutoff of the kernel.
 
 Different kernels yield different IR basis functions.  The `sparse-ir` library
 defines two kernels:
 
- - :class:`sparse_ir.LogisticKernel`: continuation of *fermionic/bosonic*
+ - :class:`sparse_ir.LogisticKernel`:
+   :math:`K(\tau, \omega) = e^{-\tau\omega}/(1 + e^{-\beta\omega})`,
+   continuation of *fermionic/bosonic*
    spectral functions with w(ω)=1 for fermions
-   and w(ω)=1/tanh(ω/ωmax) for bosons.
- - :class:`sparse_ir.RegularizedBoseKernel`: continuation of *bosonic* spectral functions
-   with w(ω)=1/ω.
+   and w(ω)=1/tanh(βω/2) for bosons.
+ - :class:`sparse_ir.RegularizedBoseKernel` (deprecated; use
+   :class:`sparse_ir.LogisticKernel`):
+   :math:`K(\tau, \omega) = \omega e^{-\tau\omega}/(1 - e^{-\beta\omega})`,
+   continuation of *bosonic* spectral functions with w(ω)=1/ω.  libsparseir
+   releases without the fix of SpM-lab/sparse-ir-rs#273 scale the singular
+   values of such a basis by :math:`\omega_\mathrm{max}^{-1}` instead of
+   :math:`\omega_\mathrm{max}^{+1}`.
 
 By default, :class:`sparse_ir.LogisticKernel` is used.
-Kernels can be fed directly into :class:`sparse_ir.FiniteTempBasis` to
-get the intermediate representation.
+A kernel can be passed to :class:`sparse_ir.FiniteTempBasis` through its
+``kernel`` argument; its ``lambda_`` must equal ``beta * wmax``::
+
+    import sparse_ir
+    K = sparse_ir.LogisticKernel(10 * 8.0)
+    basis = sparse_ir.FiniteTempBasis('F', beta=10, wmax=8.0, eps=1e-6, kernel=K)
+
+Only these two kernels are supported: :class:`sparse_ir.SVEResult` and
+:class:`sparse_ir.FiniteTempBasis` reject any other kernel with a
+:class:`TypeError`.  The kernel objects are handles to the C library and are
+not callable from Python.  Their formulas below are given in physical
+units and in the dimensionless variables x = 2τ/β - 1 and y = ω/ωmax, both
+in [-1, 1].
+
+The notation follows the `notation page`_.
 
 .. _singular value expansion: https://w.wiki/3poQ
+.. _notation page: https://spm-lab.github.io/sparse-ir-doc/src/notation.html
 
 
 Predefined kernels
 ------------------
 .. autoclass:: sparse_ir.LogisticKernel
     :members:
-    :special-members: __call__
 
 .. autoclass:: sparse_ir.RegularizedBoseKernel
     :members:
-    :special-members: __call__
-
-
-Custom kernels
---------------
-Adding kernels to ``sparse_ir`` is simple - at the very basic level, the
-library expects a kernel ``K`` to be able to provide two things:
-
- 1. the values through ``K(x, y)``
- 2. a set of SVE discretization hints through ``K.hints()``
-
-Let us suppose you simply want to include a Gaussian default model on the real
-axis instead of the default (flat) one.  We create a new kernel by inheriting
-from :class:`sparse_ir.kernel.AbstractKernel` and then simply wrap around a
-fermionic kernel, modifying the values as needed::
-
-    import sparse_ir
-    import sparse_ir.kernel
-
-    class KernelFGauss(sparse_ir.kernel.AbstractKernel):
-        def __init__(self, lambda_, std):
-            self._inner = sparse_ir.LogisticKernel(lambda_)
-            self.lambda_ = lambda_
-            self.std = std
-
-        def __call__(self, x, y, x_plus=None, x_minus=None):
-            # First, get value of kernel
-            val = self._inner(x, y, x_plus, x_minus)
-            # Then multiply with default model
-            val *= np.exp(-.5 * (y / self.std)**2)
-            return val
-
-        def hints(self, eps):
-            return self._inner.hints(eps)
-
-You can feed this kernel now directly to :class:`sparse_ir.FiniteTempBasis`::
-
-    K = GaussFKernel(10., 1.)
-    basis = sparse_ir.FiniteTempBasis(K, 'F')
-    print(basis.s)
-
-This should get you started.  For a fully-fledged and robust implementation,
-you should:
-
- 1. Make sure that your kernel does not lose precision in computing ``K(x, y)``,
-    as this directly affects the quality of the basis.  This is also where the
-    arguments ``x_plus`` and ``x_minus`` may become useful.
-
- 2. Optimize your discretization hints.  To do so, it is useful to choose the
-    segments in ``x`` and ``y`` close to the asymptotic distribution of the roots
-    of the respective singular functions.  The Gauss order can then be
-    determined from a convergence analysis.
-
- 3. Check whether your kernel is centrosymmetric, and if so, override the
-    ``is_centrosymmetric`` property.  This yields a approximately four-times
-    performance boost.  However, check that the symmetrized versions of the
-    kernels do not lose precision.
 
 
 Base classes
 ------------
 .. autoclass:: sparse_ir.kernel.AbstractKernel
     :members:
-    :special-members: __call__
-
-.. note::
-   Additional kernel classes are currently being refactored.
-   Please refer to the concrete kernel classes above for the current API.
