@@ -29,8 +29,8 @@ HARD = {                       # R1..R4 of the design spec
     "R4": (10.0, 1.0, 1e-6),
 }
 EPS64 = np.finfo(np.float64).eps
-ISSUE_265 = ("SpM-lab/sparse-ir-rs#265: uhat is wrong for l = 1, 2 (mod 4) "
-             "at |n| >= n_asymp = 40*lambda")
+ISSUE_265 = ("https://github.com/SpM-lab/sparse-ir-rs/issues/265: uhat is wrong "
+             "for l = 1, 2 (mod 4) at |n| >= n_asymp = 40*lambda")
 
 
 def _poles(beta, wmax):
@@ -173,7 +173,8 @@ def test_o4_roots_orthonormality_and_default_points(stat, get_basis):
     basis = get_basis(stat, beta, wmax, eps)
     L = basis.size
 
-    grid = np.linspace(0, beta, 20001)[1:-1]
+    # An even point count keeps beta/2, where the odd functions vanish, off the grid.
+    grid = np.linspace(0, beta, 20000)[1:-1]
     Ug = basis.u(grid)
     changes = [int(np.count_nonzero(np.sign(Ug[l, 1:]) != np.sign(Ug[l, :-1])))
                for l in range(L)]
@@ -246,5 +247,5 @@ def test_o5_hard_regimes(stat, regime, get_basis):
     got = (-basis.s * basis.v(w0)) @ basis.u(taus)
     assert_close(got, ref, 300 * eps * np.abs(ref).max(), "single pole")
 
-    if basis.sve_result.s.size > basis.size:      # truncated by eps
-        assert basis.accuracy < eps <= basis.significance[-1]
+    assert basis.sve_result.s.size > basis.size    # the basis is truncated by eps
+    assert basis.accuracy < eps <= basis.significance[-1]

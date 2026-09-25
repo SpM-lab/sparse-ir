@@ -114,7 +114,9 @@ class TestEdgeCases:
         eps_tau = 1e-10
         tau_near_boundary = np.array([eps_tau, basis.beta - eps_tau])
         u_vals_near = basis.u(tau_near_boundary)
-        assert np.all(np.isfinite(u_vals_near))
+        # Continuity: |u(eps) - u(0)| <= eps max|u'|, far below this bound
+        np.testing.assert_allclose(u_vals_near, u_vals, rtol=0,
+                                   atol=1e-6 * np.abs(u_vals).max())
 
     def test_zero_frequency(self):
         """Test evaluation at zero frequency."""

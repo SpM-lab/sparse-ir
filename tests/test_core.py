@@ -98,8 +98,11 @@ class TestCoreAPI:
 
         # Test tau sampling points
         tau_points = basis_get_default_tau_sampling_points(basis)
-        assert len(tau_points) > 0
-        assert np.all(np.isfinite(tau_points))  # Should be finite
+        # One point per basis function, increasing and symmetric in [-beta/2, beta/2]
+        assert len(tau_points) == basis_get_size(basis)
+        assert np.all(np.diff(tau_points) > 0)
+        assert np.all(np.abs(tau_points) <= 10.0 / 2)
+        np.testing.assert_allclose(tau_points, -tau_points[::-1], rtol=0, atol=1e-12)
 
         # Test Matsubara sampling points
         matsu_points = basis_get_default_matsubara_sampling_points(basis, False)
