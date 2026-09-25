@@ -74,22 +74,13 @@ class TestSVEAccuracy:
         assert np.all(sig <= 1), "All significance values should be <= 1"
         np.testing.assert_allclose(sig, s / s[0], rtol=1e-14)
 
-    @pytest.mark.parametrize("lambda_", [10, 42, 1000])
-    def test_basis_size_scaling(self, lambda_):
-        """Test that basis size scales appropriately with Lambda."""
-        beta = 1.0
-        wmax = lambda_ / beta
-        eps = 1e-6
-
-        basis = sparse_ir.FiniteTempBasis('F', beta, wmax, eps)
-
-        # Basis size should be reasonable for the given Lambda
-        # The exact scaling depends on the kernel and implementation
-        expected_min_size = max(1, int(np.log(lambda_)))
-        expected_max_size = max(50, int(lambda_))  # More generous upper bound
-
-        assert expected_min_size <= basis.size <= expected_max_size, \
-            f"Basis size {basis.size} not in expected range [{expected_min_size}, {expected_max_size}] for Lambda={lambda_}"
+    def test_basis_size_scaling(self):
+        """The basis grows with Lambda (roughly like log(Lambda))."""
+        sizes = [sparse_ir.FiniteTempBasis('F', 1.0, lambda_, 1e-6).size
+                 for lambda_ in (10, 42, 1000)]
+        assert sizes[0] < sizes[1] < sizes[2]
+        # log(1000/42) / log(42/10) ~ 2.2: growth is far below linear
+        assert sizes[2] - sizes[1] < 5 * (sizes[1] - sizes[0])
 
     def test_epsilon_vs_size(self):
         """Test that smaller epsilon gives larger basis size."""
@@ -110,8 +101,10 @@ class TestSVEAccuracy:
 
         assert basis.statistics == stat
 
-        # Both fermion and boson should have reasonable sizes
-        assert 5 <= basis.size <= 100, f"Basis size {basis.size} seems unreasonable for stat={stat}"
+        # Both statistics use the logistic kernel, hence the same SVE
+        other = sparse_ir.FiniteTempBasis('B' if stat == 'F' else 'F', 1.0, 10.0, 1e-6)
+        assert basis.size == other.size
+        np.testing.assert_array_equal(basis.s, other.s)
 
 
 class TestBasisConsistency:
@@ -149,9 +142,7 @@ class TestBasisConsistency:
             assert basis.wmax == wmax
             assert basis.lambda_ == beta * wmax
 
-        # Fermion and boson bases should have different sizes (typically)
-        # This is not always guaranteed, but usually true
-        # We just check they're both reasonable
-        assert 5 <= f_basis.size <= 100
-        assert 5 <= b_basis.size <= 100
+        # Both share the SVE of the same logistic kernel
+        assert f_basis.size == b_basis.size
+        np.testing.assert_array_equal(f_basis.s, b_basis.s)
 

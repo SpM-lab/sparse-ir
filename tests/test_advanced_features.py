@@ -69,9 +69,12 @@ class TestEdgeCases:
         assert basis.size >= 1
         assert len(basis.s) == basis.size
 
-        # Should still be able to create sampling
+        # Sampling still round-trips
         sampling = sparse_ir.TauSampling(basis)
         assert len(sampling.tau) == basis.size
+        gl = np.linspace(1, 0.5, basis.size)
+        np.testing.assert_allclose(sampling.fit(sampling.evaluate(gl)), gl,
+                                   rtol=0, atol=1e-13)
 
     def test_large_lambda(self):
         """Test with large Lambda values."""
@@ -87,7 +90,8 @@ class TestEdgeCases:
     def test_high_precision(self):
         """Test with very high precision requirements."""
         basis = sparse_ir.FiniteTempBasis('F', 1.0, 10.0, 1e-12)
-        assert basis.accuracy <= 1e-11  # Allow some tolerance
+        # accuracy is the first excluded singular value, below eps
+        assert basis.accuracy < 1e-12
 
         # High precision should give more basis functions
         basis_low = sparse_ir.FiniteTempBasis('F', 1.0, 10.0, 1e-6)
@@ -97,12 +101,14 @@ class TestEdgeCases:
         """Test evaluation at boundary tau points."""
         basis = sparse_ir.FiniteTempBasis('F', 10.0, 8.0, 1e-6)
 
-        # Test at boundaries
+        # Test at boundaries: u_l(beta) = (-1)^l u_l(0)
         tau_boundary = np.array([0.0, basis.beta])
         u_vals = basis.u(tau_boundary)
         assert u_vals.shape == (basis.size, 2)
-        assert np.all(np.isfinite(u_vals))
         assert np.linalg.norm(u_vals) > 0
+        sign = (-1.0) ** np.arange(basis.size)
+        np.testing.assert_allclose(u_vals[:, 1], sign * u_vals[:, 0],
+                                   rtol=0, atol=1e-12 * np.abs(u_vals).max())
 
         # Test very close to boundaries
         eps_tau = 1e-10
@@ -114,10 +120,11 @@ class TestEdgeCases:
         """Test evaluation at zero frequency."""
         basis = sparse_ir.FiniteTempBasis('F', 10.0, 8.0, 1e-6)
 
-        # Test v function at omega = 0
+        # v_l(0) vanishes for odd l (v_l(-w) = (-1)^l v_l(w))
         v_zero = basis.v(np.array([0.0]))
         assert v_zero.shape == (basis.size, 1)
-        assert np.all(np.isfinite(v_zero))
+        np.testing.assert_allclose(v_zero[1::2, 0], 0.0, rtol=0, atol=1e-12)
+        assert np.all(np.abs(v_zero[0::2, 0]) > 0)
 
 
 class TestConsistencyChecks:

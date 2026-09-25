@@ -23,8 +23,9 @@ class TestTauSampling:
         sampling = sparse_ir.TauSampling(basis)
 
         assert len(sampling.tau) == basis.size
-        # Note: tau points can extend beyond [0, beta] for numerical reasons
-        assert np.all(np.isfinite(sampling.tau))  # Should be finite
+        assert np.all((sampling.tau > 0) & (sampling.tau < basis.beta))
+        np.testing.assert_array_equal(sampling.tau,
+                                      basis.default_tau_sampling_points())
 
     def test_creation_custom_points(self, basis):
         """Test TauSampling creation with custom points."""
@@ -41,10 +42,11 @@ class TestTauSampling:
         sampling = sparse_ir.TauSampling(basis)
 
         # Test with different coefficient patterns
+        rng = np.random.default_rng(1)
         test_cases = [
             np.array([1.0] + [0.0] * (basis.size - 1)),  # First coefficient only
             np.array([0.0, 1.0] + [0.0] * (basis.size - 2)),  # Second coefficient only
-            np.random.random(basis.size),  # Random coefficients
+            rng.random(basis.size),  # Random coefficients
         ]
 
         for al_original in test_cases:
@@ -71,25 +73,26 @@ class TestTauSampling:
         assert np.max(np.abs(al_original - al_recovered)) < 1e-12
         assert np.max(np.abs(al_original.imag - al_recovered.imag)) < 1e-12
 
-    def test_evaluate_shape(self, basis):
-        """Test evaluate output shape."""
+    def test_evaluate_matches_basis_functions(self, basis):
+        """evaluate(al) is al @ u(tau) at the sampling points."""
         sampling = sparse_ir.TauSampling(basis)
 
         al = np.ones(basis.size)
         ax = sampling.evaluate(al)
 
         assert ax.shape == (len(sampling.tau),)
-        assert np.all(np.isfinite(ax))
+        np.testing.assert_allclose(ax, al @ basis.u(sampling.tau),
+                                   rtol=0, atol=1e-13 * np.abs(ax).max())
 
-    def test_fit_shape(self, basis):
-        """Test fit output shape."""
+    def test_fit_inverts_evaluate(self, basis):
+        """With as many points as basis functions, fit is exact."""
         sampling = sparse_ir.TauSampling(basis)
 
         ax = np.ones(len(sampling.tau))
         al = sampling.fit(ax)
 
         assert al.shape == (basis.size,)
-        assert np.all(np.isfinite(al))
+        np.testing.assert_allclose(sampling.evaluate(al), ax, rtol=0, atol=1e-12)
 
     def test_repr(self, basis):
         """Test string representation."""
@@ -163,6 +166,16 @@ class TestMatsubaraSampling:
         al_from_complex_ref = sampling.fit(ax_complex_ref)
 
         assert np.max(np.abs(al_from_real - al_from_complex_ref)) < 1e-12
+
+    def test_bosonic_roundtrip(self):
+        """Bosonic sampling: even frequencies, complex coefficients survive."""
+        basis = sparse_ir.FiniteTempBasis('B', 10.0, 8.0, 1e-6)
+        sampling = sparse_ir.MatsubaraSampling(basis)
+        assert np.all(sampling.wn % 2 == 0)
+        rng = np.random.default_rng(43)
+        al = rng.normal(size=basis.size) + 1j * rng.normal(size=basis.size)
+        np.testing.assert_allclose(sampling.fit(sampling.evaluate(al)), al,
+                                   rtol=0, atol=1e-11)
 
     def test_repr(self, basis):
         """Test string representation."""

@@ -55,40 +55,51 @@ class TestFiniteTempBasis:
         """Test basis function evaluation."""
         basis = sparse_ir.FiniteTempBasis('F', 10.0, 8.0, 1e-6)
 
-        # Test u functions (imaginary time)
+        sign = (-1.0) ** np.arange(basis.size)[:, None]
+
+        # u functions (imaginary time): u_l(beta - tau) = (-1)^l u_l(tau)
         tau_points = np.linspace(0, basis.beta, 5)
         u_vals = basis.u(tau_points)
         assert u_vals.shape == (basis.size, len(tau_points))
-        assert np.all(np.isfinite(u_vals))
+        assert np.linalg.norm(u_vals) > 0
+        np.testing.assert_allclose(basis.u(basis.beta - tau_points),
+                                   sign * u_vals, rtol=0, atol=1e-12)
 
-        # Test v functions (real frequency)
+        # v functions (real frequency): v_l(-w) = (-1)^l v_l(w)
         omega_points = np.linspace(-8, 8, 5)
         v_vals = basis.v(omega_points)
         assert v_vals.shape == (basis.size, len(omega_points))
-        assert np.all(np.isfinite(v_vals))
+        assert np.linalg.norm(v_vals) > 0
+        np.testing.assert_allclose(basis.v(-omega_points), sign * v_vals,
+                                   rtol=0, atol=1e-12)
 
-        # Test uhat functions (Matsubara frequency) - temporarily skip due to C API issues
-        # TODO: Fix Matsubara frequency evaluation
-        # n_points = np.array([0, 1, 2, 3, 4], dtype=np.int64)
-        # uhat_vals = basis.uhat(n_points)
-        # assert uhat_vals.shape == (basis.size, len(n_points))
-        # assert np.all(np.isfinite(uhat_vals))
+        # uhat functions (fermionic, so odd reduced frequencies)
+        n_points = np.array([1, 3, 5, 7, 9], dtype=np.int64)
+        uhat_vals = basis.uhat(n_points)
+        assert uhat_vals.shape == (basis.size, len(n_points))
+        assert np.linalg.norm(uhat_vals) > 0
+        np.testing.assert_allclose(basis.uhat(-n_points), np.conj(uhat_vals),
+                                   rtol=0, atol=1e-14)
 
     def test_default_sampling_points(self):
         """Test default sampling points."""
         basis = sparse_ir.FiniteTempBasis('F', 10.0, 8.0, 1e-6)
 
-        # Test tau sampling points
+        # Tau sampling points, folded to (0, beta) and sorted by default
         tau_points = basis.default_tau_sampling_points()
         assert len(tau_points) == basis.size
-        # Note: Default tau points can extend beyond [0, beta] for numerical reasons
-        # This is actually correct behavior for the libsparseir implementation
-        assert np.all(np.isfinite(tau_points))  # Should be finite
-        assert len(tau_points) > 0  # Should have some points
+        assert np.all((tau_points > 0) & (tau_points < basis.beta))
+        assert np.all(np.diff(tau_points) > 0)
 
-        # Test Matsubara sampling points
+        # Unfolded points lie in [-beta/2, beta/2]
+        centered = basis.default_tau_sampling_points(use_positive_taus=False)
+        assert np.all(np.abs(centered) <= basis.beta / 2)
+
+        # Matsubara sampling points: odd (fermionic) and symmetric
         matsu_points = basis.default_matsubara_sampling_points()
-        assert len(matsu_points) > 0
+        assert len(matsu_points) >= basis.size
+        assert np.all(matsu_points % 2 == 1)
+        np.testing.assert_array_equal(np.sort(matsu_points), np.sort(-matsu_points))
 
         matsu_points_pos = basis.default_matsubara_sampling_points(positive_only=True)
         assert len(matsu_points_pos) > 0

@@ -7,8 +7,9 @@ Test cases for core functionality and C API wrappers
 
 import numpy as np
 from ctypes import c_double, byref
-from pylibsparseir.core import logistic_kernel_new, reg_bose_kernel_new, sve_result_new, sve_result_get_size, sve_result_get_svals, basis_new, basis_get_size, basis_get_stats, basis_get_svals, basis_get_u, basis_get_v, basis_get_uhat, basis_get_default_tau_sampling_points, basis_get_default_matsubara_sampling_points, tau_sampling_new, matsubara_sampling_new
+from pylibsparseir.core import logistic_kernel_new, reg_bose_kernel_new, sve_result_new, sve_result_get_size, sve_result_get_svals, basis_new, basis_get_size, basis_get_stats, basis_get_svals, basis_get_u, basis_get_v, basis_get_uhat, basis_get_default_tau_sampling_points, basis_get_default_matsubara_sampling_points, tau_sampling_new, matsubara_sampling_new, funcs_get_size
 from pylibsparseir.core import _lib
+from pylibsparseir.constants import COMPUTATION_SUCCESS
 
 class TestCoreAPI:
     """Test core C API wrapper functions."""
@@ -17,22 +18,19 @@ class TestCoreAPI:
         """Test kernel creation functions."""
         lambda_val = 80.0
 
-        # Test logistic kernel
-        kernel_log = logistic_kernel_new(lambda_val)
-        assert kernel_log is not None
-
-        # Test regularized boson kernel
-        kernel_bose = reg_bose_kernel_new(lambda_val)
-        assert kernel_bose is not None
-
-        # Test kernel domain
-        xmin = c_double()
-        xmax = c_double()
-        ymin = c_double()
-        ymax = c_double()
-        _lib.spir_kernel_get_domain(kernel_log, byref(xmin), byref(xmax), byref(ymin), byref(ymax))
-        assert xmin.value < xmax.value
-        assert ymin.value < ymax.value
+        for kernel in (logistic_kernel_new(lambda_val),
+                       reg_bose_kernel_new(lambda_val)):
+            assert kernel
+            xmin = c_double()
+            xmax = c_double()
+            ymin = c_double()
+            ymax = c_double()
+            status = _lib.spir_kernel_get_domain(
+                kernel, byref(xmin), byref(xmax), byref(ymin), byref(ymax))
+            assert status == COMPUTATION_SUCCESS
+            np.testing.assert_allclose(
+                [xmin.value, xmax.value, ymin.value, ymax.value],
+                [-1, 1, -1, 1], atol=1e-14)
 
     def test_sve_computation(self):
         """Test SVE computation."""
@@ -83,15 +81,12 @@ class TestCoreAPI:
         max_size = -1
         basis = basis_new(1, 10.0, 8.0, eps, kernel, sve, max_size)
 
-        # Test getting function objects
-        u_funcs = basis_get_u(basis)
-        assert u_funcs is not None
-
-        v_funcs = basis_get_v(basis)
-        assert v_funcs is not None
-
-        uhat_funcs = basis_get_uhat(basis)
-        assert uhat_funcs is not None
+        # Every function set holds one function per singular value
+        size = basis_get_size(basis)
+        for funcs in (basis_get_u(basis), basis_get_v(basis),
+                      basis_get_uhat(basis)):
+            assert funcs
+            assert funcs_get_size(funcs) == size
 
     def test_default_sampling_points(self):
         """Test default sampling point functions."""
@@ -127,25 +122,18 @@ class TestCoreAPI:
         tau_sampling = tau_sampling_new(basis, tau_points)
         assert tau_sampling is not None
 
-        # Test Matsubara sampling - temporarily disabled due to C API issues
-        # matsu_points = basis_get_default_matsubara_sampling_points(basis, True)
-        # matsu_sampling = matsubara_sampling_new(basis, True, matsu_points)
-        # assert matsu_sampling is not None
+        matsu_points = basis_get_default_matsubara_sampling_points(basis, True)
+        assert np.all(matsu_points >= 0) and np.all(matsu_points % 2 == 1)
+        matsu_sampling = matsubara_sampling_new(basis, True, matsu_points)
+        assert matsu_sampling
 
 
 class TestErrorHandling:
     """Test error handling in C API wrappers."""
 
-    def test_invalid_parameters(self):
-        """Test error handling for invalid parameters."""
-
-        # Note: libsparseir may be more permissive than expected
-        # Some "invalid" values might be handled gracefully
-
-        # Test very small epsilon (this should still work)
+    def test_epsilon_below_working_precision(self):
+        """A request below the working precision is served, not rejected."""
         kernel = logistic_kernel_new(80.0)
-        try:
-            sve_result_new(kernel, 1e-20)  # Very small epsilon
-        except RuntimeError:
-            # This is acceptable - very small epsilon might fail
-            pass
+        svals = sve_result_get_svals(sve_result_new(kernel, 1e-20))
+        assert np.all(svals > 0) and np.all(np.diff(svals) <= 0)
+        assert svals[-1] / svals[0] < 1e-15

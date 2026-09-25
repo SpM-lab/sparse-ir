@@ -24,15 +24,6 @@ def test_augmented_bosonic_basis():
     gtau = const + basis.u(tau_smpl.tau).T @ (-basis.s * basis.v(pole))
     magn = np.abs(gtau).max()
 
-    # This illustrates that "naive" fitting is a problem if the fitting matrix
-    # is not well-conditioned.
-    #gl_fit_bad = np.linalg.pinv(tau_smpl.matrix) @ gtau
-    #gtau_reconst_bad = tau_smpl.evaluate(gl_fit_bad)
-    #assert not np.allclose(gtau_reconst_bad, gtau, atol=1e-13 * magn, rtol=0)
-    #np.testing.assert_allclose(gtau_reconst_bad, gtau,
-    #                           atol=5e-16 * tau_smpl.cond * magn, rtol=0)
-
-    # Now do the fit properly
     gl_fit = tau_smpl.fit(gtau)
     gtau_reconst = tau_smpl.evaluate(gl_fit)
     np.testing.assert_allclose(gtau_reconst, gtau, atol=1e-13 * magn, rtol=0)
@@ -165,16 +156,10 @@ def test_tau_linear_periodicity(stat):
     val_mid = tl(5.0)
     assert np.isclose(val_mid, 0.0)  # x = 2*5/10 - 1 = 0
     
-    # Test at tau=-5
-    val_neg = tl(-5.0)
-    # tau_normalized = -5 + 10 = 5, x = 2*5/10 - 1 = 0
-    
-    if stat == 'F':
-        # Fermionic: anti-periodic, sign = -1
-        assert np.isclose(val_neg, 0.0)  # -1 * 0 = 0
-    else:
-        # Bosonic: periodic, sign = +1
-        assert np.isclose(val_neg, 0.0)  # +1 * 0 = 0
+    # tau = -beta/4 maps to 3*beta/4 (x = 1/2); the sign depends on statistics
+    val_neg = tl(-beta / 4)
+    expected_sign = -1.0 if stat == 'F' else 1.0
+    assert np.isclose(val_neg, expected_sign * norm * 0.5)
 
 
 def test_matsubara_const_range():
@@ -209,9 +194,8 @@ def test_tau_const_with_statistics():
     tc2 = augment.TauConst(beta, 'B')
     assert tc2._statistics == 'B'
     
-    # Test evaluation works
-    val = tc(5.0)
-    assert np.isfinite(val)
+    # The normalized constant: int_0^beta tc(tau)^2 dtau == 1
+    assert np.isclose(tc(5.0), 1 / np.sqrt(beta))
 
 
 @pytest.mark.parametrize("stat", ["F", "B"])
@@ -228,9 +212,9 @@ def test_tau_linear_with_statistics(stat):
     tl2 = augment.TauLinear(beta, stat)
     assert tl2._statistics == stat
     
-    # Test evaluation works
-    val = tl(5.0)
-    assert np.isfinite(val)
+    # tau = beta/2 is the zero of the linear function
+    assert np.isclose(tl(5.0), 0.0)
+    assert np.isclose(tl(beta), np.sqrt(3 / beta))
 
 
 def test_backward_compatibility():
@@ -246,5 +230,4 @@ def test_backward_compatibility():
     
     # MatsubaraConst can be created without statistics
     mc = augment.MatsubaraConst(beta)
-    # Statistics is optional for MatsubaraConst
-    assert mc._statistics is None or mc._statistics in ('F', 'B')
+    assert mc._statistics is None
