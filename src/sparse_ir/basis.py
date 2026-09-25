@@ -143,7 +143,8 @@ class FiniteTempBasis(AbstractBasis):
 
         u_funcs = FunctionSet(basis_get_u(self._ptr))
         v_funcs = FunctionSet(basis_get_v(self._ptr))
-        uhat_funcs = FunctionSetFT(basis_get_uhat(self._ptr))
+        uhat_funcs = FunctionSetFT(basis_get_uhat(self._ptr),
+                                   zeta=1 if statistics == 'F' else 0)
 
         self._s = basis_get_svals(self._ptr)
         # u_funcs uses [0, beta] as default overlap range

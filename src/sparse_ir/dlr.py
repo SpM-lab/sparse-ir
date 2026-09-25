@@ -64,6 +64,9 @@ class DiscreteLehmannRepresentation(AbstractBasis):
                 f"poles must be one-dimensional, got shape {poles.shape}")
         if poles.size == 0:
             raise ValueError("poles must not be empty")
+        # The C library panics on a pole outside the frequency window
+        # (SpM-lab/sparse-ir-rs#266); reject it here with the value.
+        _util.check_domain(poles, -basis.wmax, basis.wmax, "poles")
         self._basis = basis
         self._poles = poles
         self._u = None
@@ -91,6 +94,9 @@ class DiscreteLehmannRepresentation(AbstractBasis):
 
         holds for DLR coefficients ``g_dlr``.  They are **not** the basis
         functions of the underlying IR basis.
+
+        They are not piecewise polynomials: ``deriv`` and ``overlap`` are not
+        supported by the C library for them and raise ``RuntimeError``.
         """
         if self._u is None:
             beta = self._basis.beta
@@ -112,7 +118,8 @@ class DiscreteLehmannRepresentation(AbstractBasis):
         """
         if self._uhat is None:
             self._uhat = PiecewiseLegendrePolyFTVector(
-                FunctionSetFT(basis_get_uhat(self._ptr)))
+                FunctionSetFT(basis_get_uhat(self._ptr),
+                              zeta=1 if self.statistics == 'F' else 0))
         return self._uhat
 
     @property

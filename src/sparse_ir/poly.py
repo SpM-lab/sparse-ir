@@ -50,13 +50,13 @@ def funcs_deriv(funcs_ptr, n):
         raise RuntimeError(f"Failed to compute derivative of order {n}")
     return FunctionSet(deriv_funcs)
 
-def funcs_ft_get_slice(funcs_ptr, indices):
+def funcs_ft_get_slice(funcs_ptr, indices, zeta=None):
     status = c_int()
     indices = np.asarray(indices, dtype=np.int32)
     funcs = _lib.spir_funcs_get_slice(funcs_ptr, len(indices), indices.ctypes.data_as(POINTER(c_int)), status)
     if status.value != 0:
         raise RuntimeError(f"Failed to get basis function {indices}: {status.value}")
-    return FunctionSetFT(funcs)
+    return FunctionSetFT(funcs, zeta)
 
 class FunctionSet:
     """Wrapper for basis function evaluation."""
@@ -107,6 +107,9 @@ class FunctionSet:
         # c_double pointer would read 8 bytes per 4-byte element.
         x_double = _util.as_boundary_real(np.ravel(x), "evaluation points")
         n_points = x_double.size
+        if n_points == 0:
+            # The C library rejects an empty batch; the result is known.
+            return np.zeros((n_funcs,) + original_shape, dtype=np.float64)
 
         # Prepare output array (double)
         output = np.zeros((n_funcs, n_points), dtype=np.float64)
@@ -174,10 +177,16 @@ class FunctionSet:
             self.release()
 
 class FunctionSetFT:
-    """Wrapper for basis function evaluation."""
+    """Wrapper for basis function evaluation in reduced Matsubara frequency.
 
-    def __init__(self, funcs_ptr):
+    ``zeta`` is the parity of the admissible reduced frequencies (1: odd,
+    fermionic; 0: even, bosonic).  If given, every frequency is checked
+    against it before the call into C.
+    """
+
+    def __init__(self, funcs_ptr, zeta=None):
         self._ptr = funcs_ptr
+        self._zeta = zeta
         self._released = False
         self._size = funcs_get_size(funcs_ptr)
         # Register this object for safe cleanup
@@ -186,6 +195,11 @@ class FunctionSetFT:
 
     def size(self):
         return self._size
+
+    @property
+    def zeta(self):
+        """Parity of the admissible reduced frequencies (``None``: any)."""
+        return self._zeta
 
     def __call__(self, x):
         """Evaluate the basis functions at reduced Matsubara frequencies.
@@ -196,14 +210,15 @@ class FunctionSetFT:
         trailing axes dropped if ``x`` is a scalar.
 
         Raises:
-            ValueError: if any element of ``x`` is not an integer.  Reduced
+            ValueError: if any element of ``x`` is not an integer, or has the
+                wrong parity for the statistics of the basis.  Reduced
                 Matsubara frequencies are integers and are never truncated.
         """
         if self._released:
             raise RuntimeError("Function set has been released")
         # Validate integrality *before* the int64 conversion: ``astype`` would
         # silently turn 1.9 into 1.
-        x_checked = _util.check_reduced_matsubara(x)
+        x_checked = _util.check_reduced_matsubara(x, zeta=self._zeta)
         original_shape = x_checked.shape
         if x_checked.ndim == 0:
             o = np.asarray(
@@ -214,6 +229,10 @@ class FunctionSetFT:
         n_points = x_int64.size
         n_funcs = self._size
         output = np.zeros((n_funcs, n_points), dtype=np.complex128)
+        if n_points == 0:
+            # The C library rejects an empty batch; the result is known.
+            output = output.reshape((n_funcs,) + original_shape)
+            return output.reshape(original_shape) if n_funcs == 1 else output
 
         status = _lib.spir_funcs_batch_eval_matsu(
             self._ptr,
@@ -241,7 +260,8 @@ class FunctionSetFT:
             raise RuntimeError("Function set has been released")
         sz = funcs_get_size(self._ptr)
         return funcs_ft_get_slice(self._ptr,
-                                  _util.resolve_function_indices(index, sz))
+                                  _util.resolve_function_indices(index, sz),
+                                  self._zeta)
 
     def release(self):
         """Manually release the function set."""
@@ -297,8 +317,13 @@ class PiecewiseLegendrePoly:
             self._default_overlap_range = (xmin, xmax)
 
     def __call__(self, x):
-        """Evaluate basis functions at given points."""
-        return self._funcs(x)
+        """Evaluate the function at ``x``.
+
+        Raises:
+            ValueError: if a point is not finite or lies outside
+                ``[xmin, xmax]``.
+        """
+        return self._funcs(_util.check_domain(x, self._xmin, self._xmax))
 
     def overlap(self, f, xmin: float = None, xmax: float = None, *, rtol=2.3e-16, return_error=False, points=None):
         """
@@ -365,8 +390,13 @@ class PiecewiseLegendrePolyVector:
             self._default_overlap_range = (xmin, xmax)
 
     def __call__(self, x):
-        """Evaluate basis functions at given points."""
-        return self._funcs(x)
+        """Evaluate the functions at ``x``.
+
+        Raises:
+            ValueError: if a point is not finite or lies outside
+                ``[xmin, xmax]``.
+        """
+        return self._funcs(_util.check_domain(x, self._xmin, self._xmax))
 
     def __getitem__(self, index):
         """Get a single basis function or slice of functions."""

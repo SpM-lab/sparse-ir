@@ -142,6 +142,31 @@ def as_boundary_complex(a, name="array", check_finite=True):
     return out
 
 
+def check_domain(x, xmin, xmax, name="evaluation points"):
+    """Check that every element of ``x`` is real, finite and in ``[xmin, xmax]``.
+
+    Returns ``x`` unchanged.  Called before evaluation points are handed to
+    the C library, which would otherwise panic on an out-of-domain point
+    (SpM-lab/sparse-ir-rs#266) and report an internal error.
+
+    Raises:
+        TypeError: if ``x`` is complex or of a non-numeric element type.
+        ValueError: naming the first offending value otherwise.
+    """
+    arr = np.asarray(x)
+    if arr.dtype.kind == 'c':
+        raise TypeError(f"{name} must be real-valued, got dtype {arr.dtype}")
+    if arr.dtype.kind not in _REAL_KINDS:
+        raise TypeError(f"{name} has unsupported dtype {arr.dtype}")
+    xf = np.asarray(arr, dtype=np.float64)
+    bad = ~np.isfinite(xf) | (xf < xmin) | (xf > xmax)
+    if bad.any():
+        offending = np.atleast_1d(xf)[np.atleast_1d(bad)][0]
+        raise ValueError(f"{name} must be finite and lie in [{xmin}, {xmax}], "
+                         f"got {offending!r}")
+    return x
+
+
 def as_boundary_matsubara(n, name="Matsubara indices", zeta=None):
     """Normalize reduced Matsubara indices into a C-contiguous ``int64`` array.
 
