@@ -4,6 +4,22 @@ import functools
 import numpy as np
 
 
+def release_handle(handle, release):
+    """Release a C handle obtained from pylibsparseir or its ``_lib``.
+
+    pylibsparseir >= 0.10 returns handles that own their C object and are
+    released with ``close()``; its raw ``_lib.spir_*_release`` entry points
+    refuse them (SpM-lab/sparse-ir-rs#282).  Earlier releases, and direct
+    ``_lib`` calls in any release, return raw pointers that must be passed to
+    ``release``.
+    """
+    close = getattr(handle, "close", None)
+    if close is not None:
+        close()
+    else:
+        release(handle)
+
+
 def ravel_argument(last_dim=False):
     """Wrap function operating on 1-D numpy array to allow arbitrary shapes.
 

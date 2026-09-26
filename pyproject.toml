@@ -58,7 +58,12 @@ doc = [
 testpaths = ["tests"]
 # RegularizedBoseKernel is deprecated but still tested; test_kernel.py asserts
 # the warning itself (pytest.warns records it regardless of this filter).
-filterwarnings = ["ignore:RegularizedBoseKernel is deprecated:DeprecationWarning"]
+# An exception in a finalizer (__del__) must fail the suite, not be reported
+# as a warning (SpM-lab/sparse-ir-rs#282).
+filterwarnings = [
+    "ignore:RegularizedBoseKernel is deprecated:DeprecationWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
+]
 python_files = ["test_*.py", "*_tests.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

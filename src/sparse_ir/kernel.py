@@ -15,6 +15,7 @@ from pylibsparseir.core import _lib
 from pylibsparseir.core import logistic_kernel_new, reg_bose_kernel_new
 from pylibsparseir.constants import COMPUTATION_SUCCESS
 from .abstract import AbstractKernel
+from . import _util
 
 
 def kernel_domain(kernel: AbstractKernel):
@@ -95,7 +96,7 @@ class LogisticKernel(AbstractKernel):
     def __del__(self):
         """Clean up kernel resources."""
         if hasattr(self, '_ptr') and self._ptr:
-            _lib.spir_kernel_release(self._ptr)
+            _util.release_handle(self._ptr, _lib.spir_kernel_release)
 
 
 class RegularizedBoseKernel(AbstractKernel):
@@ -147,4 +148,4 @@ class RegularizedBoseKernel(AbstractKernel):
     def __del__(self):
         """Clean up kernel resources."""
         if hasattr(self, '_ptr') and self._ptr:
-            _lib.spir_kernel_release(self._ptr)
+            _util.release_handle(self._ptr, _lib.spir_kernel_release)

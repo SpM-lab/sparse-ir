@@ -182,7 +182,7 @@ class FunctionSet:
     def release(self):
         """Manually release the function set."""
         if not self._released and self._ptr:
-            _lib.spir_funcs_release(self._ptr)
+            _util.release_handle(self._ptr, _lib.spir_funcs_release)
             self._released = True
             self._ptr = None
 
@@ -281,7 +281,7 @@ class FunctionSetFT:
     def release(self):
         """Manually release the function set."""
         if not self._released and self._ptr:
-            _lib.spir_funcs_release(self._ptr)
+            _util.release_handle(self._ptr, _lib.spir_funcs_release)
             self._released = True
             self._ptr = None
 
