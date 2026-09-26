@@ -36,6 +36,19 @@ ISSUE_273 = ("https://github.com/SpM-lab/sparse-ir-rs/issues/273: the singular "
              "wmax**+1")
 
 
+def assert_close_or_xfail(got, ref, atol, what, reason):
+    """Two-state check for a known backend defect.
+
+    An error above ``1e3 * atol`` is the defect and xfails with ``reason``;
+    anything else must meet ``atol``, so the test passes once the backend is
+    fixed.  Drop the xfail branch once every supported backend has the fix.
+    """
+    err = float(np.max(np.abs(np.asarray(got) - np.asarray(ref))))
+    if err > 1e3 * atol:
+        pytest.xfail(f"{reason} ({what}: max|error| = {err:.3e})")
+    assert_close(got, ref, atol, what)
+
+
 def _poles(beta, wmax):
     # 2/beta keeps tanh(beta*w0/2) away from +-1, so that the fermionic and
     # bosonic closed forms differ even at beta = 1000.
@@ -89,7 +102,7 @@ def test_o2_uhat_is_the_fourier_transform_of_u(stat, get_basis):
     Only ``|n| <= 20*lambda``: from ``n_asymp = 40*lambda`` on, the backend
     uses an asymptotic series that is wrong for some ``l``
     (SpM-lab/sparse-ir-rs#265).  That regime is pinned by the strict xfail
-    tests below.
+    two-state tests below.
     """
     beta, wmax, eps = B1
     basis = get_basis(stat, beta, wmax, eps)
@@ -102,7 +115,6 @@ def test_o2_uhat_is_the_fourier_transform_of_u(stat, get_basis):
         assert_close(basis.uhat(n)[ls], ref, 1e-10 * np.sqrt(beta), f"uhat({n})")
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=ISSUE_265)
 @pytest.mark.parametrize("stat", ["F", "B"])
 def test_o2_uhat_in_the_asymptotic_regime(stat, get_basis):
     beta, wmax, eps = B1
@@ -110,10 +122,10 @@ def test_o2_uhat_in_the_asymptotic_regime(stat, get_basis):
     n = int(80 * beta * wmax) + zeta(stat)     # twice n_asymp
     xs, ws = gauss_legendre_panels(0.0, beta, npanels=1600, order=24)
     ref = basis.u(xs) @ (np.exp(1j * np.pi * n * xs / beta) * ws)
-    assert_close(basis.uhat(n), ref, 1e-10 * np.sqrt(beta), f"uhat({n})")
+    assert_close_or_xfail(basis.uhat(n), ref, 1e-10 * np.sqrt(beta),
+                          f"uhat({n})", ISSUE_265)
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=ISSUE_265)
 @pytest.mark.parametrize("stat", ["F", "B"])
 def test_o4_uhat_high_frequency_tail(stat, get_basis):
     """``i*nu_n*uhat_l(n) -> -(u_l(beta) + u_l(0))`` (F), ``u_l(beta) - u_l(0)`` (B).
@@ -128,8 +140,8 @@ def test_o4_uhat_high_frequency_tail(stat, get_basis):
     nu = np.pi * n / beta
     u0, ub = basis.u(0.0), basis.u(beta)
     limit = -(ub + u0) if stat == 'F' else ub - u0
-    assert_close(1j * nu * basis.uhat(n), limit, 1e-6 * np.abs(u0).max(),
-                 "i nu uhat(n)")
+    assert_close_or_xfail(1j * nu * basis.uhat(n), limit,
+                          1e-6 * np.abs(u0).max(), "i nu uhat(n)", ISSUE_265)
 
 
 @pytest.mark.parametrize("stat", ["F", "B"])
@@ -254,7 +266,6 @@ def test_o5_hard_regimes(stat, regime, get_basis):
     assert basis.accuracy < eps <= basis.significance[-1]
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=ISSUE_273)
 def test_o6_regularized_bose_basis_expands_the_physical_kernel():
     """``sum_l U_l(tau) S_l V_l(w) == w e^{-tau w} / (1 - e^{-beta w})`` (T-eps).
 
@@ -262,6 +273,10 @@ def test_o6_regularized_bose_basis_expands_the_physical_kernel():
     et al., CPC 240, 181 (2019), arXiv:1807.05237, Eq. (3)), expanded with
     ``S_l = sqrt(beta * wmax**3 / 2) * s_l`` (Eq. (25)).  ``wmax = 2``
     separates the power of wmax; ``wmax = 1`` would hide it.
+
+    Backends without the fix of SpM-lab/sparse-ir-rs#273 give exactly
+    ``ref / wmax**2``; that result xfails, anything else must meet the
+    tolerance.  Drop the xfail branch once every supported backend has the fix.
     """
     beta, wmax, eps = 10.0, 2.0, 1e-10
     kernel = sparse_ir.RegularizedBoseKernel(beta * wmax)
@@ -271,4 +286,7 @@ def test_o6_regularized_bose_basis_expands_the_physical_kernel():
     usv = np.einsum('lt,l,lw->tw', basis.u(taus), basis.s, basis.v(ws))
     t, w = taus[:, None], ws[None, :]
     ref = -w * np.exp(-t * w) / np.expm1(-beta * w)
-    assert_close(usv, ref, 300 * eps * wmax, "sum_l U_l S_l V_l")
+    tol = 300 * eps * wmax
+    if np.max(np.abs(usv - ref / wmax**2)) <= tol / wmax**2:
+        pytest.xfail(ISSUE_273)
+    assert_close(usv, ref, tol, "sum_l U_l S_l V_l")
