@@ -1,6 +1,7 @@
 # Copyright (C) 2020-2025 Satoshi Terasaki, Markus Wallerberger, Hiroshi Shinaoka, and others
 # SPDX-License-Identifier: MIT
 import functools
+import inspect
 import numpy as np
 
 
@@ -18,6 +19,21 @@ def release_handle(handle, release):
         close()
     else:
         release(handle)
+
+
+def has_basis_size_argument(fn):
+    """True if the pylibsparseir function ``fn`` takes ``basis_size``.
+
+    pylibsparseir >= 0.10 changed ``basis_get_default_matsus_ext`` from
+    ``(basis, positive_only, points)`` to
+    ``(basis, basis_size, positive_only, fence=False)``, returning the points
+    (SpM-lab/sparse-ir-rs#274).  The signature is checked rather than the
+    version, since development builds may report an older version.
+    """
+    try:
+        return "basis_size" in inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
 
 
 def ravel_argument(last_dim=False):

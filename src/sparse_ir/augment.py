@@ -8,6 +8,9 @@ from . import basis
 from pylibsparseir.core import basis_get_default_tau_sampling_points_ext, basis_get_default_matsus_ext, _lib
 from pylibsparseir.constants import COMPUTATION_SUCCESS
 
+_MATSUS_EXT_TAKES_BASIS_SIZE = _util.has_basis_size_argument(
+    basis_get_default_matsus_ext)
+
 class AugmentedBasis(abstract.AbstractBasis):
     """Augmented basis on the imaginary-time/frequency axis.
 
@@ -174,6 +177,9 @@ class AugmentedBasis(abstract.AbstractBasis):
             # as the point limit returned a truncated, zero-padded set.
             points = self.default_matsubara_sampling_points()
             return points[points >= 0]
+        if _MATSUS_EXT_TAKES_BASIS_SIZE:
+            return basis_get_default_matsus_ext(
+                self._basis._ptr, self.size, positive_only)
         # Call C function directly with correct 5 arguments
         # The pylibsparseir wrapper basis_get_n_default_matsus_ext has a bug - missing 2nd bool arg
         # C signature: (basis_ptr, _Bool positive_only, _Bool fence, c_int n_points, POINTER(c_int) n_points_returned)
