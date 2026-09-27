@@ -562,3 +562,39 @@ def test_augmented_tau_sampling_roundtrip():
     ax = smpl.evaluate(al)
     assert np.linalg.norm(ax) > 0
     np.testing.assert_allclose(smpl.fit(ax), al, rtol=0, atol=1e-8)
+
+
+def test_finalizers_release_handles_silently(monkeypatch):
+    """Dropping wrapper objects must not raise inside ``__del__``.
+
+    pylibsparseir >= 0.10 returns owned handles whose raw
+    ``_lib.spir_*_release`` refuses them (SpM-lab/sparse-ir-rs#282); an
+    exception in ``__del__`` only reaches ``sys.unraisablehook``, so it is
+    captured here instead of being lost as a warning.
+    """
+    import gc
+    import sys
+    from sparse_ir.poly import FunctionSet, FunctionSetFT
+
+    unraisable = []
+    monkeypatch.setattr(sys, "unraisablehook", unraisable.append)
+
+    from pylibsparseir.core import basis_get_u, basis_get_uhat
+
+    kernel = sparse_ir.LogisticKernel(10.0)
+    sve = sparse_ir.SVEResult(kernel, 1e-6)
+    basis = sparse_ir.FiniteTempBasis("F", 10.0, 1.0, eps=1e-6, sve_result=sve)
+    # Handles from pylibsparseir constructors and from direct _lib calls.
+    u = FunctionSet(basis_get_u(basis._ptr))
+    uhat = FunctionSetFT(basis_get_uhat(basis._ptr), zeta=1)
+    funcs = [u, u[:2], u.deriv(), u.deriv(0), uhat, uhat[:2],
+             basis.u[:2], basis.uhat[0]]
+    # An explicit release followed by finalization must not free twice.
+    funcs[0].release()
+    funcs[5].release()
+    del kernel, sve, basis, u, uhat, funcs
+    gc.collect()
+
+    assert not unraisable, [
+        f"{u.exc_type.__name__}: {u.exc_value} in {u.object!r}"
+        for u in unraisable]

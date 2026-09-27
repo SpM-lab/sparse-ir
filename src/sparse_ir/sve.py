@@ -21,6 +21,7 @@ from pylibsparseir.core import (
     sve_result_get_size,
 )
 from .abstract import AbstractKernel
+from . import _util
 from .kernel import LogisticKernel, RegularizedBoseKernel
 
 
@@ -126,7 +127,7 @@ class SVEResult:
     def __del__(self):
         """Clean up SVE resources."""
         if hasattr(self, '_ptr') and self._ptr:
-            _lib.spir_sve_result_release(self._ptr)
+            _util.release_handle(self._ptr, _lib.spir_sve_result_release)
 
 
 def compute(
