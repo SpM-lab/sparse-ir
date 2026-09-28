@@ -34,6 +34,15 @@ If network access is unavailable, look for a sibling checkout at
 See [`REPOSITORY_RULES.md`](REPOSITORY_RULES.md) for this repository's
 verified layout, native-library loading, dev setup, and test/CI commands.
 
+## Releases
+
+For any release work — bumping the version, changing the `pylibsparseir`
+range, tagging, or checking PyPI and conda — follow the shared
+[`sparse-ir-release`](https://github.com/SpM-lab/spm-agent-rules/blob/main/skills/sparse-ir-release/SKILL.md) skill (offline:
+`../spm-agent-rules/skills/sparse-ir-release/SKILL.md`). This repository is
+step 4 of it (`python.md`): it starts only after `pylibsparseir` is on both PyPI
+and the `spm-lab` conda channel.
+
 ## Precedence
 
 Repository-local rules in `REPOSITORY_RULES.md` override the shared rules
