@@ -341,8 +341,22 @@ def test_axis_on_three_dimensional_input(bases, stat, axis):
                                    rtol=0, atol=1e-13 * np.abs(ref).max())
         back = backward(out, axis=axis)
         back_ref = backward(ref, axis=0)
+        # The two calls place the coefficient axis differently, which can select
+        # a different contraction geometry, so their rounding can differ; the
+        # ill-conditioned DLR round trip amplifies that (SpM-lab/sparse-ir-rs#326).
+        # The sampling transforms are well conditioned and keep the fixed bound.
+        if name == "DLR.from_IR":
+            # G_l = -S_l sum_p V_l(w_p) c_p, as DiscreteLehmannRepresentation
+            # documents; its conditioning is what amplifies the input.
+            amp = np.linalg.cond(-basis.s[:, None]
+                                 * basis.v(obj.sampling_points))
+            assert np.isfinite(amp)
+        else:
+            amp = 1.0
+        atol = max(1e-12, amp * np.finfo(np.float64).eps) \
+            * np.abs(back_ref).max()
         np.testing.assert_allclose(np.moveaxis(back, axis, 0), back_ref,
-                                   rtol=0, atol=1e-12 * np.abs(back_ref).max())
+                                   rtol=0, atol=atol)
 
 
 # ---------------------------------------------------------------------------
