@@ -12,7 +12,7 @@ affected area.
 `sparse-ir` is a pure-Python wrapper around the `libsparseir` C library. It
 does not vendor or build the C library itself; the native binding layer is
 supplied by the separate `pylibsparseir` package (a `pyproject.toml`
-dependency, currently pinned as `pylibsparseir>=0.8.3,<0.11.0`).
+dependency, currently pinned as `pylibsparseir>=0.8.3,<0.13.0`).
 
 ## Package Layout
 
