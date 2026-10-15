@@ -54,3 +54,9 @@ exclude_patterns = [
     ]
 
 html_theme = "sphinx_rtd_theme"
+
+# Navigation banner shared by the sparse-ir documentation sites; the links are
+# maintained in SpM-lab/SpM-lab.github.io.
+html_js_files = [
+    ("https://spm-lab.github.io/assets/ecosystem-banner.js", {"defer": "defer"}),
+    ]
