@@ -7,6 +7,9 @@ intermediate representation of correlation functions.  It provides:
  - basis functions and singular values are accurate to full precision
  - routines for sparse sampling
 
+sparse-ir is part of the `sparse-ir ecosystem`_ (overview, history of IR and DLR,
+notation, and the Julia, Rust, C and Fortran libraries), maintained by `SpM-lab`_.
+
 
 Installation
 ------------
@@ -63,7 +66,9 @@ G(iν) = ∫₀^β dτ e^{iντ} G(τ); and G(τ) is evaluated for τ in [-β, �
 There is also a `Julia library`_ and (currently somewhat restricted)
 `C library with Fortran bindings`_ available for the IR basis and sparse sampling.
 
-.. _comprehensive tutorial: https://spm-lab.github.io/sparse-ir-tutorial-v2/
+.. _comprehensive tutorial: https://spm-lab.github.io/sparse-ir-tutorial/
+.. _sparse-ir ecosystem: https://spm-lab.github.io/sparse-ir-doc/
+.. _SpM-lab: https://spm-lab.github.io/
 .. _API documentation: https://sparse-ir.readthedocs.io
 .. _notation page: https://spm-lab.github.io/sparse-ir-doc/src/notation.html
 .. _Julia library: https://github.com/SpM-lab/SparseIR.jl
