@@ -6,7 +6,9 @@ with any bases derived from :class:`sparse_ir.abstract.AbstractBasis`.
 
 In particular, we offer a variant of the discrete Lehmann representation
 (DLR), with poles at the roots of the first discarded IR basis function
-V_L: :class:`sparse_ir.dlr.DiscreteLehmannRepresentation`.
+V_L: :class:`sparse_ir.dlr.DiscreteLehmannRepresentation`. For how this
+relates to the original DLR and to the IR, see `IR, DLR and MiniPole: history
+and comparison <https://spm-lab.github.io/sparse-ir-doc/src/history_comparison.html>`__.
 
 .. autoclass:: sparse_ir.dlr.DiscreteLehmannRepresentation
     :members:
