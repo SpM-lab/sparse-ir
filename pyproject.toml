@@ -25,9 +25,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/SpM-lab/sparse-r"
-Repository = "https://github.com/SpM-lab/sparse-r"
-"Bug Tracker" = "https://github.com/SpM-lab/sparse-r/issues"
+Homepage = "https://github.com/SpM-lab/sparse-ir"
+Repository = "https://github.com/SpM-lab/sparse-ir"
+"Bug Tracker" = "https://github.com/SpM-lab/sparse-ir/issues"
 
 [build-system]
 requires = ["setuptools", "wheel"]
