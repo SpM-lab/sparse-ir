@@ -25,6 +25,16 @@ sparse-ir requires `numpy <https://numpy.org/>`_, `scipy <https://scipy.org/>`_,
 and `pylibsparseir <https://pypi.org/project/pylibsparseir>`_ (a thin Python wrapper
 for the libsparseir C API from `sparse-ir-rs <https://github.com/SpM-lab/sparse-ir-rs>`_).
 
+The prebuilt ``pylibsparseir`` (0.14 on) uses the fused multiply-add (FMA)
+instruction, which every aarch64 CPU and every x86-64 CPU since 2013 has. On a
+CPU without it, ``import sparse_ir`` raises a ``RuntimeError`` naming the
+requirement instead of crashing. There, build ``pylibsparseir`` from its
+repository with FMA turned off (a Rust toolchain is needed)::
+
+    RUSTFLAGS="-C target-feature=-fma" pip install "pylibsparseir @ git+https://github.com/SpM-lab/sparse-ir-rs@v0.14.0#subdirectory=python"
+
+(0.13 also needs FMA but lacks the check, so this package does not accept it.)
+
 To manually install the current development version, you can use the following::
 
    # Only recommended for developers - no automatic updates!
